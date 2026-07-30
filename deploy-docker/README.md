@@ -101,8 +101,20 @@ ssh-copy-id -i ~/.ssh/dextlab_deploy.pub deploy@IP_DEL_VPS
 Impronta dell'host, per il controllo di autenticità:
 
 ```bash
-ssh-keyscan -p 22 IP_DEL_VPS
+ssh-keyscan IP_DEL_VPS          # se SSH è sulla porta 22
+ssh-keyscan -p 2222 IP_DEL_VPS  # altrimenti, indicando la porta
 ```
+
+> Due condizioni facili da sbagliare:
+>
+> 1. **L'host deve risolvere da internet.** L'hostname interno del VPS (quello
+>    che appare nel prompt della shell) non risolve dai runner di GitHub: va
+>    usato l'IP pubblico, oppure un nome DNS che punti al VPS.
+> 2. **La stringa deve essere la stessa** in `DEPLOY_HOST` e in `ssh-keyscan`.
+>    Le voci di `known_hosts` sono indicizzate per nome: un'impronta rilevata
+>    sull'IP non vale per un accesso fatto tramite hostname, e viceversa. Con
+>    una porta diversa dalla 22, `ssh-keyscan -p` produce già la forma
+>    `[host]:porta` attesa.
 
 ### 3. Secret e variabili su GitHub
 
@@ -111,17 +123,18 @@ ssh-keyscan -p 22 IP_DEL_VPS
 | Nome | Valore |
 |---|---|
 | `DEPLOY_SSH_KEY` | contenuto di `~/.ssh/dextlab_deploy`, la chiave **privata**, incluse le righe BEGIN/END |
-| `DEPLOY_HOST` | IP o hostname del VPS |
+| `DEPLOY_HOST` | IP pubblico del VPS, o un nome DNS che lo raggiunga da internet |
 | `DEPLOY_USER` | `deploy` |
 | `DEPLOY_PATH` | `/home/samu/docker/dextlab` |
-| `DEPLOY_KNOWN_HOSTS` | output completo di `ssh-keyscan` |
+| `DEPLOY_KNOWN_HOSTS` | output completo di `ssh-keyscan`, **tutte** le righe, rilevato sullo stesso host indicato in `DEPLOY_HOST` |
 | `DEPLOY_PORT` | solo se SSH non è sulla 22 |
 
-**Variables** (stessa pagina, tab Variables):
+**Variables** (stessa pagina, tab Variables — sono valori non segreti, visibili
+nei log):
 
 | Nome | Valore | A cosa serve |
 |---|---|---|
-| `SITE_URL` | `https://tuodominio` | verifica di `/api/health` dall'esterno dopo il deploy |
+| `SITE_URL` | `https://tuodominio` | verifica di `/api/health` dall'esterno dopo il deploy. Facoltativa: se manca, quel controllo viene semplicemente saltato |
 | `PG_CLIENT` | `postgresql17-client` | solo se il tuo Postgres non è la 16 (vedi sotto) |
 
 `DEPLOY_KNOWN_HOSTS` non è opzionale: senza di esso il workflow si ferma. È
