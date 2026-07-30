@@ -9,14 +9,14 @@
   "lang": "it",
   "icons": [
     {
-      "src": "assets/logo-v.png",
-      "sizes": "512x512",
+      "src": "/assets/logo-v.png",
+      "sizes": "883x1027",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "assets/logo-h.png",
-      "sizes": "400x160",
+      "src": "/assets/logo-h.png",
+      "sizes": "400x156",
       "type": "image/png"
     }
   ]
