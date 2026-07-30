@@ -291,40 +291,66 @@ sostituito da quello Node. Il disservizio è quello del riavvio, qualche secondo
 
 ### 7. Verifica
 
+Attenzione a **come** si verifica che i contenuti arrivino dal database.
+Guardare la pagina e riconoscere i propri prezzi funziona solo se quei contenuti
+sono stati personalizzati: se il database contiene ancora i valori iniziali,
+sono identici ai fallback scritti nel codice e la pagina appare corretta in
+entrambi i casi. Serve un controllo che distingua.
+
+**a) Nessun errore di query.** È il segnale diretto: se lo schema non fosse
+stato convertito, ogni lettura dei contenuti fallirebbe e lo si leggerebbe qui.
+
 ```bash
-curl -s https://dextlab.it/api/health
-# {"status":"ok","database":true}
+cd /home/samu/docker/dextlab/deploy-docker
+docker compose logs web | grep -cE '\[db\] query fallita|\[db\] errore sul pool'
+# deve rispondere 0
+docker compose logs web | grep -iE 'preflight|migrazion|schema'
 ```
 
-Sul sito, controlla che compaiano **i tuoi** contenuti e non i predefiniti:
-
-- i tipi di progetto del configuratore sono quelli che hai impostato tu, con i
-  tuoi prezzi, e quelli disattivati non appaiono;
-- le tue recensioni e le tue FAQ;
-- il numero WhatsApp e l'email di contatto giusti.
-
-Se vedi cinque tipi di progetto con prezzi 490/990/2500/4500/1800 e tre
-recensioni firmate "Marco R.", "Laura B." e "Stefano P.", stai guardando i
-contenuti di fallback: la migrazione non è andata a buon fine. Controlla i log
-con `docker compose logs web`.
-
-Poi nel pannello:
+**b) Il pannello admin è l'oracolo affidabile**, perché non ha contenuti di
+fallback: se legge, sta leggendo dal database.
 
 ```
 https://dextlab.it/admin
 ```
 
 L'utente e la password esistenti funzionano: gli hash bcrypt di PHP sono
-compatibili (verificato nelle due direzioni). Nella dashboard i lead storici
-devono comparire con le loro date.
+compatibili. Nella dashboard il numero di visite deve corrispondere a quello che
+c'era prima della migrazione, e il riquadro "Umani confermati" deve essere
+popolato: dipende dalla colonna `human`, cioè proprio da una di quelle convertite.
+
+```bash
+# confronto con il database
+docker exec postgres psql -U dext -d dext -c \
+  "SELECT count(*) visite, count(*) FILTER (WHERE human) umani FROM visits;"
+```
+
+**c) Le scritture funzionano.** Ricarica la home un paio di volte e verifica che
+il contatore avanzi: prova che l'inserimento con i tipi nuovi va a buon fine.
+
+```bash
+docker exec postgres psql -U dext -d dext -tAc "SELECT count(*) FROM visits;"
+```
+
+**d) Prova definitiva sui contenuti**, se vuoi la certezza assoluta: da Admin →
+Prezzi cambia un prezzo di 1 euro, salva, ricarica la home e controlla che il
+configuratore mostri il valore nuovo. Poi rimettilo come era. Questo esercita
+lettura e scrittura sulle tabelle convertite, ed è l'unico controllo che
+distingue con sicurezza il database dai fallback.
+
+```bash
+curl -s https://dextlab.it/api/health
+# {"status":"ok","database":true}
+```
 
 Ricontrolla anche Admin → Impostazioni: SMTP, chiave AI e token Telegram sono
 conservati, ma i campi appaiono **vuoti** perché i segreti non vengono più
 ristampati nella pagina. L'etichetta accanto dice "salvato". Lasciandoli vuoti
 al prossimo salvataggio si conservano.
 
-Infine prova un invio dal form contatti e controlla che il lead arrivi in
-Admin → Lead con la data corretta.
+Infine prova un invio dal form contatti e controlla che compaia in Admin → Lead
+con la data corretta: esercita l'inserimento su `leads.created_at`, la colonna
+che senza la migrazione avrebbe accettato NULL rendendo il lead invisibile.
 
 ### 8. Se qualcosa va storto
 
