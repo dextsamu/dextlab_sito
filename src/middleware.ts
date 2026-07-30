@@ -13,6 +13,7 @@ import { defineMiddleware } from 'astro:middleware';
 import { getSettings, settingOn, trackVisit, clientIp } from './lib/db.ts';
 import { previewToken } from './lib/preview.ts';
 import { safeEqual } from './lib/crypto.ts';
+import { isCrossSiteWrite, crossSiteResponse } from './lib/origin.ts';
 
 /** Percorsi che non sono pagine visitabili: nessuna impostazione, nessun tracciamento. */
 function isVisitablePage(pathname: string): boolean {
@@ -50,6 +51,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // Le rotte prerenderizzate vengono generate in fase di build: non esiste una
   // richiesta reale, quindi né clientAddress né il database sono disponibili.
   if (context.isPrerendered) return next();
+
+  // Prima di tutto il resto, e prima di qualsiasi rotta compresa /api: sostituisce
+  // il controllo di origine di Astro, inservibile dietro un proxy che termina il
+  // TLS. Vedi src/lib/origin.ts.
+  if (isCrossSiteWrite(request)) return crossSiteResponse();
 
   context.locals.clientIp = clientIp(request, context.clientAddress);
 
