@@ -100,6 +100,24 @@ if [ -z "$PREVIOUS_IMAGE" ]; then
   exit 1
 fi
 
+# Il rollback funziona solo se l'immagine precedente veniva dallo stesso
+# registry, perché riparte da un tag. Al primo passaggio dalla versione PHP
+# l'immagine precedente era costruita in locale (nessun tag del registry):
+# provare a "tornare indietro" cercherebbe un tag inesistente. Meglio dirlo.
+EXPECTED_REPO="${IMAGE_NAME:-ghcr.io/dextsamu/dextlab_sito}"
+case "$PREVIOUS_IMAGE" in
+  "$EXPECTED_REPO":*) ;;
+  *)
+    echo >&2
+    echo "L'immagine precedente ($PREVIOUS_IMAGE) non viene da $EXPECTED_REPO:" >&2
+    echo "non è possibile tornare indietro automaticamente con un tag." >&2
+    echo "Ripristino manuale: riavvia lo stack precedente, oppure" >&2
+    echo "  docker compose up -d --force-recreate" >&2
+    echo "con il docker-compose.yml della versione che girava prima." >&2
+    exit 1
+    ;;
+esac
+
 PREVIOUS_TAG="${PREVIOUS_IMAGE##*:}"
 echo >&2
 echo "Torno alla versione precedente ($PREVIOUS_TAG)..." >&2

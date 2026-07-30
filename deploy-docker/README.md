@@ -4,6 +4,12 @@ Il deploy è automatico: ogni push su `main` che supera i controlli costruisce
 un'immagine, la pubblica su GHCR e aggiorna il VPS. Il workflow è
 [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml).
 
+> **Stai passando dalla versione PHP già in produzione?** Non seguire questa
+> pagina dall'inizio: segui
+> [MIGRAZIONE-DA-PHP.md](MIGRAZIONE-DA-PHP.md), che copre il backup obbligatorio
+> e la conversione dello schema del database. Poi torna qui per le operazioni
+> ricorrenti.
+
 Lo stack si **aggancia** a due servizi già presenti sul VPS e non li duplica:
 
 - **Traefik** esistente, sulla rete Docker esterna `proxy`, con resolver ACME

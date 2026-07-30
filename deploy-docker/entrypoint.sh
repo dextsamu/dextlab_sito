@@ -8,6 +8,11 @@
 # conviene disattivarlo (RUN_MIGRATIONS=false) e lanciarlo come job separato.
 set -e
 
+# Prima di ogni altra cosa: se la configurazione è incompleta è meglio fermarsi
+# qui con un elenco di cosa manca, invece di partire e fallire più tardi in un
+# punto lontano dalla causa.
+node ./scripts/preflight.mjs
+
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
   echo "[entrypoint] applico le migrazioni..."
   if ! node ./scripts/migrate.mjs; then

@@ -5,6 +5,11 @@ Il deploy gira in Docker dietro un Traefik già presente sul VPS: la
 configurazione e i segreti da impostare stanno in
 [`deploy-docker/README.md`](deploy-docker/README.md).
 
+> Se sul VPS gira ancora la versione PHP con dati reali, il primo passaggio
+> richiede una procedura a sé: backup obbligatorio e conversione dei tipi di
+> alcune colonne. È in
+> [`deploy-docker/MIGRAZIONE-DA-PHP.md`](deploy-docker/MIGRAZIONE-DA-PHP.md).
+
 ## Integrazione continua
 
 Due workflow in `.github/workflows/`:

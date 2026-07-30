@@ -29,6 +29,10 @@ function dbConfigFromEnv() {
 
 async function main() {
   const listOnly = process.argv.includes('--list');
+  // Prova a vuoto: applica tutto in una transazione e la annulla. Serve a
+  // verificare su un database di produzione che le migrazioni girino senza
+  // errori, prima di modificarlo per davvero.
+  const dryRun = process.argv.includes('--dry-run');
   const files = (await readdir(MIGRATIONS_DIR)).filter((f) => f.endsWith('.sql')).sort();
 
   if (files.length === 0) {
@@ -38,6 +42,14 @@ async function main() {
   }
 
   const client = new pg.Client(dbConfigFromEnv());
+
+  // Le migrazioni che adeguano uno schema esistente riportano con RAISE NOTICE
+  // quali conversioni hanno effettuato: su un database di produzione è
+  // l'unico modo per sapere cosa è stato toccato davvero.
+  client.on('notice', (msg) => {
+    if (msg.message) console.log(`    ${msg.message}`);
+  });
+
   try {
     await client.connect();
   } catch (err) {
@@ -48,6 +60,10 @@ async function main() {
   }
 
   try {
+    // In prova a vuoto anche la creazione di schema_migrations sta dentro la
+    // transazione, così l'annullamento non lascia nemmeno quella tabella.
+    if (dryRun) await client.query('BEGIN');
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS schema_migrations (
         filename    VARCHAR(255) PRIMARY KEY,
@@ -66,6 +82,27 @@ async function main() {
     const pending = files.filter((f) => !applied.has(f));
     if (pending.length === 0) {
       console.log('Database già aggiornato, nessuna migrazione da applicare.');
+      return;
+    }
+
+    if (dryRun) {
+      console.log(`Prova a vuoto: ${pending.length} migrazione/i da applicare.\n`);
+      try {
+        for (const file of pending) {
+          const sql = await readFile(join(MIGRATIONS_DIR, file), 'utf8');
+          process.stdout.write(`proverei ${file} ... `);
+          await client.query(sql);
+          console.log('ok');
+        }
+        console.log('\nTutte le migrazioni girano senza errori.');
+      } catch (err) {
+        console.log('FALLITA');
+        console.error(`\n${err.message}\n`);
+        process.exitCode = 1;
+      } finally {
+        await client.query('ROLLBACK').catch(() => {});
+        console.log('Modifiche annullate: il database non è stato toccato.');
+      }
       return;
     }
 
