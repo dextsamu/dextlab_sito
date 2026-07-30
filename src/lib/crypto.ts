@@ -57,3 +57,17 @@ export function verifyPayload<T>(token: string, secret: string): T | null {
 export function randomToken(bytes = 32): string {
   return randomBytes(bytes).toString('hex');
 }
+
+/**
+ * Token derivato dal segreto per uno scopo specifico.
+ *
+ * Serve a non usare mai APP_SECRET direttamente in un valore che finisce in un
+ * URL o in una pagina. Il pannello PHP metteva il segreto in chiaro nel link di
+ * anteprima: quel valore firma anche i cookie di sessione, quindi la sua
+ * comparsa nella cronologia del browser o in uno screenshot sarebbe bastata a
+ * forgiare una sessione admin. Un token derivato può essere divulgato senza
+ * conseguenze oltre all'accesso all'anteprima.
+ */
+export function deriveToken(secret: string, purpose: string): string {
+  return createHmac('sha256', secret).update(`purpose:${purpose}`).digest('hex').slice(0, 32);
+}

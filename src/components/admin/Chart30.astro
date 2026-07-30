@@ -1,0 +1,33 @@
+---
+import type { DayPoint } from '../../lib/admin.ts';
+import { shortDay } from '../../lib/format.ts';
+
+interface Props {
+  points: DayPoint[];
+  label: string;
+}
+
+const { points, label } = Astro.props;
+
+// L'altezza è relativa al massimo del periodo; il minimo 1 evita la divisione
+// per zero quando non ci sono dati.
+const max = Math.max(1, ...points.map((p) => p.count));
+const first = points[0];
+---
+
+<div class="chart30" role="img" aria-label={label}>
+  {
+    points.map((p) => (
+      <span
+        class="bar"
+        style={`--h:${Math.round((p.count / max) * 100)}%`}
+        title={`${shortDay(p.day)}: ${p.count}`}
+      >
+        <em>{p.count || ''}</em>
+      </span>
+    ))
+  }
+</div>
+<div class="chart30-axis">
+  <span>{first ? shortDay(first.day) : ''}</span><span>oggi</span>
+</div>

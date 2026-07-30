@@ -1,0 +1,80 @@
+---
+/**
+ * Cornice del pannello admin: intestazione, navigazione e area messaggi.
+ * Riusa public/css/admin.css come nella versione PHP.
+ */
+import { takeFlash } from '../lib/flash.ts';
+
+interface Props {
+  /** Chiave della voce di menu attiva. */
+  current: string;
+  title: string;
+  /** Numero di lead nuovi, mostrato come badge sulla voce Lead. */
+  newLeads?: number;
+}
+
+const { current, title, newLeads = 0 } = Astro.props;
+const flash = takeFlash(Astro.cookies);
+
+const nav = [
+  { key: 'dashboard', label: 'Dashboard', href: '/admin' },
+  { key: 'pricing', label: 'Prezzi', href: '/admin/prezzi' },
+  { key: 'leads', label: 'Lead', href: '/admin/lead' },
+  { key: 'content', label: 'Contenuti', href: '/admin/contenuti' },
+  { key: 'backup', label: 'Backup', href: '/admin/backup' },
+  { key: 'settings', label: 'Impostazioni', href: '/admin/impostazioni' },
+];
+---
+
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>{title} — Dext Lab admin</title>
+    <link rel="icon" type="image/png" href="/assets/logo-h.png" />
+    <link rel="stylesheet" href="/css/admin.css" />
+  </head>
+  <body>
+    <header class="adm-top">
+      <strong>Dext Lab <span>admin</span></strong>
+      <nav>
+        {
+          nav.map((item) => (
+            <a href={item.href} class={current === item.key ? 'on' : ''}>
+              {item.label}
+              {item.key === 'leads' && newLeads > 0 && <em>{newLeads}</em>}
+            </a>
+          ))
+        }
+      </nav>
+      <form method="post" action="/admin/logout" class="inline">
+        <button class="logout" type="submit">Esci</button>
+      </form>
+    </header>
+
+    <main class="adm-main">
+      {flash && <div class:list={['notice', { error: flash.kind === 'error' }]}>{flash.message}</div>}
+      <slot />
+    </main>
+
+    <script>
+      // Conferma per le azioni distruttive. Delegata sul document invece di
+      // usare onclick inline su ogni pulsante, così non serve consentire
+      // script inline in un'eventuale Content-Security-Policy.
+      document.addEventListener('click', (event) => {
+        const target = event.target as HTMLElement | null;
+        const trigger = target?.closest<HTMLElement>('[data-confirm]');
+        if (!trigger) return;
+        if (!window.confirm(trigger.dataset.confirm || 'Confermi?')) event.preventDefault();
+      });
+
+      // Select che inviano il proprio form al cambio (stato dei lead).
+      document.addEventListener('change', (event) => {
+        const target = event.target as HTMLElement | null;
+        if (!target?.matches('[data-autosubmit]')) return;
+        (target as HTMLSelectElement).form?.requestSubmit();
+      });
+    </script>
+  </body>
+</html>

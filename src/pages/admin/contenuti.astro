@@ -1,0 +1,57 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import CrudRow, { type FieldSpec } from '../../components/admin/CrudRow.astro';
+import { guardAdmin, handleAdminPost } from '../../lib/admin-actions.ts';
+import { csrfToken } from '../../lib/auth.ts';
+import { contentRows, leadStats } from '../../lib/admin.ts';
+
+const denied = guardAdmin(Astro);
+if (denied) return denied;
+
+const { response } = await handleAdminPost(Astro, '/admin/contenuti');
+if (response) return response;
+
+const csrf = csrfToken(Astro.cookies);
+
+const reviewFields: FieldSpec[] = [
+  { name: 'quote', type: 'textarea', placeholder: 'Testo recensione' },
+  { name: 'author', type: 'text', placeholder: 'Autore' },
+  { name: 'role', type: 'text', placeholder: 'Ruolo' },
+  { name: 'stars', type: 'number', placeholder: 'stelle' },
+  { name: 'sort', type: 'number', placeholder: 'ordine' },
+  { name: 'active', type: 'check', placeholder: '' },
+];
+
+const faqFields: FieldSpec[] = [
+  { name: 'question', type: 'text', placeholder: 'Domanda' },
+  { name: 'answer', type: 'textarea', placeholder: 'Risposta' },
+  { name: 'sort', type: 'number', placeholder: 'ordine' },
+  { name: 'active', type: 'check', placeholder: '' },
+];
+
+const [reviews, faqs, leads] = await Promise.all([
+  contentRows('reviews'),
+  contentRows('faqs'),
+  leadStats(),
+]);
+---
+
+<AdminLayout current="content" title="Contenuti" newLeads={leads.newCount}>
+  <h1>Contenuti</h1>
+
+  <section class="block">
+    <h2>Recensioni</h2>
+    {reviews.map((row) => <CrudRow table="reviews" fields={reviewFields} row={row} csrf={csrf} />)}
+    <h3>+ Nuova recensione</h3>
+    <CrudRow table="reviews" fields={reviewFields} row={null} csrf={csrf} />
+    <p class="hint">Le stelle sono limitate fra 1 e 5.</p>
+  </section>
+
+  <section class="block">
+    <h2>FAQ</h2>
+    {faqs.map((row) => <CrudRow table="faqs" fields={faqFields} row={row} csrf={csrf} />)}
+    <h3>+ Nuova FAQ</h3>
+    <CrudRow table="faqs" fields={faqFields} row={null} csrf={csrf} />
+    <p class="hint">Nelle risposte i ritorni a capo vengono conservati sul sito.</p>
+  </section>
+</AdminLayout>

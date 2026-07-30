@@ -1,0 +1,33 @@
+---
+import type { HumanBotPoint } from '../../lib/admin.ts';
+import { shortDay } from '../../lib/format.ts';
+
+interface Props {
+  points: HumanBotPoint[];
+}
+
+const { points } = Astro.props;
+const max = Math.max(1, ...points.map((p) => p.total));
+const first = points[0];
+---
+
+<div class="chart-hb" role="img" aria-label="Umani vs bot, ultimi 30 giorni">
+  {
+    points.map((p) => {
+      const bots = Math.max(0, p.total - p.humans);
+      return (
+        <span class="hb" title={`${shortDay(p.day)} — ${p.humans} umani, ${bots} bot`}>
+          <i class="hb-hum" style={`height:${((p.humans / max) * 100).toFixed(1)}%`} />
+          <i class="hb-bot" style={`height:${((bots / max) * 100).toFixed(1)}%`} />
+        </span>
+      );
+    })
+  }
+</div>
+<div class="chart30-axis">
+  <span>{first ? shortDay(first.day) : ''}</span><span>oggi</span>
+</div>
+<div class="hb-legend">
+  <span><i class="lg-hum"></i> Umani confermati</span>
+  <span><i class="lg-bot"></i> Bot / non confermati</span>
+</div>

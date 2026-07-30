@@ -103,3 +103,14 @@ table.leads select{padding:6px 8px;border-radius:7px;border:1px solid var(--bord
 .ck.big strong{color:#febc2e;margin-left:4px}
 .maint-box textarea{width:100%;padding:10px;border-radius:8px;border:1px solid var(--bord);background:var(--bg);color:var(--txt);font-family:inherit}
 @media(max-width:640px){.crud-head{display:none}.crud-row{grid-template-columns:1fr;border:1px solid var(--bord);padding:12px;border-radius:9px}}
+
+/* logout come pulsante: era un link GET, ora un POST (un logout via GET
+   è attivabile da terzi, per esempio con un tag img) */
+button.logout{background:none;border:0;padding:0;font:inherit;cursor:pointer}
+button.logout:hover{color:var(--txt)}
+
+/* variante di errore per l'area messaggi */
+.notice.error{background:rgba(255,90,90,.12);border-color:rgba(255,90,90,.4);color:#ff8a8a}
+
+/* nota di ripristino nella pagina backup */
+.restore-cmd{display:block;margin-top:6px;padding:10px 12px;background:var(--bg2);border:1px solid var(--bord);border-radius:8px;font-size:.82rem;overflow-x:auto;white-space:pre}

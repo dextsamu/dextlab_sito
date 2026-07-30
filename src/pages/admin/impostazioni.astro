@@ -1,0 +1,131 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { guardAdmin, handleAdminPost } from '../../lib/admin-actions.ts';
+import { csrfToken } from '../../lib/auth.ts';
+import { leadStats } from '../../lib/admin.ts';
+import { getSettings, setting, settingOn } from '../../lib/db.ts';
+import { siteUrl } from '../../lib/env.ts';
+import { previewToken } from '../../lib/preview.ts';
+
+const denied = guardAdmin(Astro);
+if (denied) return denied;
+
+const { response } = await handleAdminPost(Astro, '/admin/impostazioni');
+if (response) return response;
+
+const csrf = csrfToken(Astro.cookies);
+const [s, leads] = await Promise.all([getSettings(), leadStats()]);
+
+const maintenanceOn = settingOn(s, 'maintenance');
+// Token derivato, non APP_SECRET: questo valore finisce in un href.
+const previewUrl = `${siteUrl()}/?preview=${previewToken()}`;
+
+/** Un segreto già salvato si segnala senza mostrarlo. */
+const hasSecret = (key: string) => setting(s, key) !== '';
+const secretHint = (key: string) =>
+  hasSecret(key) ? 'salvato — lascia vuoto per non modificarlo' : 'non impostato';
+---
+
+<AdminLayout current="settings" title="Impostazioni" newLeads={leads.newCount}>
+  <h1>Impostazioni</h1>
+
+  <form method="post" class="settings-form">
+    <input type="hidden" name="csrf" value={csrf} />
+
+    <div class:list={['maint-box', { on: maintenanceOn }]}>
+      <label class="ck big">
+        <input type="checkbox" name="maintenance" checked={maintenanceOn} /> 🛠️ Modalità manutenzione
+        {maintenanceOn && <strong>(ATTIVA)</strong>}
+      </label>
+      <p class="hint">
+        Se attiva, i visitatori vedono la pagina di cortesia con il form contatti. Tu continui a
+        vedere il sito vero tramite il link di anteprima qui sotto. Le visite vengono comunque
+        tracciate.
+      </p>
+      <label for="maintenance_msg">Messaggio mostrato ai visitatori</label>
+      <textarea
+        id="maintenance_msg"
+        name="maintenance_msg"
+        rows="2"
+        set:text={setting(
+          s,
+          'maintenance_msg',
+          'Stiamo perfezionando qualcosa di speciale. Torniamo online a brevissimo.'
+        )}
+      />
+      <p style="margin-top:10px">
+        <a class="btn-s" href={previewUrl} target="_blank" rel="noopener">
+          👁 Anteprima sito vero (bypass manutenzione)
+        </a>
+      </p>
+    </div>
+
+    <h2>Contatti</h2>
+    <label for="whatsapp">Numero WhatsApp (formato internazionale, senza +)</label>
+    <input id="whatsapp" name="whatsapp" value={setting(s, 'whatsapp')} placeholder="393331234567" />
+    <label for="calendly">Link Calendly</label>
+    <input
+      id="calendly"
+      name="calendly"
+      value={setting(s, 'calendly')}
+      placeholder="https://calendly.com/..."
+    />
+    <label for="contact_email">Email contatto</label>
+    <input
+      id="contact_email"
+      name="contact_email"
+      value={setting(s, 'contact_email')}
+      placeholder="info@dextlab.it"
+    />
+
+    <h2>Chatbot AI</h2>
+    <label class="ck">
+      <input type="checkbox" name="ai_enabled" checked={settingOn(s, 'ai_enabled')} /> Chatbot AI attivo
+    </label>
+    <label for="ai_provider">Provider (anthropic / openai)</label>
+    <input id="ai_provider" name="ai_provider" value={setting(s, 'ai_provider', 'anthropic')} />
+    <label for="ai_model">Modello</label>
+    <input
+      id="ai_model"
+      name="ai_model"
+      value={setting(s, 'ai_model', 'claude-haiku-4-5-20251001')}
+    />
+    <label for="ai_api_key">API key <span class="hint">({secretHint('ai_api_key')})</span></label>
+    <input id="ai_api_key" name="ai_api_key" type="password" autocomplete="off" placeholder="••••••" />
+
+    <h2>SMTP (email)</h2>
+    <p class="hint">Senza SMTP i lead vengono salvati e notificati, ma nessuna email parte.</p>
+    <label class="ck">
+      <input type="checkbox" name="smtp_enabled" checked={settingOn(s, 'smtp_enabled')} /> Usa SMTP
+    </label>
+    <label for="smtp_host">Host</label>
+    <input id="smtp_host" name="smtp_host" value={setting(s, 'smtp_host')} />
+    <label for="smtp_user">Utente</label>
+    <input id="smtp_user" name="smtp_user" value={setting(s, 'smtp_user')} />
+    <label for="smtp_pass">Password <span class="hint">({secretHint('smtp_pass')})</span></label>
+    <input id="smtp_pass" name="smtp_pass" type="password" autocomplete="off" placeholder="••••••" />
+    <label for="smtp_port">Porta</label>
+    <input id="smtp_port" name="smtp_port" value={setting(s, 'smtp_port', '465')} />
+    <label for="smtp_secure">Sicurezza (ssl per la porta 465, tls per la 587)</label>
+    <input id="smtp_secure" name="smtp_secure" value={setting(s, 'smtp_secure', 'ssl')} />
+
+    <h2>Notifiche Telegram</h2>
+    <label class="ck">
+      <input type="checkbox" name="tg_enabled" checked={settingOn(s, 'tg_enabled')} /> Notifica su
+      Telegram a ogni nuovo lead
+    </label>
+    <label for="tg_token">Bot token <span class="hint">({secretHint('tg_token')})</span></label>
+    <input id="tg_token" name="tg_token" type="password" autocomplete="off" placeholder="••••••" />
+    <label for="tg_chat">Chat ID (il tuo, da @userinfobot)</label>
+    <input id="tg_chat" name="tg_chat" value={setting(s, 'tg_chat')} placeholder="123456789" />
+
+    <button type="submit" name="action" value="save_settings" class="btn-save">
+      Salva impostazioni
+    </button>
+  </form>
+
+  <p class="hint">
+    I campi segreti non vengono ristampati nella pagina: lasciandoli vuoti si conserva il valore già
+    salvato. Le impostazioni qui hanno la precedenza sui default passati per variabile d'ambiente.
+  </p>
+</AdminLayout>

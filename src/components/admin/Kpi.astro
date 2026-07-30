@@ -1,0 +1,21 @@
+---
+interface Props {
+  value: string | number;
+  label: string;
+  /** Classe applicata al valore, per esempio up/down sul trend. */
+  valueClass?: string;
+  /** Bordo evidenziato: usato per il dato affidabile fra quelli mostrati. */
+  highlight?: boolean;
+  /** Valore in grigio: usato per i conteggi solo indicativi. */
+  muted?: boolean;
+}
+
+const { value, label, valueClass, highlight = false, muted = false } = Astro.props;
+---
+
+<div class="kpi-card" style={highlight ? 'border-color:var(--bord2)' : undefined}>
+  <span
+    class={valueClass}
+    style={muted ? '-webkit-text-fill-color:#9aa7bd;color:#9aa7bd' : undefined}>{value}</span
+  >{label}
+</div>

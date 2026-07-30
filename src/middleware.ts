@@ -11,7 +11,7 @@
  */
 import { defineMiddleware } from 'astro:middleware';
 import { getSettings, settingOn, trackVisit, clientIp } from './lib/db.ts';
-import { appSecret } from './lib/env.ts';
+import { previewToken } from './lib/preview.ts';
 import { safeEqual } from './lib/crypto.ts';
 
 /** Percorsi che non sono pagine visitabili: nessuna impostazione, nessun tracciamento. */
@@ -23,7 +23,7 @@ function isVisitablePage(pathname: string): boolean {
 }
 
 /**
- * L'anteprima usa il segreto applicativo come chiave usa-e-getta nella query.
+ * L'anteprima usa un token derivato da APP_SECRET, non il segreto stesso.
  * Resta valida solo per la richiesta corrente: il sito è una pagina unica con
  * ancore interne, quindi la navigazione normale non perde il parametro.
  */
@@ -31,7 +31,7 @@ function isPreviewRequest(url: URL): boolean {
   const preview = url.searchParams.get('preview');
   if (!preview) return false;
   try {
-    return safeEqual(preview, appSecret());
+    return safeEqual(preview, previewToken());
   } catch {
     // APP_SECRET non configurata: nessuna anteprima possibile.
     return false;
