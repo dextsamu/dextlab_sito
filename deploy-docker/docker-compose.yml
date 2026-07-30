@@ -1,23 +1,42 @@
-# Dext Lab — si aggancia al Traefik ESISTENTE (rete "proxy", resolver "letsencrypt")
-# e al PostgreSQL ESISTENTE (container "postgres", gestito da pgAdmin).
-# NON avvia né Traefik né un proprio DB. Avvio: cd deploy-docker && docker compose up -d --build
+# Dext Lab — si aggancia al Traefik ESISTENTE (rete "proxy", resolver
+# "letsencrypt") e al PostgreSQL ESISTENTE (container "postgres").
+# Non avvia né Traefik né un proprio database.
+#
+# Avvio:  cd deploy-docker && docker compose up -d --build
 
 services:
   web:
     build:
       context: ..
       dockerfile: deploy-docker/Dockerfile
+      args:
+        # Allineare alla versione del server PostgreSQL: pg_dump non legge un
+        # server più recente di sé.
+        PG_CLIENT: ${PG_CLIENT:-postgresql16-client}
     restart: unless-stopped
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
+      # Obbligatoria: firma i cookie di sessione admin. Senza, l'app non parte.
+      APP_SECRET: ${APP_SECRET}
+      # Alimenta canonical, Open Graph e sitemap: deve combaciare con SITE_HOST.
+      SITE_URL: ${SITE_URL}
+      # Opzionale: abilita /api/backup per un cron esterno. Vuota = disabilitato.
+      BACKUP_KEY: ${BACKUP_KEY:-}
+      MAIL_TO: ${MAIL_TO:-info@dextlab.it}
+      MAIL_FROM: ${MAIL_FROM:-info@dextlab.it}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Dext Lab}
+      # Un solo proxy fidato davanti (Traefik): serve a risalire all'IP reale
+      # del visitatore per rate limit e statistiche.
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
     networks:
       - proxy
     volumes:
-      - ./data/backups:/var/www/html/backups
+      # I backup devono sopravvivere alla ricostruzione dell'immagine.
+      - ./data/backups:/app/data/backups
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
@@ -25,12 +44,16 @@ services:
       - traefik.http.routers.dext.entrypoints=websecure
       - traefik.http.routers.dext.tls=true
       - traefik.http.routers.dext.tls.certresolver=letsencrypt
-      - traefik.http.services.dext.loadbalancer.server.port=80
+      # La porta è quella del server Node, non più quella di Apache.
+      - traefik.http.services.dext.loadbalancer.server.port=4321
       - "traefik.http.routers.dext.middlewares=dext-sec"
+      # Header di sicurezza: con Node non ci sono più .htaccess a impostarli.
       - traefik.http.middlewares.dext-sec.headers.contentTypeNosniff=true
       - traefik.http.middlewares.dext-sec.headers.referrerPolicy=strict-origin-when-cross-origin
+      - traefik.http.middlewares.dext-sec.headers.frameDeny=true
       - traefik.http.middlewares.dext-sec.headers.stsSeconds=31536000
       - traefik.http.middlewares.dext-sec.headers.stsIncludeSubdomains=true
+      - "traefik.http.middlewares.dext-sec.headers.customResponseHeaders.Permissions-Policy=geolocation=(), microphone=(), camera=()"
 
 networks:
   proxy:

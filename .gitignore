@@ -10,7 +10,8 @@ dist/
 .astro/
 
 # --- runtime / generati ---
-backups/
+# BACKUP_DIR punta qui per impostazione predefinita
+data/
 deploy-docker/data/
 deploy-docker/letsencrypt/
 *.log
