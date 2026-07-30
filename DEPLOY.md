@@ -1,8 +1,31 @@
 # Dext Lab — sviluppo e deploy
 
 Sito Astro in modalità server (SSR) su Node, con PostgreSQL.
-Il deploy gira in Docker dietro un Traefik già presente sul VPS: i dettagli
-stanno in [`deploy-docker/README.md`](deploy-docker/README.md).
+Il deploy gira in Docker dietro un Traefik già presente sul VPS: la
+configurazione e i segreti da impostare stanno in
+[`deploy-docker/README.md`](deploy-docker/README.md).
+
+## Integrazione continua
+
+Due workflow in `.github/workflows/`:
+
+- **`ci.yml` (Controlli)** — su ogni pull request e su ogni push fuori da `main`.
+  Controlla i tipi, compila, e su un PostgreSQL vero applica le migrazioni,
+  verifica che siano idempotenti, crea un admin, avvia il server compilato e
+  prova rotte, contenuti dal database, invio del form, rifiuto di un POST da
+  altra origine, backup con ripristino verificato.
+- **`deploy.yml` (Deploy in produzione)** — su ogni push a `main`, oppure a mano.
+  Richiama `ci.yml` come prerequisito, costruisce l'immagine, la pubblica su
+  GHCR e aggiorna il VPS via SSH. Se il container nuovo non diventa sano,
+  ripristina da solo l'immagine precedente e segnala il fallimento.
+
+I controlli sono un prerequisito del deploy, non un workflow parallelo: non
+esiste un aggiornamento della produzione che parta mentre i test stanno ancora
+girando.
+
+Per riportare in produzione una versione precedente: Actions → "Deploy in
+produzione" → Run workflow, indicando il tag `sha-<commit>`. Salta build e
+controlli, perché quel tag era già stato verificato quando è stato pubblicato.
 
 ## Come è organizzato
 

@@ -2,17 +2,22 @@
 # "letsencrypt") e al PostgreSQL ESISTENTE (container "postgres").
 # Non avvia né Traefik né un proprio database.
 #
-# Avvio:  cd deploy-docker && docker compose up -d --build
+# Questo file usa un'immagine già costruita, pubblicata su GHCR dalla GitHub
+# Action. Sul VPS servono soltanto questo file e il .env: il sorgente non serve.
+#
+#   docker compose pull && docker compose up -d
+#
+# Per costruire l'immagine in locale invece di scaricarla, si aggiunge
+# l'override che contiene la sezione build:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 
 services:
   web:
-    build:
-      context: ..
-      dockerfile: deploy-docker/Dockerfile
-      args:
-        # Allineare alla versione del server PostgreSQL: pg_dump non legge un
-        # server più recente di sé.
-        PG_CLIENT: ${PG_CLIENT:-postgresql16-client}
+    # IMAGE_TAG è il tag pubblicato dalla Action (sha-<commit>). Il default
+    # "latest" serve a un avvio manuale; per tornare a una versione precedente
+    # basta IMAGE_TAG=sha-<commit> docker compose up -d
+    image: ${IMAGE_NAME:-ghcr.io/dextsamu/dextlab_sito}:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
       DB_HOST: ${DB_HOST:-postgres}

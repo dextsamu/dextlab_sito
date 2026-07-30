@@ -1,0 +1,202 @@
+name: Deploy in produzione
+
+on:
+  push:
+    branches: [main]
+  # Avvio manuale: utile per il primo deploy e per ripubblicare senza un commit.
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Tag già pubblicato da riportare in produzione (vuoto = costruisci dal commit corrente)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  packages: write
+
+# Un deploy alla volta, e non si annulla quello in corso: interrompere un
+# aggiornamento a metà lascerebbe il VPS in uno stato incerto.
+concurrency:
+  group: deploy-produzione
+  cancel-in-progress: false
+
+jobs:
+  # I controlli sono un prerequisito, non un workflow parallelo: così non esiste
+  # un deploy che parte mentre i test stanno ancora girando.
+  verifica:
+    name: Controlli
+    if: github.event_name == 'push' || github.event.inputs.image_tag == ''
+    uses: ./.github/workflows/ci.yml
+
+  costruisci:
+    name: Costruisci e pubblica l'immagine
+    needs: verifica
+    if: github.event_name == 'push' || github.event.inputs.image_tag == ''
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Nome immagine e tag
+        id: meta
+        run: |
+          # GHCR accetta solo minuscole nel nome del repository.
+          name="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          tag="sha-$(git rev-parse --short=7 HEAD)"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag"   >> "$GITHUB_OUTPUT"
+          echo "Immagine: $name:$tag"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build e push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy-docker/Dockerfile
+          push: true
+          # Il tag con lo sha identifica il commit; latest serve a un avvio
+          # manuale sul VPS senza dover cercare il tag.
+          tags: |
+            ${{ steps.meta.outputs.name }}:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.name }}:latest
+          build-args: |
+            PG_CLIENT=${{ vars.PG_CLIENT || 'postgresql16-client' }}
+          # Cache sui layer fra le esecuzioni: senza, ogni deploy rifà npm ci.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+  deploy:
+    name: Aggiorna il VPS
+    needs: costruisci
+    # Con l'avvio manuale e un tag esplicito si salta build e controlli: quel
+    # tag è già stato costruito e verificato quando è stato pubblicato.
+    if: always() && (needs.costruisci.result == 'success' || github.event.inputs.image_tag != '')
+    runs-on: ubuntu-latest
+    environment: produzione
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag da mettere in produzione
+        id: target
+        run: |
+          tag="${{ github.event.inputs.image_tag }}"
+          if [ -z "$tag" ]; then tag="${{ needs.costruisci.outputs.tag }}"; fi
+          if [ -z "$tag" ]; then
+            echo "::error::nessun tag da deployare"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "In produzione: $tag"
+
+      # Meglio fermarsi qui con un messaggio chiaro che a metà deploy con un
+      # errore di ssh incomprensibile.
+      - name: Verifica dei secret richiesti
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          DEST: ${{ secrets.DEPLOY_PATH }}
+          KNOWN: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          missing=""
+          [ -n "$KEY" ]   || missing="$missing DEPLOY_SSH_KEY"
+          [ -n "$HOST" ]  || missing="$missing DEPLOY_HOST"
+          [ -n "$USER" ]  || missing="$missing DEPLOY_USER"
+          [ -n "$DEST" ]  || missing="$missing DEPLOY_PATH"
+          [ -n "$KNOWN" ] || missing="$missing DEPLOY_KNOWN_HOSTS"
+          if [ -n "$missing" ]; then
+            echo "::error::secret mancanti:$missing — vedi deploy-docker/README.md"
+            exit 1
+          fi
+          echo "  tutti i secret richiesti sono presenti"
+
+      - name: Configura SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          # known_hosts esplicito invece di disattivare il controllo: senza,
+          # il canale di deploy sarebbe esposto a un man-in-the-middle.
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Copia compose e script di deploy
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+          DEST: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "$PORT" "$USER@$HOST" "mkdir -p '$DEST/deploy-docker'"
+          # Solo questi due file: il sorgente sul VPS non serve più, l'immagine
+          # arriva già costruita dal registry.
+          scp -i ~/.ssh/id_deploy -P "$PORT" \
+            deploy-docker/docker-compose.yml \
+            deploy-docker/remote-deploy.sh \
+            "$USER@$HOST:$DEST/deploy-docker/"
+          ssh -i ~/.ssh/id_deploy -p "$PORT" "$USER@$HOST" "chmod +x '$DEST/deploy-docker/remote-deploy.sh'"
+
+      - name: Autenticazione del VPS su GHCR
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+        run: |
+          # Il token viaggia sullo stdin di docker login attraverso il canale
+          # SSH: non compare fra gli argomenti del processo sul VPS, dove
+          # sarebbe leggibile da chiunque possa elencare i processi.
+          # È il token temporaneo del job, quindi sul VPS non resta una
+          # credenziale a lunga scadenza.
+          printf '%s' "${{ secrets.GITHUB_TOKEN }}" | ssh -i ~/.ssh/id_deploy -p "$PORT" "$USER@$HOST" \
+            "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
+
+      - name: Deploy
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+          DEST: ${{ secrets.DEPLOY_PATH }}
+          TAG: ${{ steps.target.outputs.tag }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "$PORT" "$USER@$HOST" \
+            "cd '$DEST/deploy-docker' && ./remote-deploy.sh '$TAG'"
+
+      - name: Il sito risponde
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          if [ -z "$SITE_URL" ]; then
+            echo "Variabile SITE_URL non impostata: salto la verifica dall'esterno."
+            exit 0
+          fi
+          for i in $(seq 1 10); do
+            body=$(curl -fsS --max-time 10 "$SITE_URL/api/health" || true)
+            if echo "$body" | grep -q '"status":"ok"'; then
+              echo "  $SITE_URL/api/health -> $body"
+              echo "$body" | grep -q '"database":true' \
+                || echo "::warning::il sito risponde ma non raggiunge il database"
+              exit 0
+            fi
+            sleep 6
+          done
+          echo "::error::$SITE_URL/api/health non ha risposto correttamente"
+          exit 1
+
+      - name: Chiudi la sessione del registry sul VPS
+        if: always()
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "$PORT" "$USER@$HOST" "docker logout ghcr.io" || true

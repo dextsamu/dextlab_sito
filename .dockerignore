@@ -2,6 +2,7 @@
 # che segreti o artefatti locali finiscano nell'immagine.
 .git
 .gitignore
+.github
 .claude
 
 # segreti e configurazione locale
