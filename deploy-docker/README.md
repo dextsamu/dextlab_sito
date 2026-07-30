@@ -90,31 +90,60 @@ sudo usermod -aG docker deploy
 > macchina: è inevitabile per gestire i container, ma va tenuto presente nel
 > valutare chi ha accesso a questa chiave.
 
-In locale, una chiave dedicata **senza passphrase** (la Action non può digitarla)
-e usata solo per questo:
+Serve una chiave dedicata **senza passphrase**, perché la Action non può
+digitarla. Il modo più semplice, e l'unico che non dipende dagli strumenti del
+proprio sistema, è generarla **sul VPS**: la chiave privata passa da lì al
+secret di GitHub senza toccare il disco locale, e non serve `ssh-copy-id`, che
+su Windows non esiste.
 
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/dextlab_deploy -C "github-actions-dextlab" -N ""
-ssh-copy-id -i ~/.ssh/dextlab_deploy.pub deploy@IP_DEL_VPS
+# sul VPS
+ssh-keygen -t ed25519 -f ~/.ssh/gh_deploy -C "github-actions-dextlab" -N ""
+cat ~/.ssh/gh_deploy.pub >> ~/.ssh/authorized_keys
+chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
+
+# stampa la chiave PRIVATA: è il valore del secret DEPLOY_SSH_KEY
+cat ~/.ssh/gh_deploy
+
+# copiata nel secret, va rimossa dal VPS: da qui in avanti vive solo su GitHub
+shred -u ~/.ssh/gh_deploy 2>/dev/null || rm -f ~/.ssh/gh_deploy
 ```
 
-Impronta dell'host, per il controllo di autenticità:
+Impronta dell'host per `DEPLOY_KNOWN_HOSTS`, ricavata dalle chiavi pubbliche del
+server. `HOST` va scritto **identico** al valore di `DEPLOY_HOST`:
 
 ```bash
-ssh-keyscan IP_DEL_VPS          # se SSH è sulla porta 22
-ssh-keyscan -p 2222 IP_DEL_VPS  # altrimenti, indicando la porta
+# sul VPS
+HOST=dextlab.it
+for f in /etc/ssh/ssh_host_ed25519_key.pub /etc/ssh/ssh_host_ecdsa_key.pub /etc/ssh/ssh_host_rsa_key.pub; do
+  [ -f "$f" ] && echo "$HOST $(cut -d' ' -f1,2 "$f")"
+done
+
+# impronta, da confrontare con quella che il proprio client ssh mostra
+# al primo accesso: se coincide, le righe sopra sono del server giusto
+ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
 ```
+
+In alternativa, se ci si è già collegati almeno una volta, la riga corretta l'ha
+già scritta il proprio client: si trova nel `known_hosts` locale, indicizzata per
+nome host, e una sola riga è sufficiente.
 
 > Due condizioni facili da sbagliare:
 >
 > 1. **L'host deve risolvere da internet.** L'hostname interno del VPS (quello
->    che appare nel prompt della shell) non risolve dai runner di GitHub: va
->    usato l'IP pubblico, oppure un nome DNS che punti al VPS.
-> 2. **La stringa deve essere la stessa** in `DEPLOY_HOST` e in `ssh-keyscan`.
->    Le voci di `known_hosts` sono indicizzate per nome: un'impronta rilevata
->    sull'IP non vale per un accesso fatto tramite hostname, e viceversa. Con
->    una porta diversa dalla 22, `ssh-keyscan -p` produce già la forma
->    `[host]:porta` attesa.
+>    che appare nel prompt della shell) e gli alias del proprio `~/.ssh/config`
+>    non significano nulla per i runner di GitHub: va usato l'IP pubblico o un
+>    nome DNS pubblico. Se si accede tramite un alias, i valori reali si leggono
+>    con `ssh -G <alias>`.
+> 2. **La stringa deve essere la stessa** in `DEPLOY_HOST` e nelle righe di
+>    `known_hosts`, perché sono indicizzate per nome: un'impronta registrata
+>    sull'IP non vale per un accesso fatto tramite hostname, e viceversa. Con una
+>    porta diversa dalla 22 la forma attesa è `[host]:porta`.
+>
+> `ssh-keyscan` è la via più diretta ma non sempre praticabile: se il client
+> locale è più vecchio del server può non riuscire a negoziare lo scambio di
+> chiavi e stampare solo righe di commento (`unsupported KEX method ...`). In quel
+> caso si usa uno dei due metodi qui sopra.
 
 ### 3. Secret e variabili su GitHub
 

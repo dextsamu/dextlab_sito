@@ -129,6 +129,16 @@ jobs:
           # il canale di deploy sarebbe esposto a un man-in-the-middle.
           printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
+          # IdentitiesOnly evita che ssh proponga altre chiavi eventualmente
+          # presenti o nell'agente: offrirne troppe fa chiudere la connessione
+          # al server con "Too many authentication failures".
+          cat > ~/.ssh/config <<'CFG'
+          Host *
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            BatchMode yes
+          CFG
+          chmod 600 ~/.ssh/config
 
       - name: Copia compose e script di deploy
         env:
