@@ -1,0 +1,17 @@
+# Override per costruire l'immagine invece di scaricarla da GHCR.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+#
+# Serve per lo sviluppo, per una prova su un VPS senza accesso al registry, o
+# per riprodurre in locale esattamente l'immagine che gira in produzione.
+# In produzione non si usa: l'immagine arriva dalla Action, già costruita.
+
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: deploy-docker/Dockerfile
+      args:
+        # Allineare alla versione del server PostgreSQL: pg_dump non legge un
+        # server più recente di sé.
+        PG_CLIENT: ${PG_CLIENT:-postgresql16-client}

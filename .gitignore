@@ -1,9 +1,17 @@
 # --- secret / config reale (MAI committare) ---
-config.php
+.env
+.env.*
+!.env.example
 deploy-docker/.env
 
+# --- build / dipendenze ---
+node_modules/
+dist/
+.astro/
+
 # --- runtime / generati ---
-backups/
+# BACKUP_DIR punta qui per impostazione predefinita
+data/
 deploy-docker/data/
 deploy-docker/letsencrypt/
 *.log

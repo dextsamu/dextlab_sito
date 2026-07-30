@@ -1,0 +1,59 @@
+---
+// Posizioni degli esagoni flottanti: erano attributi style inline ripetuti,
+// qui diventano dati così il markup resta leggibile.
+const hexes = [
+  { x: '8%', y: '18%', s: '54px', d: '0s', dur: '9s' },
+  { x: '84%', y: '22%', s: '78px', d: '1.5s', dur: '11s' },
+  { x: '16%', y: '70%', s: '40px', d: '.8s', dur: '8s' },
+  { x: '78%', y: '68%', s: '60px', d: '2.2s', dur: '12s' },
+  { x: '50%', y: '12%', s: '30px', d: '3s', dur: '10s' },
+  { x: '92%', y: '48%', s: '36px', d: '.4s', dur: '9.5s' },
+];
+
+const stats = [
+  { count: 100, suffix: '%', label: 'Codice su misura' },
+  { count: 24, suffix: '/7', label: 'Supporto diretto' },
+  { count: 5, suffix: '★', label: 'Qualità garantita' },
+];
+---
+
+<section class="hero" id="hero">
+  <div class="hero-spot" id="heroSpot" aria-hidden="true"></div>
+  <div class="hero-hexes" aria-hidden="true">
+    {
+      hexes.map((h) => (
+        <span class="hex" style={`--x:${h.x};--y:${h.y};--s:${h.s};--d:${h.d};--dur:${h.dur}`}></span>
+      ))
+    }
+  </div>
+  <div class="container hero-inner">
+    <div class="hero-badge reveal">
+      <span class="dot"></span> Disponibile per nuovi progetti
+    </div>
+    <h1 class="hero-title reveal">
+      Trasformo idee in<br />
+      <span class="grad rotator" id="rotator" aria-live="polite">prodotti digitali</span><br />
+      che funzionano.
+    </h1>
+    <p class="hero-sub reveal">
+      Siti web, web app e soluzioni di <strong>Intelligenza Artificiale</strong> costruiti con le
+      migliori tecnologie. Design accattivante, performance reali e risultati concreti.
+    </p>
+    <div class="hero-actions reveal">
+      <a href="#contatti" class="btn btn-primary">Iniziamo un progetto</a>
+      <a href="#servizi" class="btn btn-ghost">Scopri i servizi</a>
+    </div>
+    <div class="hero-stats reveal">
+      {
+        stats.map((s) => (
+          <div class="stat">
+            <span class="stat-num" data-count={s.count}>0</span>
+            <span class="stat-suf">{s.suffix}</span>
+            <p>{s.label}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+  <div class="hero-scroll" aria-hidden="true"><span></span></div>
+</section>

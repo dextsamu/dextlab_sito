@@ -1,0 +1,40 @@
+---
+import type { FaqItem } from '../lib/content.ts';
+
+interface Props {
+  faqs: FaqItem[];
+}
+
+const { faqs } = Astro.props;
+---
+
+<section class="section section-alt" id="faq">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">Domande frequenti</span>
+      <h2>Le risposte <span class="grad">prima ancora</span> di chiedere</h2>
+    </div>
+    <div class="faq">
+      {
+        faqs.map((fq) => (
+          <details class="faq-item reveal">
+            <summary>
+              {fq.question}
+              <span class="faq-ico" aria-hidden="true" />
+            </summary>
+            <p>
+              {/* Le risposte arrivano dall'admin e possono contenere ritorni a capo:
+                  qui diventano <br>, come faceva nl2br nella versione PHP. */}
+              {fq.answer.split(/\r\n|\r|\n/).map((line, i) => (
+                <>
+                  {i > 0 && <br />}
+                  {line}
+                </>
+              ))}
+            </p>
+          </details>
+        ))
+      }
+    </div>
+  </div>
+</section>

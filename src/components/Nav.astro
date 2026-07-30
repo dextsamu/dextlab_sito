@@ -1,0 +1,25 @@
+---
+// Barra di navigazione con selettore lingua (gestito da public/js/i18n.js).
+---
+
+<header class="nav" id="nav">
+  <div class="container nav-inner">
+    <a href="#hero" class="brand" aria-label="Dext Lab home">
+      <img src="/assets/logo-h.png" alt="Dext Lab" class="brand-logo" width="400" height="156" />
+    </a>
+    <nav class="nav-links" id="navLinks">
+      <a href="#servizi">Servizi</a>
+      <a href="#portfolio">Portfolio</a>
+      <a href="#perche">Perché me</a>
+      <a href="#recensioni">Recensioni</a>
+      <span class="lang-switch" role="group" aria-label="Lingua">
+        <button type="button" class="lang-btn active" data-lang="it">IT</button>
+        <button type="button" class="lang-btn" data-lang="en">EN</button>
+      </span>
+      <a href="#contatti" class="nav-cta">Contattami</a>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="Apri menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>

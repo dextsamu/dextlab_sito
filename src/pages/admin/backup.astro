@@ -1,0 +1,77 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { guardAdmin, handleAdminPost } from '../../lib/admin-actions.ts';
+import { csrfToken } from '../../lib/auth.ts';
+import { leadStats } from '../../lib/admin.ts';
+import { listBackups, humanSize, RESTORE_HINT } from '../../lib/backup.ts';
+import { dateTime } from '../../lib/format.ts';
+
+const denied = guardAdmin(Astro);
+if (denied) return denied;
+
+const { response } = await handleAdminPost(Astro, '/admin/backup');
+if (response) return response;
+
+const csrf = csrfToken(Astro.cookies);
+const [backups, leads] = await Promise.all([listBackups(), leadStats()]);
+---
+
+<AdminLayout current="backup" title="Backup" newLeads={leads.newCount}>
+  <h1>
+    Backup database
+    <form method="post" class="inline">
+      <input type="hidden" name="csrf" value={csrf} />
+      <button class="btn-s" name="action" value="run_backup">↓ Esegui backup ora</button>
+    </form>
+  </h1>
+
+  <section class="block">
+    {
+      backups.length === 0 ? (
+        <p class="hint">
+          Nessun backup ancora. Premi "Esegui backup ora" oppure configura il cron descritto in
+          DEPLOY.md.
+        </p>
+      ) : (
+        <table class="leads">
+          <thead>
+            <tr><th>File</th><th>Data</th><th>Dimensione</th><th /></tr>
+          </thead>
+          <tbody>
+            {backups.map((b) => (
+              <tr>
+                <td>{b.name}</td>
+                <td class="nowrap">{dateTime(new Date(b.time))}</td>
+                <td>{humanSize(b.size)}</td>
+                <td class="nowrap">
+                  <a class="btn-s" href={`/admin/backup/${encodeURIComponent(b.name)}`}>Scarica</a>
+                  <form method="post" class="inline">
+                    <input type="hidden" name="csrf" value={csrf} />
+                    <input type="hidden" name="name" value={b.name} />
+                    <button
+                      class="btn-s danger"
+                      name="action"
+                      value="backup_delete"
+                      data-confirm="Eliminare questo backup?"
+                    >
+                      ✕
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )
+    }
+  </section>
+
+  <p class="hint">
+    Vengono conservati gli ultimi 14 backup, con rotazione automatica. I file stanno in una cartella
+    fuori dalla radice pubblica e sono scaricabili solo da qui.
+  </p>
+  <p class="hint">
+    Il dump è completo, schema e dati, prodotto con <code>pg_dump</code>. Per ripristinarlo:
+    <code class="restore-cmd">{RESTORE_HINT}</code>
+  </p>
+</AdminLayout>

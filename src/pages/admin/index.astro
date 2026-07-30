@@ -1,0 +1,196 @@
+---
+/**
+ * Ingresso del pannello: form di login se non c'è sessione, dashboard altrimenti.
+ */
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import Kpi from '../../components/admin/Kpi.astro';
+import Chart30 from '../../components/admin/Chart30.astro';
+import HumanBotChart from '../../components/admin/HumanBotChart.astro';
+import HBar from '../../components/admin/HBar.astro';
+import { isLoggedIn, attemptLogin, createSession, csrfToken, verifyCsrf } from '../../lib/auth.ts';
+import { leadStats, visitStats } from '../../lib/admin.ts';
+import { setFlash } from '../../lib/flash.ts';
+
+let loginError = '';
+
+if (Astro.request.method === 'POST' && !isLoggedIn(Astro.cookies)) {
+  const form = await Astro.request.formData().catch(() => null);
+  if (!form || !verifyCsrf(Astro.cookies, form.get('csrf'))) {
+    loginError = 'Sessione scaduta. Riprova.';
+  } else {
+    const username = String(form.get('username') ?? '').trim();
+    const password = String(form.get('password') ?? '');
+    const { result, adminId } = await attemptLogin(username, password, Astro.locals.clientIp);
+
+    if (result === 'ok' && adminId !== undefined) {
+      createSession(Astro.cookies, adminId);
+      setFlash(Astro.cookies, 'Accesso effettuato.');
+      return Astro.redirect('/admin', 303);
+    }
+    loginError =
+      result === 'locked'
+        ? 'Troppi tentativi. Riprova tra 10 minuti.'
+        : 'Credenziali non valide.';
+  }
+}
+
+const authenticated = isLoggedIn(Astro.cookies);
+const csrf = csrfToken(Astro.cookies);
+
+// Le statistiche si calcolano solo per un utente autenticato.
+const leads = authenticated ? await leadStats() : null;
+const visits = authenticated ? await visitStats() : null;
+
+const trendClass = (leads?.trendPct ?? 0) >= 0 ? 'up' : 'down';
+const trendLabel = `${(leads?.trendPct ?? 0) >= 0 ? '+' : ''}${leads?.trendPct ?? 0}%`;
+const statusTotal = Math.max(1, leads?.byStatus.reduce((a, s) => a + s.count, 0) ?? 1);
+const sourceTotal = Math.max(1, leads?.bySource.reduce((a, s) => a + s.count, 0) ?? 1);
+---
+
+{
+  !authenticated ? (
+    <html lang="it">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex" />
+        <title>Accesso — Dext Lab admin</title>
+        <link rel="icon" type="image/png" href="/assets/logo-h.png" />
+        <link rel="stylesheet" href="/css/admin.css" />
+      </head>
+      <body class="login-page">
+        <form class="login-box" method="post">
+          <h1>Dext Lab <span>admin</span></h1>
+          <input type="hidden" name="csrf" value={csrf} />
+          <label for="username">Username</label>
+          <input id="username" name="username" autocomplete="username" required autofocus />
+          <label for="password">Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+          <button type="submit">Entra</button>
+          {loginError && <p class="err" style="margin-top:16px">{loginError}</p>}
+        </form>
+      </body>
+    </html>
+  ) : (
+    <AdminLayout current="dashboard" title="Dashboard" newLeads={leads!.newCount}>
+      <h1>Dashboard</h1>
+
+      <div class="cards-kpi">
+        <Kpi value={leads!.newCount} label="Lead nuovi" />
+        <Kpi value={leads!.week} label="Ultimi 7 giorni" />
+        <Kpi value={trendLabel} label="vs settimana prec." valueClass={trendClass} />
+        <Kpi value={leads!.total} label="Lead totali" />
+      </div>
+
+      <section class="block">
+        <h2>Lead — ultimi 30 giorni</h2>
+        <Chart30 points={leads!.daily} label="Lead ultimi 30 giorni" />
+      </section>
+
+      <div class="grid2">
+        <section class="block">
+          <h2>Per stato</h2>
+          {leads!.byStatus.map((s) => (
+            <HBar
+              label={s.label}
+              count={s.count}
+              percent={Math.round((s.count / statusTotal) * 100)}
+              barClass={`st-${s.status}`}
+            />
+          ))}
+        </section>
+        <section class="block">
+          <h2>Per fonte</h2>
+          {leads!.bySource.map((s) => (
+            <HBar
+              label={s.source.charAt(0).toUpperCase() + s.source.slice(1)}
+              count={s.count}
+              percent={Math.round((s.count / sourceTotal) * 100)}
+            />
+          ))}
+          {leads!.bySource.length === 0 && <p class="hint">Nessun lead ancora.</p>}
+        </section>
+      </div>
+
+      <h2 style="margin:34px 0 16px">Visite sito</h2>
+      <div class="cards-kpi">
+        <Kpi value={visits!.today} label="Visite oggi" />
+        <Kpi value={visits!.week} label="Visite (7 giorni)" />
+        <Kpi value={visits!.uniqueWeek} label="Visitatori unici (7gg)" />
+        <Kpi value={visits!.maintenanceWeek} label="Durante manutenzione (7gg)" />
+      </div>
+      <section class="block">
+        <h2>Visite — ultimi 30 giorni</h2>
+        <Chart30 points={visits!.daily} label="Visite ultimi 30 giorni" />
+        <p class="hint">
+          IP anonimizzati (GDPR). "Visitatori unici" è una stima basata su IP anonimizzato.
+        </p>
+      </section>
+
+      <h2 style="margin:34px 0 16px">
+        Umani vs Bot
+        <span style="font-size:.8rem;color:var(--mut);font-weight:400">(ultimi 7 giorni)</span>
+      </h2>
+      <div class="cards-kpi">
+        <Kpi
+          value={visits!.confirmedHumansWeek}
+          label="✅ Umani confermati (beacon)"
+          valueClass="up"
+          highlight={true}
+        />
+        <Kpi value={visits!.confirmedHumansToday} label="Umani confermati oggi" />
+        <Kpi value={visits!.uaBots} label="Bot (da User-Agent)" muted={true} />
+        <Kpi value={visits!.uaHumans} label={'"Umani" stima UA'} />
+      </div>
+      <p class="hint" style="margin:-6px 0 18px">
+        ✅ <strong>Umani confermati</strong> = visite che hanno eseguito JavaScript (conteggio
+        affidabile, è il numero vero di persone — leggero sotto-conteggio per chi blocca JS). La
+        "stima UA" sovrastima perché molti bot fingono un browser.
+      </p>
+
+      <section class="block">
+        <h2>Umani vs Bot — ultimi 30 giorni</h2>
+        <HumanBotChart points={visits!.humanBotDaily} />
+      </section>
+
+      <section class="block">
+        <h2>Chi ti sta visitando (top user-agent, 7gg)</h2>
+        <table class="leads">
+          <thead>
+            <tr><th>Tipo</th><th>User-Agent</th><th>Visite</th></tr>
+          </thead>
+          <tbody>
+            {visits!.topUserAgents.map((r) => (
+              <tr>
+                <td>
+                  {r.isBot ? (
+                    <span style="color:#9aa7bd">🤖 bot</span>
+                  ) : (
+                    <span style="color:#8bd89e">👤 umano</span>
+                  )}
+                </td>
+                <td class="msg" style="font-size:.8rem;color:var(--mut)">
+                  {r.ua === '' ? '(nessun user-agent)' : r.ua}
+                </td>
+                <td style="font-weight:600">{r.count}</td>
+              </tr>
+            ))}
+            {visits!.topUserAgents.length === 0 && (
+              <tr><td colspan="3" class="hint">Nessuna visita registrata.</td></tr>
+            )}
+          </tbody>
+        </table>
+        <p class="hint">
+          La classificazione da User-Agent è un'euristica. Il dato affidabile è "Umani confermati",
+          basato sull'esecuzione di JavaScript.
+        </p>
+      </section>
+    </AdminLayout>
+  )
+}

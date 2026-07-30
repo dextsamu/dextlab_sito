@@ -1,0 +1,18 @@
+---
+/**
+ * Home. Decide fra landing e pagina di manutenzione in base a quanto stabilito
+ * dal middleware, senza rewrite interni: un solo passaggio di middleware
+ * significa una sola visita registrata e un solo token per il beacon.
+ */
+import Landing from '../components/Landing.astro';
+import Manutenzione from '../components/Manutenzione.astro';
+
+const showMaintenance = Astro.locals.maintenanceActive && !Astro.locals.previewActive;
+
+if (showMaintenance) {
+  Astro.response.status = 503;
+  Astro.response.headers.set('Retry-After', '7200');
+}
+---
+
+{showMaintenance ? <Manutenzione /> : <Landing />}

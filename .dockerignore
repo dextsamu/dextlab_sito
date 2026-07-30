@@ -1,11 +1,27 @@
+# Escluso dal contesto di build: riduce quanto viene inviato al daemon ed evita
+# che segreti o artefatti locali finiscano nell'immagine.
 .git
+.gitignore
+.github
 .claude
-DEPLOY.md
-install.php
-migrate.php
-dext lab new orizontal.png
-dext lab new vertical.png
+
+# segreti e configurazione locale
+.env
+.env.*
+!.env.example
+deploy-docker/.env
+
+# dipendenze e build: ricostruite dentro l'immagine
+node_modules
+dist
+.astro
+
+# dati di runtime
+data
 deploy-docker/data
 deploy-docker/letsencrypt
-deploy-docker/.env
-backups
+*.log
+
+# documentazione
+DEPLOY.md
+deploy-docker/README.md

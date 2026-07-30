@@ -1,0 +1,40 @@
+---
+const punti = [
+  "Sviluppo potenziato dall'AI: più veloce, stesso risultato",
+  'Design curato e su misura, mai copia-incolla',
+  'Interlocutore unico, comunicazione diretta, tempi rispettati',
+  "Costi trasparenti, sotto il prezzo di un'agenzia",
+];
+---
+
+<section class="section" id="about">
+  <div class="container about-inner">
+    <div class="about-visual reveal">
+      <img
+        src="/assets/logo-v.png"
+        alt="Dext Lab"
+        class="about-logo"
+        width="883"
+        height="1027"
+        loading="lazy"
+      />
+      <div class="about-ring" aria-hidden="true"></div>
+    </div>
+    <div class="about-text reveal">
+      <span class="eyebrow">L'approccio</span>
+      <h2>Tecnologia e <span class="grad">AI</span> al servizio della tua idea</h2>
+      <p>
+        <strong>Dext Lab</strong> nasce da un metodo diverso: unisco le migliori tecnologie moderne
+        agli strumenti di Intelligenza Artificiale per costruire prodotti digitali su misura, più in
+        fretta e a un costo accessibile.
+      </p>
+      <p>
+        Niente template riciclati né agenzie con dieci passaggi e tempi infiniti. Tu mi racconti
+        l'obiettivo, io lo traduco in un prodotto curato nel design e pronto a funzionare.
+      </p>
+      <ul class="about-list">
+        {punti.map((p) => <li>{p}</li>)}
+      </ul>
+    </div>
+  </div>
+</section>

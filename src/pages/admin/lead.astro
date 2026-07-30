@@ -1,0 +1,88 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { guardAdmin, handleAdminPost } from '../../lib/admin-actions.ts';
+import { csrfToken } from '../../lib/auth.ts';
+import { recentLeads, leadStats, LEAD_STATUSES } from '../../lib/admin.ts';
+import { dateTime } from '../../lib/format.ts';
+
+const denied = guardAdmin(Astro);
+if (denied) return denied;
+
+const { response } = await handleAdminPost(Astro, '/admin/lead');
+if (response) return response;
+
+const csrf = csrfToken(Astro.cookies);
+const [leads, stats] = await Promise.all([recentLeads(), leadStats()]);
+---
+
+<AdminLayout current="leads" title="Lead" newLeads={stats.newCount}>
+  <h1>
+    Lead ricevuti
+    <a class="btn-s" href="/admin/lead.csv">Esporta CSV</a>
+  </h1>
+
+  <table class="leads">
+    <thead>
+      <tr><th>Data</th><th>Nome</th><th>Email</th><th>Messaggio</th><th>Stato</th><th></th></tr>
+    </thead>
+    <tbody>
+      {
+        leads.map((lead) => (
+          <tr class={`lead-${lead.status}`}>
+            <td class="nowrap">{dateTime(lead.created_at)}</td>
+            <td>{lead.name}</td>
+            <td>
+              <a href={`mailto:${lead.email ?? ''}`}>{lead.email}</a>
+            </td>
+            <td class="msg">
+              <strong>{lead.subject}</strong>
+              <br />
+              {(lead.message ?? '').split(/\r\n|\r|\n/).map((line, i) => (
+                <>
+                  {i > 0 && <br />}
+                  {line}
+                </>
+              ))}
+            </td>
+            <td>
+              <form method="post" class="inline">
+                <input type="hidden" name="csrf" value={csrf} />
+                <input type="hidden" name="id" value={lead.id} />
+                <input type="hidden" name="action" value="lead_status" />
+                <select name="status" data-autosubmit>
+                  {LEAD_STATUSES.map((s) => (
+                    <option value={s.value} selected={lead.status === s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </form>
+            </td>
+            <td>
+              <form method="post" class="inline">
+                <input type="hidden" name="csrf" value={csrf} />
+                <input type="hidden" name="id" value={lead.id} />
+                <button
+                  class="btn-s danger"
+                  name="action"
+                  value="lead_delete"
+                  data-confirm="Eliminare il lead?"
+                >
+                  ✕
+                </button>
+              </form>
+            </td>
+          </tr>
+        ))
+      }
+      {
+        leads.length === 0 && (
+          <tr>
+            <td colspan="6" class="hint">Nessun lead ricevuto.</td>
+          </tr>
+        )
+      }
+    </tbody>
+  </table>
+  <p class="hint">Sono mostrati gli ultimi 300 lead. L'export CSV contiene tutto lo storico.</p>
+</AdminLayout>

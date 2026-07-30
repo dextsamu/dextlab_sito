@@ -1,0 +1,33 @@
+{
+  "name": "dextlab-sito",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env ./node_modules/astro/bin/astro.mjs dev",
+    "build": "astro build",
+    "preview": "node --env-file-if-exists=.env ./dist/server/entry.mjs",
+    "start": "node ./dist/server/entry.mjs",
+    "check": "astro check",
+    "migrate": "node --env-file-if-exists=.env ./scripts/migrate.mjs",
+    "create-admin": "node --env-file-if-exists=.env ./scripts/create-admin.mjs",
+    "backup": "node --env-file-if-exists=.env ./scripts/backup.mjs"
+  },
+  "dependencies": {
+    "@astrojs/node": "^11.0.3",
+    "astro": "^7.1.6",
+    "bcryptjs": "^3.0.3",
+    "nodemailer": "^9.0.3",
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/node": "^26.1.2",
+    "@types/nodemailer": "^8.0.1",
+    "@types/pg": "^8.20.0",
+    "typescript": "^6.0.3"
+  }
+}

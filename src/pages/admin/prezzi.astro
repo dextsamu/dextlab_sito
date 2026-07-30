@@ -1,0 +1,54 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import CrudRow, { type FieldSpec } from '../../components/admin/CrudRow.astro';
+import { guardAdmin, handleAdminPost } from '../../lib/admin-actions.ts';
+import { csrfToken } from '../../lib/auth.ts';
+import { contentRows, leadStats } from '../../lib/admin.ts';
+
+const denied = guardAdmin(Astro);
+if (denied) return denied;
+
+const { response } = await handleAdminPost(Astro, '/admin/prezzi');
+if (response) return response;
+
+const csrf = csrfToken(Astro.cookies);
+const fields: FieldSpec[] = [
+  { name: 'label', type: 'text', placeholder: 'Nome' },
+  { name: 'price', type: 'number', placeholder: '€' },
+  { name: 'weeks', type: 'number', placeholder: 'settimane' },
+  { name: 'sort', type: 'number', placeholder: 'ordine' },
+  { name: 'active', type: 'check', placeholder: '' },
+];
+
+const [types, addons, leads] = await Promise.all([
+  contentRows('pricing_types'),
+  contentRows('pricing_addons'),
+  leadStats(),
+]);
+---
+
+<AdminLayout current="pricing" title="Prezzi" newLeads={leads.newCount}>
+  <h1>Prezzi configuratore</h1>
+
+  <section class="block">
+    <h2>Tipi di progetto</h2>
+    <div class="crud-head">
+      <span>Nome</span><span>Prezzo €</span><span>Settimane</span><span>Ordine</span><span>Attivo</span
+      ><span></span>
+    </div>
+    {types.map((row) => <CrudRow table="pricing_types" fields={fields} row={row} csrf={csrf} />)}
+    <h3>+ Nuovo tipo</h3>
+    <CrudRow table="pricing_types" fields={fields} row={null} csrf={csrf} />
+  </section>
+
+  <section class="block">
+    <h2>Add-on (funzioni extra)</h2>
+    <div class="crud-head">
+      <span>Nome</span><span>Prezzo €</span><span>Settimane</span><span>Ordine</span><span>Attivo</span
+      ><span></span>
+    </div>
+    {addons.map((row) => <CrudRow table="pricing_addons" fields={fields} row={row} csrf={csrf} />)}
+    <h3>+ Nuovo add-on</h3>
+    <CrudRow table="pricing_addons" fields={fields} row={null} csrf={csrf} />
+  </section>
+</AdminLayout>

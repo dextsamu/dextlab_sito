@@ -1,36 +1,68 @@
-# Dext Lab — si aggancia al Traefik ESISTENTE (rete "proxy", resolver "letsencrypt")
-# e al PostgreSQL ESISTENTE (container "postgres", gestito da pgAdmin).
-# NON avvia né Traefik né un proprio DB. Avvio: cd deploy-docker && docker compose up -d --build
+# Dext Lab — si aggancia al Traefik ESISTENTE (rete "proxy", resolver
+# "letsencrypt") e al PostgreSQL ESISTENTE (container "postgres").
+# Non avvia né Traefik né un proprio database.
+#
+# Questo file usa un'immagine già costruita, pubblicata su GHCR dalla GitHub
+# Action. Sul VPS servono soltanto questo file e il .env: il sorgente non serve.
+#
+#   docker compose pull && docker compose up -d
+#
+# Per costruire l'immagine in locale invece di scaricarla, si aggiunge
+# l'override che contiene la sezione build:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 
 services:
   web:
-    build:
-      context: ..
-      dockerfile: deploy-docker/Dockerfile
+    # IMAGE_TAG è il tag pubblicato dalla Action (sha-<commit>). Il default
+    # "latest" serve a un avvio manuale; per tornare a una versione precedente
+    # basta IMAGE_TAG=sha-<commit> docker compose up -d
+    image: ${IMAGE_NAME:-ghcr.io/dextsamu/dextlab_sito}:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
+      # Obbligatoria: firma i cookie di sessione admin. Senza, l'app non parte.
+      APP_SECRET: ${APP_SECRET}
+      # Alimenta canonical, Open Graph e sitemap: deve combaciare con SITE_HOST.
+      SITE_URL: ${SITE_URL}
+      # Opzionale: abilita /api/backup per un cron esterno. Vuota = disabilitato.
+      BACKUP_KEY: ${BACKUP_KEY:-}
+      MAIL_TO: ${MAIL_TO:-info@dextlab.it}
+      MAIL_FROM: ${MAIL_FROM:-info@dextlab.it}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Dext Lab}
+      # Un solo proxy fidato davanti (Traefik): serve a risalire all'IP reale
+      # del visitatore per rate limit e statistiche.
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
     networks:
       - proxy
     volumes:
-      - ./data/backups:/var/www/html/backups
+      # I backup devono sopravvivere alla ricostruzione dell'immagine.
+      - ./data/backups:/app/data/backups
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-      - "traefik.http.routers.dext.rule=Host(`${SITE_HOST}`)"
+      # Regola di routing. SITE_RULE permette di servire più host: il sito
+      # risponde su dextlab.it, www.dextlab.it e un host di prova, e dichiararne
+      # uno solo qui li farebbe diventare 404. Se SITE_RULE non è impostata si
+      # ricade sul singolo SITE_HOST.
+      - "traefik.http.routers.dext.rule=${SITE_RULE:-Host(`${SITE_HOST}`)}"
       - traefik.http.routers.dext.entrypoints=websecure
       - traefik.http.routers.dext.tls=true
       - traefik.http.routers.dext.tls.certresolver=letsencrypt
-      - traefik.http.services.dext.loadbalancer.server.port=80
+      # La porta è quella del server Node, non più quella di Apache.
+      - traefik.http.services.dext.loadbalancer.server.port=4321
       - "traefik.http.routers.dext.middlewares=dext-sec"
+      # Header di sicurezza: con Node non ci sono più .htaccess a impostarli.
       - traefik.http.middlewares.dext-sec.headers.contentTypeNosniff=true
       - traefik.http.middlewares.dext-sec.headers.referrerPolicy=strict-origin-when-cross-origin
+      - traefik.http.middlewares.dext-sec.headers.frameDeny=true
       - traefik.http.middlewares.dext-sec.headers.stsSeconds=31536000
       - traefik.http.middlewares.dext-sec.headers.stsIncludeSubdomains=true
+      - "traefik.http.middlewares.dext-sec.headers.customResponseHeaders.Permissions-Policy=geolocation=(), microphone=(), camera=()"
 
 networks:
   proxy:

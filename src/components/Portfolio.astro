@@ -1,0 +1,61 @@
+---
+const progetti = [
+  {
+    gradient: 'grad-a',
+    tag: 'Sito Web',
+    title: 'E-commerce artigianale',
+    text: 'Vetrina e shop online con catalogo dinamico e checkout sicuro.',
+    stack: ['Next.js', 'Stripe', 'SEO'],
+  },
+  {
+    gradient: 'grad-b',
+    tag: 'Web App',
+    title: 'Gestionale prenotazioni',
+    text: 'Dashboard per gestire appuntamenti, clienti e pagamenti in tempo reale.',
+    stack: ['React', 'API', 'Database'],
+  },
+  {
+    gradient: 'grad-c',
+    tag: 'AI',
+    title: 'Assistente documenti',
+    text: 'Chatbot che risponde sui documenti aziendali con ricerca semantica.',
+    stack: ['LLM', 'RAG', 'Automazioni'],
+  },
+];
+---
+
+<section class="section section-alt" id="portfolio">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">Lavori</span>
+      <h2>Progetti <span class="grad">selezionati</span></h2>
+      <p class="section-lead">
+        Una selezione di prodotti digitali realizzati. Ogni progetto parte da zero, su misura.
+      </p>
+    </div>
+    <div class="portfolio">
+      {
+        progetti.map((p) => (
+          <article class="pcard reveal">
+            <div class:list={['pcard-img', p.gradient]}>
+              <span class="pcard-tag">{p.tag}</span>
+            </div>
+            <div class="pcard-body">
+              <h3>{p.title}</h3>
+              <p>{p.text}</p>
+              <div class="pcard-stack">
+                {p.stack.map((s) => (
+                  <span>{s}</span>
+                ))}
+              </div>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+    <p class="portfolio-note reveal">
+      I progetti mostrati sono esempi rappresentativi. Vuoi vedere casi reali?
+      <a href="#contatti">Scrivimi</a>.
+    </p>
+  </div>
+</section>

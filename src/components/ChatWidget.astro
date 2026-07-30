@@ -1,0 +1,38 @@
+---
+// Il widget parla con /api/chat, che tiene la chiave dell'LLM lato server.
+---
+
+<div class="chat-widget" id="chatWidget">
+  <div class="chat-panel" id="chatPanel" role="dialog" aria-label="Assistente Dext Lab" hidden>
+    <div class="chat-top">
+      <span class="chat-id"><span class="ai-dot"></span> Assistente Dext Lab</span>
+      <button class="chat-close" id="chatClose" aria-label="Chiudi chat">✕</button>
+    </div>
+    <div class="chat-msgs" id="chatMsgs">
+      <div class="cmsg bot">
+        Ciao! 👋 Sono l'assistente di Dext Lab. Chiedimi di servizi, prezzi o tempi — o lasciami un
+        contatto.
+      </div>
+    </div>
+    <form class="chat-input" id="chatForm">
+      <input
+        type="text"
+        id="chatText"
+        placeholder="Scrivi un messaggio…"
+        autocomplete="off"
+        maxlength="500"
+      />
+      <button type="submit" aria-label="Invia">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" />
+        </svg>
+      </button>
+    </form>
+  </div>
+  <button class="chat-launch" id="chatLaunch" aria-label="Apri assistente AI">
+    <svg class="ci-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10Z" />
+    </svg>
+    <span class="chat-launch-badge">AI</span>
+  </button>
+</div>

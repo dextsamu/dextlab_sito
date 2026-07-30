@@ -1,0 +1,17 @@
+---
+interface Props {
+  label: string;
+  count: number;
+  percent: number;
+  /** Classe sulla barra, per colorare per stato. */
+  barClass?: string;
+}
+
+const { label, count, percent, barClass } = Astro.props;
+---
+
+<div class="hbar">
+  <span class="hbar-l">{label}</span>
+  <span class="hbar-t"><i class={barClass} style={`width:${percent}%`}></i></span>
+  <span class="hbar-n">{count}</span>
+</div>

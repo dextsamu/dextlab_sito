@@ -1,0 +1,345 @@
+name: Controlli
+
+# Gira su ogni pull request e su ogni push fuori da main. Su main lo richiama
+# deploy.yml come prerequisito, così non esiste un deploy che salta i controlli
+# e non ci sono due esecuzioni in parallelo sullo stesso commit.
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - main
+  workflow_call:
+
+permissions:
+  contents: read
+
+# Un push che ne segue un altro sullo stesso ramo annulla il precedente: i
+# controlli sul commit sorpassato non servono più.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Tipi e build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Controllo dei tipi
+        run: npm run check
+
+      - name: Build
+        run: npm run build
+
+  smoke:
+    name: Avvio contro un database reale
+    runs-on: ubuntu-latest
+
+    # Le migrazioni e le query vanno provate contro PostgreSQL, non simulate:
+    # è lo stesso motore della produzione.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: dext
+          POSTGRES_PASSWORD: dext_ci
+          POSTGRES_DB: dext
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dext"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_NAME: dext
+      DB_USER: dext
+      DB_PASS: dext_ci
+      # Valore usa-e-getta valido solo per questo job: non è un segreto reale.
+      APP_SECRET: ci_only_secret_0123456789abcdef0123456789abcd
+      SITE_URL: http://127.0.0.1:4321
+      BACKUP_DIR: /tmp/ci-backups
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Migrazioni su database vuoto
+        run: npm run migrate
+
+      - name: Le migrazioni sono idempotenti
+        run: |
+          out=$(npm run --silent migrate)
+          echo "$out"
+          echo "$out" | grep -q 'già aggiornato' || {
+            echo "::error::una seconda esecuzione ha riapplicato delle migrazioni"
+            exit 1
+          }
+
+      - name: Creazione admin
+        run: echo 'password-ci-molto-lunga' | npm run --silent create-admin -- --user ci_admin
+
+      - run: npm run build
+
+      - name: Avvio del server compilato
+        run: |
+          node ./dist/server/entry.mjs > /tmp/server.log 2>&1 &
+          echo $! > /tmp/server.pid
+          for i in $(seq 1 40); do
+            curl -sf -o /dev/null http://127.0.0.1:4321/api/health && exit 0
+            sleep 0.5
+          done
+          echo "::error::il server non ha risposto entro 20 secondi"
+          cat /tmp/server.log
+          exit 1
+
+      - name: Le rotte rispondono
+        run: |
+          fail=0
+          check() {
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:4321$1")
+            if [ "$code" = "$2" ]; then
+              echo "  ok    $1 -> $code"
+            else
+              echo "::error::$1 ha risposto $code, attesi $2"
+              fail=1
+            fi
+          }
+          check /            200
+          check /privacy     200
+          check /termini     200
+          check /sitemap.xml 200
+          check /robots.txt  200
+          check /api/health  200
+          check /admin       200
+          # Il pannello non deve essere raggiungibile senza sessione.
+          check /admin/lead  303
+          # L'endpoint di backup resta chiuso senza BACKUP_KEY.
+          check /api/backup  403
+          exit $fail
+
+      - name: I contenuti arrivano dal database
+        run: |
+          html=$(curl -s http://127.0.0.1:4321/)
+          for pair in "cfg-type:5" "cfg-addon:6" "review reveal:3" "faq-item reveal:5"; do
+            needle=${pair%:*}; want=${pair#*:}
+            got=$(grep -o "class=\"$needle" <<<"$html" | wc -l)
+            if [ "$got" != "$want" ]; then
+              echo "::error::$needle presente $got volte, attese $want"
+              exit 1
+            fi
+            echo "  ok    $needle x$got"
+          done
+
+      - name: Il form contatti salva il lead
+        run: |
+          res=$(curl -s -H 'Origin: http://127.0.0.1:4321' -X POST \
+            http://127.0.0.1:4321/api/contact \
+            -F 'name=CI' -F 'email=ci@esempio.it' -F 'message=Prova automatica.')
+          echo "  risposta: $res"
+          echo "$res" | grep -q '"ok":true' || { echo "::error::invio rifiutato"; exit 1; }
+          n=$(PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -tAc 'select count(*) from leads')
+          [ "$n" = "1" ] || { echo "::error::lead nel database: $n, atteso 1"; exit 1; }
+
+      - name: Un POST da altra origine viene rifiutato
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://altro.example' \
+            -X POST http://127.0.0.1:4321/api/contact \
+            -F 'name=X' -F 'email=x@y.it' -F 'message=z')
+          [ "$code" = "403" ] || { echo "::error::atteso 403, ricevuto $code"; exit 1; }
+          echo "  ok    origine esterna -> 403"
+
+      - name: Backup e ripristino su database vuoto
+        run: |
+          npm run backup
+          file=$(ls /tmp/ci-backups/*.sql.gz | head -1)
+          echo "  dump: $file"
+          PGPASSWORD=dext_ci createdb -h 127.0.0.1 -U dext dext_restore
+          gunzip -c "$file" | PGPASSWORD=dext_ci psql -q -h 127.0.0.1 -U dext -d dext_restore
+          n=$(PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext_restore -tAc 'select count(*) from leads')
+          [ "$n" = "1" ] || { echo "::error::lead dopo il ripristino: $n, atteso 1"; exit 1; }
+          echo "  ok    ripristino verificato"
+
+      - name: Log del server in caso di errore
+        if: failure()
+        run: cat /tmp/server.log || true
+
+  migrazione-da-php:
+    name: Aggiornamento di un database PHP esistente
+    runs-on: ubuntu-latest
+
+    # Il percorso più delicato dell'aggiornamento: un database creato da
+    # install.php ha tipi diversi (SMALLINT invece di BOOLEAN, TIMESTAMP senza
+    # fuso) e 001_init.sql, usando CREATE TABLE IF NOT EXISTS, non lo tocca.
+    # Senza la migrazione 003 il sito risponderebbe 200 servendo i contenuti di
+    # fallback al posto di quelli reali: un guasto silenzioso.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: dext
+          POSTGRES_PASSWORD: dext_ci
+          POSTGRES_DB: dext
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dext"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_NAME: dext
+      DB_USER: dext
+      DB_PASS: dext_ci
+      APP_SECRET: ci_only_secret_0123456789abcdef0123456789abcd
+      SITE_URL: http://127.0.0.1:4321
+      PGPASSWORD: dext_ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Ricrea un database in stile PHP con dati reali
+        run: psql -h 127.0.0.1 -U dext -d dext -v ON_ERROR_STOP=1 -f .github/fixtures/schema-php.sql
+
+      - name: La prova a vuoto non modifica nulla
+        run: |
+          npm run migrate -- --dry-run
+          tipo=$(psql -h 127.0.0.1 -U dext -d dext -tAc \
+            "select data_type from information_schema.columns where table_name='pricing_types' and column_name='active'")
+          [ "$tipo" = "smallint" ] || { echo "::error::il dry-run ha modificato lo schema ($tipo)"; exit 1; }
+          n=$(psql -h 127.0.0.1 -U dext -d dext -tAc \
+            "select count(*) from information_schema.tables where table_schema='public' and table_name='schema_migrations'")
+          [ "$n" = "0" ] || { echo "::error::il dry-run ha lasciato la tabella schema_migrations"; exit 1; }
+          echo "  ok    nessuna traccia lasciata dalla prova a vuoto"
+
+      - name: Applica le migrazioni
+        run: npm run migrate
+
+      - name: I dati reali sono sopravvissuti
+        run: |
+          q() { psql -h 127.0.0.1 -U dext -d dext -tAc "$1"; }
+          fail=0
+          expect() {
+            got=$(q "$2")
+            if [ "$got" = "$3" ]; then echo "  ok    $1 = $got"
+            else echo "::error::$1 = $got, atteso $3"; fail=1; fi
+          }
+          expect "tipi progetto"      "select count(*) from pricing_types" 3
+          expect "tipi attivi"        "select count(*) from pricing_types where active" 2
+          expect "addon"              "select count(*) from pricing_addons" 2
+          expect "recensioni"         "select count(*) from reviews" 2
+          expect "lead"               "select count(*) from leads" 2
+          expect "lead senza data"    "select count(*) from leads where created_at is null" 0
+          expect "visite"             "select count(*) from visits" 2
+          expect "visite umane"       "select count(*) from visits where human" 1
+          expect "segreto SMTP"       "select v from settings where k='smtp_pass'" "segreto-smtp-da-conservare"
+          expect "segreto AI"         "select v from settings where k='ai_api_key'" "segreto-ai-da-conservare"
+          expect "setting NULL"       "select v from settings where k='tg_chat'" ""
+          expect "stelle fuori range" "select stars from reviews where author='Caso Limite'" 5
+          expect "hash admin PHP"     "select left(pass_hash,4) from admins" '$2y$'
+          exit $fail
+
+      - name: Lo schema è quello atteso
+        run: |
+          fail=0
+          check_type() {
+            got=$(psql -h 127.0.0.1 -U dext -d dext -tAc \
+              "select data_type from information_schema.columns where table_name='$1' and column_name='$2'")
+            if [ "$got" = "$3" ]; then echo "  ok    $1.$2 -> $got"
+            else echo "::error::$1.$2 è $got, atteso $3"; fail=1; fi
+          }
+          check_type pricing_types active         boolean
+          check_type faqs          active         boolean
+          check_type visits        is_maintenance boolean
+          check_type visits        human          boolean
+          check_type leads         created_at     'timestamp with time zone'
+          check_type visits        created_at     'timestamp with time zone'
+          check_type rate_limits   reset_at       'timestamp with time zone'
+          check_type reviews       stars          smallint
+          exit $fail
+
+      - name: Le migrazioni restano idempotenti
+        run: |
+          out=$(npm run --silent migrate)
+          echo "$out"
+          echo "$out" | grep -q 'già aggiornato' || {
+            echo "::error::una seconda esecuzione ha riapplicato delle migrazioni"; exit 1; }
+
+      - run: npm run build
+
+      - name: Il sito serve i contenuti reali, non i fallback
+        run: |
+          node ./dist/server/entry.mjs > /tmp/server.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl -sf -o /dev/null http://127.0.0.1:4321/api/health && break
+            sleep 0.5
+          done
+          html=$(curl -s http://127.0.0.1:4321/)
+          fail=0
+          present() {
+            if grep -q "$1" <<<"$html"; then echo "  ok    presente: $2"
+            else echo "::error::manca dalla pagina: $2"; fail=1; fi
+          }
+          absent() {
+            if grep -q "$1" <<<"$html"; then echo "::error::non doveva comparire: $2"; fail=1
+            else echo "  ok    assente: $2"; fi
+          }
+          present 'Landing su misura'   'tipo progetto personalizzato'
+          present 'data-price="690"'    'prezzo reale del cliente'
+          present 'Recensione autentica del cliente' 'recensione reale'
+          present 'Domanda personalizzata'           'FAQ reale'
+          present 'wa.me/393339998877'  'numero WhatsApp reale'
+          present 'contatti@dextlab.it' 'email di contatto reale'
+          absent  'Vecchio pacchetto'   'tipo disattivato'
+          # Se comparissero questi, il sito starebbe servendo i fallback.
+          absent  'data-price="4500"'   'prezzo predefinito del codice'
+          absent  'Marco R.'            'recensione predefinita del codice'
+          n=$(grep -o 'class="cfg-type' <<<"$html" | wc -l)
+          [ "$n" = "2" ] || { echo "::error::tipi nel configuratore: $n, attesi 2"; fail=1; }
+          echo "  ok    tipi nel configuratore: $n"
+          exit $fail
+
+      - name: Il login funziona con l'hash prodotto da PHP
+        run: |
+          jar=/tmp/cookie.jar
+          csrf=$(curl -s -c $jar http://127.0.0.1:4321/admin | grep -oE '[a-f0-9]{64}' | head -1)
+          code=$(curl -s -b $jar -c $jar -o /dev/null -w '%{http_code}' \
+            -H 'Origin: http://127.0.0.1:4321' -X POST http://127.0.0.1:4321/admin \
+            -d "csrf=$csrf&username=samuele&password=password-di-prova")
+          [ "$code" = "303" ] || { echo "::error::login fallito con codice $code"; exit 1; }
+          echo "  ok    accesso riuscito con hash \$2y\$ di PHP"
+          # I lead storici devono comparire nella dashboard, che filtra per data.
+          dash=$(curl -s -b $jar http://127.0.0.1:4321/admin)
+          grep -q 'Lead totali' <<<"$dash" || { echo "::error::dashboard non caricata"; exit 1; }
+          echo "  ok    dashboard raggiungibile"
+
+      - name: Log del server in caso di errore
+        if: failure()
+        run: cat /tmp/server.log || true

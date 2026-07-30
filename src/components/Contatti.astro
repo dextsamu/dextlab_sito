@@ -1,0 +1,70 @@
+---
+interface Props {
+  contactEmail: string;
+  calendly: string;
+}
+
+const { contactEmail, calendly } = Astro.props;
+---
+
+<section class="section section-contact" id="contatti">
+  <div class="container contact-inner">
+    <div class="contact-text reveal">
+      <span class="eyebrow">Parliamone</span>
+      <h2>Hai un progetto <span class="grad">in mente?</span></h2>
+      <p>
+        Raccontami la tua idea. Ti rispondo entro 24 ore con un primo riscontro, senza impegno.
+      </p>
+      <div class="contact-direct">
+        <a href={`mailto:${contactEmail}`} class="contact-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <path d="m2 6 10 7L22 6" />
+          </svg>
+          {contactEmail}
+        </a>
+        <a
+          href={calendly}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="contact-link contact-link-cal"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M16 2v4M8 2v4M3 10h18" />
+          </svg>
+          Prenota una call gratuita
+        </a>
+      </div>
+    </div>
+
+    <form class="contact-form reveal" id="contactForm" action="/api/contact" method="POST" novalidate>
+      <div class="field">
+        <input type="text" id="name" name="name" required placeholder=" " />
+        <label for="name">Nome</label>
+      </div>
+      <div class="field">
+        <input type="email" id="email" name="email" required placeholder=" " />
+        <label for="email">Email</label>
+      </div>
+      <div class="field">
+        <input type="text" id="subject" name="subject" placeholder=" " />
+        <label for="subject">Oggetto</label>
+      </div>
+      <div class="field">
+        <textarea id="message" name="message" rows="4" required placeholder=" "></textarea>
+        <label for="message">Il tuo messaggio</label>
+      </div>
+      <input
+        type="text"
+        name="website"
+        class="hp"
+        tabindex="-1"
+        autocomplete="off"
+        aria-hidden="true"
+      />
+      <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Invia messaggio</button>
+      <p class="form-status" id="formStatus" role="status"></p>
+    </form>
+  </div>
+</section>

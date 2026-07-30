@@ -1,0 +1,47 @@
+---
+const fasi = [
+  {
+    n: '01',
+    title: 'Ascolto',
+    text: 'Capisco obiettivi, target e vincoli. Definiamo insieme cosa significa "successo".',
+  },
+  {
+    n: '02',
+    title: 'Design',
+    text: 'Prototipo UI/UX accattivante e funzionale prima di scrivere codice.',
+  },
+  {
+    n: '03',
+    title: 'Sviluppo',
+    text: 'Codice pulito con le migliori tecnologie. Aggiornamenti costanti, zero black box.',
+  },
+  {
+    n: '04',
+    title: 'Deploy & Supporto',
+    text: 'Vado live, monitoro e resto al tuo fianco anche dopo il lancio.',
+  },
+];
+---
+
+<section class="section" id="processo">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">Come lavoro</span>
+      <h2>Un processo <span class="grad">trasparente</span></h2>
+      <p class="section-lead">
+        Niente sorprese. Ogni fase è condivisa, misurabile e orientata al risultato.
+      </p>
+    </div>
+    <div class="steps">
+      {
+        fasi.map((f) => (
+          <div class="step reveal">
+            <span class="step-n">{f.n}</span>
+            <h3>{f.title}</h3>
+            <p>{f.text}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>

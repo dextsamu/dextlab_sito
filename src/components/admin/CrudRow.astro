@@ -1,0 +1,89 @@
+---
+/**
+ * Riga modificabile di una tabella di contenuto. Corrisponde alla funzione
+ * row_form del pannello PHP: un form per riga, più una riga vuota per
+ * l'inserimento.
+ */
+import type { ContentTable } from '../../lib/db.ts';
+
+export interface FieldSpec {
+  name: string;
+  type: 'text' | 'number' | 'textarea' | 'check';
+  placeholder?: string;
+}
+
+interface Props {
+  table: ContentTable;
+  fields: FieldSpec[];
+  /** Riga esistente, oppure null per il form di inserimento. */
+  row: Record<string, unknown> | null;
+  csrf: string;
+}
+
+const { table, fields, row, csrf } = Astro.props;
+const id = typeof row?.id === 'number' ? row.id : 0;
+
+function valueOf(field: FieldSpec): string {
+  const raw = row?.[field.name];
+  if (raw === null || raw === undefined) return '';
+  return String(raw);
+}
+
+function checkedOf(field: FieldSpec): boolean {
+  // Su una riga nuova le caselle partono attive, come nel pannello precedente.
+  if (!row) return true;
+  return row[field.name] === true;
+}
+---
+
+<form method="post" class="crud-row">
+  <input type="hidden" name="csrf" value={csrf} />
+  <input type="hidden" name="id" value={id} />
+
+  {
+    fields.map((field) => (
+      <div class:list={['fld', `fld-${field.type}`]}>
+        {/* set:text evita che l'indentazione del template finisca nel valore:
+            il contenuto di un textarea è significativo carattere per carattere. */}
+        {field.type === 'textarea' && (
+          <textarea
+            name={field.name}
+            placeholder={field.placeholder}
+            rows="2"
+            set:text={valueOf(field)}
+          />
+        )}
+        {field.type === 'check' && (
+          <label class="ck">
+            <input type="checkbox" name={field.name} checked={checkedOf(field)} />
+            {field.placeholder}
+          </label>
+        )}
+        {(field.type === 'text' || field.type === 'number') && (
+          <input
+            type={field.type === 'number' ? 'number' : 'text'}
+            name={field.name}
+            value={valueOf(field)}
+            placeholder={field.placeholder}
+          />
+        )}
+      </div>
+    ))
+  }
+
+  <div class="crud-actions">
+    <button class="btn-s" name="action" value={`save_${table}`}>{id ? 'Salva' : 'Aggiungi'}</button>
+    {
+      id > 0 && (
+        <button
+          class="btn-s danger"
+          name="action"
+          value={`delete_${table}`}
+          data-confirm="Eliminare questo elemento?"
+        >
+          ✕
+        </button>
+      )
+    }
+  </div>
+</form>
