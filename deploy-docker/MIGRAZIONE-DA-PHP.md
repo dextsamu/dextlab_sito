@@ -391,7 +391,7 @@ curl -s https://dextlab.it/api/health
 # {"status":"ok","database":true}
 ```
 
-Ricontrolla anche Admin → Impostazioni: SMTP, chiave AI e token Telegram sono
+Ricontrolla anche Admin → Impostazioni: SMTP e token Telegram sono
 conservati, ma i campi appaiono **vuoti** perché i segreti non vengono più
 ristampati nella pagina. L'etichetta accanto dice "salvato". Lasciandoli vuoti
 al prossimo salvataggio si conservano.

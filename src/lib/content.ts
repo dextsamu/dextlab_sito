@@ -17,7 +17,6 @@ const FALLBACK_TYPES: PricingItem[] = [
   { label: 'Sito vetrina', price: 990, weeks: 2 },
   { label: 'E-commerce', price: 2500, weeks: 4 },
   { label: 'Web app su misura', price: 4500, weeks: 8 },
-  { label: 'Soluzione AI', price: 1800, weeks: 3 },
 ];
 
 const FALLBACK_ADDONS: PricingItem[] = [
@@ -25,7 +24,6 @@ const FALLBACK_ADDONS: PricingItem[] = [
   { label: 'SEO avanzata', price: 350, weeks: 1 },
   { label: 'Blog / CMS', price: 500, weeks: 1 },
   { label: 'Area riservata / login', price: 800, weeks: 2 },
-  { label: 'Integrazione AI', price: 1200, weeks: 2 },
   { label: 'Copywriting', price: 300, weeks: 0 },
 ];
 
@@ -42,12 +40,6 @@ const FALLBACK_REVIEWS: ReviewItem[] = [
     role: 'Studio professionale',
     stars: 5,
   },
-  {
-    quote: "L'assistente AI risponde ai clienti al posto mio. Soluzione che non pensavo fosse alla mia portata.",
-    author: 'Stefano P.',
-    role: 'PMI servizi',
-    stars: 5,
-  },
 ];
 
 const FALLBACK_FAQS: FaqItem[] = [
@@ -59,12 +51,7 @@ const FALLBACK_FAQS: FaqItem[] = [
   {
     question: 'Quanto tempo serve?',
     answer:
-      "Lavorando con strumenti moderni e AI consegno molto più in fretta di un'agenzia tradizionale: una landing in pochi giorni, progetti più complessi in qualche settimana.",
-  },
-  {
-    question: "Usi l'AI: la qualità ne risente?",
-    answer:
-      "Al contrario. L'AI accelera le parti ripetitive, così investo più tempo su design, esperienza utente e dettagli che fanno la differenza. Ogni progetto viene testato e curato a mano prima di andare online.",
+      'Una landing è pronta in pochi giorni, un sito vetrina in un paio di settimane, i progetti su misura in qualche settimana in più. La data te la do prima di iniziare e la rispetto.',
   },
   {
     question: 'Posso modificare il sito dopo la consegna?',

@@ -78,21 +78,6 @@ const secretHint = (key: string) =>
       placeholder="info@dextlab.it"
     />
 
-    <h2>Chatbot AI</h2>
-    <label class="ck">
-      <input type="checkbox" name="ai_enabled" checked={settingOn(s, 'ai_enabled')} /> Chatbot AI attivo
-    </label>
-    <label for="ai_provider">Provider (anthropic / openai)</label>
-    <input id="ai_provider" name="ai_provider" value={setting(s, 'ai_provider', 'anthropic')} />
-    <label for="ai_model">Modello</label>
-    <input
-      id="ai_model"
-      name="ai_model"
-      value={setting(s, 'ai_model', 'claude-haiku-4-5-20251001')}
-    />
-    <label for="ai_api_key">API key <span class="hint">({secretHint('ai_api_key')})</span></label>
-    <input id="ai_api_key" name="ai_api_key" type="password" autocomplete="off" placeholder="••••••" />
-
     <h2>SMTP (email)</h2>
     <p class="hint">Senza SMTP i lead vengono salvati e notificati, ma nessuna email parte.</p>
     <label class="ck">

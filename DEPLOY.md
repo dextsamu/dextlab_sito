@@ -47,7 +47,7 @@ public/             CSS, JavaScript del browser, immagini, manifest
 ```
 
 Non esiste un `config.php`: tutta la configurazione passa da variabili
-d'ambiente. Le impostazioni operative (SMTP, chiave AI, Telegram, email di
+d'ambiente. Le impostazioni operative (SMTP, Telegram, email di
 contatto, manutenzione) si modificano dal pannello admin e vivono nel database,
 dove hanno la precedenza sui default da ambiente.
 
@@ -115,9 +115,9 @@ Opzionali:
 - **Lead** — messaggi ricevuti, cambio stato, eliminazione, export CSV.
 - **Contenuti** — recensioni e FAQ.
 - **Backup** — esecuzione, elenco, download, eliminazione.
-- **Impostazioni** — manutenzione, contatti, chatbot AI, SMTP, Telegram.
+- **Impostazioni** — manutenzione, contatti, SMTP, Telegram.
 
-I campi segreti (chiave AI, password SMTP, token Telegram) non vengono
+I campi segreti (password SMTP, token Telegram) non vengono
 ristampati nella pagina: lasciandoli vuoti si conserva il valore salvato.
 
 ## Email
@@ -172,8 +172,8 @@ gunzip -c dext-AAAAMMGG-HHMMSS.sql.gz | psql "$DATABASE_URL"
   `Secure` in produzione.
 - Protezione CSRF sui form admin (token double-submit) e rifiuto dei POST form
   da altra origine, incluso il form contatti pubblico.
-- Rate limit per IP: chatbot 15 al minuto e 150 al giorno per contenere il costo
-  dell'LLM, form contatti 5 ogni 15 minuti. Se il database non risponde il
+- Rate limit per IP: chat di assistenza 15 al minuto e 150 al giorno, form
+  contatti 5 ogni 15 minuti. Se il database non risponde il
   limite non blocca, per non rendere inutilizzabile il sito pubblico.
 - Honeypot anti-bot sul form contatti.
 - IP dei visitatori anonimizzati (GDPR) prima di essere salvati.

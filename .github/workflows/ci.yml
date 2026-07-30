@@ -138,7 +138,7 @@ jobs:
       - name: I contenuti arrivano dal database
         run: |
           html=$(curl -s http://127.0.0.1:4321/)
-          for pair in "cfg-type:5" "cfg-addon:6" "review reveal:3" "faq-item reveal:5"; do
+          for pair in "cfg-type:4" "cfg-addon:5" "review reveal:2" "faq-item reveal:3"; do
             needle=${pair%:*}; want=${pair#*:}
             got=$(grep -o "class=\"$needle" <<<"$html" | wc -l)
             if [ "$got" != "$want" ]; then
@@ -147,6 +147,20 @@ jobs:
             fi
             echo "  ok    $needle x$got"
           done
+
+      - name: La pagina pubblica non nomina l'AI
+        run: |
+          # Il confronto su "AI" è sensibile alle maiuscole di proposito: in
+          # italiano "ai" è anche una preposizione ("risponde ai clienti"), e un
+          # controllo indifferente al caso boccerebbe copy del tutto innocente.
+          trovati=$(curl -s http://127.0.0.1:4321/ \
+            | grep -oE "(^|[^A-Za-z])AI([^A-Za-z]|$)|[Ii]ntelligenza [Aa]rtificial|[Cc]hatbot|OpenAI|LLM|RAG" \
+            | sort -u)
+          if [ -n "$trovati" ]; then
+            echo "::error::la home nomina ancora l'AI: $(tr '\n' ' ' <<<"$trovati")"
+            exit 1
+          fi
+          echo "  ok    nessun riferimento all'AI nella pagina pubblica"
 
       - name: Il form contatti salva il lead
         run: |
@@ -301,7 +315,10 @@ jobs:
           expect "visite"             "select count(*) from visits" 2
           expect "visite umane"       "select count(*) from visits where human" 1
           expect "segreto SMTP"       "select v from settings where k='smtp_pass'" "segreto-smtp-da-conservare"
-          expect "segreto AI"         "select v from settings where k='ai_api_key'" "segreto-ai-da-conservare"
+          # La 003 conservava la chiave; la 004 la elimina insieme al resto della
+          # configurazione del chatbot. Verificare la rimozione vale più che
+          # verificare la conservazione: quella chiave era un segreto in chiaro.
+          expect "impostazioni AI rimosse" "select count(*) from settings where k in ('ai_enabled','ai_provider','ai_model','ai_api_key')" 0
           expect "setting NULL"       "select v from settings where k='tg_chat'" ""
           expect "stelle fuori range" "select stars from reviews where author='Caso Limite'" 5
           expect "hash admin PHP"     "select left(pass_hash,4) from admins" '$2y$'
