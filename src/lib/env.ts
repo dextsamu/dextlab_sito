@@ -6,7 +6,7 @@
  * segreto letto in quel modo finirebbe scritto dentro il bundle. process.env
  * è una lettura a runtime e resta fuori dall'artefatto.
  *
- * Le impostazioni operative (SMTP, chiave AI, Telegram, email di contatto)
+ * Le impostazioni operative (SMTP, Telegram, email di contatto)
  * restano modificabili dal pannello admin e vivono nella tabella settings:
  * quelle del DB hanno la precedenza, queste env fanno da default iniziale.
  */

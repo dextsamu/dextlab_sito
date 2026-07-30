@@ -36,7 +36,7 @@ const structuredData = JSON.stringify({
   '@type': 'ProfessionalService',
   name: 'Dext Lab',
   description:
-    'Realizzazione siti web, web app, soluzioni di Intelligenza Artificiale e consulenza informatica con le migliori tecnologie.',
+    'Realizzazione siti web, web app, e-commerce e consulenza informatica con le migliori tecnologie.',
   url: base,
   email: content.contactEmail,
   image: new URL('/assets/logo-v.png', base + '/').href,
@@ -45,22 +45,22 @@ const structuredData = JSON.stringify({
   serviceType: [
     'Realizzazione siti web',
     'Sviluppo web app',
-    'Servizi di Intelligenza Artificiale',
+    'Realizzazione e-commerce',
     'Consulenza informatica',
   ],
 });
 ---
 
 <BaseLayout
-  title="Dext Lab — Siti web, Web App, AI e Consulenza IT"
-  description="Dext Lab realizza siti web e web app con le migliori tecnologie. Consulenza informatica e soluzioni di Intelligenza Artificiale su misura per la tua impresa."
+  title="Dext Lab — Siti web, Web App, E-commerce e Consulenza IT"
+  description="Dext Lab realizza siti web, web app ed e-commerce con le migliori tecnologie. Consulenza informatica e prodotti digitali su misura per la tua impresa."
   path="/"
   structuredData={structuredData}
 >
   <meta
     slot="head"
     name="keywords"
-    content="realizzazione siti web, sviluppo web app, servizi AI, intelligenza artificiale, consulenza informatica, sviluppo software, Italia"
+    content="realizzazione siti web, sviluppo web app, e-commerce, consulenza informatica, sviluppo software, Italia"
   />
 
   <Chrome />

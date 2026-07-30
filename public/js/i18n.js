@@ -10,8 +10,7 @@
     // hero
     'Disponibile per nuovi progetti': 'Available for new projects',
     'Trasformo idee in': 'I turn ideas into', 'che funzionano.': 'that work.',
-    'Siti web, web app e soluzioni di': 'Websites, web apps and',
-    'Intelligenza Artificiale': 'Artificial Intelligence',
+    'Siti web, web app ed': 'Websites, web apps and', 'e-commerce': 'e-commerce',
     'costruiti con le migliori tecnologie. Design accattivante, performance reali e risultati concreti.':
       'built with the best technologies. Captivating design, real performance and concrete results.',
     'Iniziamo un progetto': "Let's start a project", 'Scopri i servizi': 'Explore services',
@@ -26,9 +25,6 @@
     'Web App': 'Web Apps',
     'Applicazioni web complete: gestionali, dashboard, piattaforme SaaS. Autenticazione, database e logica di business sicura.':
       'Complete web applications: management tools, dashboards, SaaS platforms. Auth, database and secure business logic.',
-    'Servizi AI': 'AI Services',
-    'Chatbot, automazioni intelligenti, RAG su documenti aziendali e integrazione LLM. Porto l\'AI dentro i tuoi processi.':
-      'Chatbots, smart automations, RAG on company documents and LLM integration. I bring AI into your processes.',
     'Consulenza IT': 'IT Consulting',
     'Scelta dello stack, architettura, sicurezza e ottimizzazione. Ti affianco nelle decisioni tecniche che contano.':
       'Stack choice, architecture, security and optimisation. I support you on the technical decisions that matter.',
@@ -38,11 +34,6 @@
       'Not just words. Here are the kinds of experiences I build — animated, responsive, tailor-made.',
     'veloci, responsive, fatti per convertire': 'fast, responsive, built to convert',
     'gestionali e dashboard in tempo reale': 'management tools and real-time dashboards',
-    'Genera': 'Generate', 'Analizza': 'Analyse', 'Automatizza': 'Automate',
-    '"Scrivi un post per il lancio"': '"Write a launch post"',
-    'Clausola trovata · pag. 4': 'Clause found · page 4',
-    'Trigger → elaborazione → azione': 'Trigger → processing → action',
-    'genera, analizza e automatizza': 'generate, analyse and automate',
     // portfolio
     'Lavori': 'Work', 'Progetti': 'Selected', 'selezionati': 'projects',
     'Una selezione di prodotti digitali realizzati. Ogni progetto parte da zero, su misura.':
@@ -53,9 +44,6 @@
     'Gestionale prenotazioni': 'Booking management',
     'Dashboard per gestire appuntamenti, clienti e pagamenti in tempo reale.':
       'Dashboard to manage appointments, clients and payments in real time.',
-    'Assistente documenti': 'Document assistant',
-    'Chatbot che risponde sui documenti aziendali con ricerca semantica.':
-      'Chatbot answering on company documents with semantic search.',
     'I progetti mostrati sono esempi rappresentativi. Vuoi vedere casi reali?':
       'The projects shown are representative examples. Want to see real cases?',
     'Scrivimi': 'Write to me',
@@ -74,27 +62,28 @@
     // stack
     'Tecnologie & strumenti': 'Technologies & tools', 'Lo stack': 'The modern', 'moderno': 'stack',
     'che uso': 'I use',
-    'Strumenti attuali e AI per costruire prodotti veloci, sicuri e scalabili.':
-      'Current tools and AI to build fast, secure and scalable products.',
+    'Strumenti attuali per costruire prodotti veloci, sicuri e scalabili.':
+      'Current tools to build fast, secure and scalable products.',
     // about
-    "L'approccio": 'The approach', 'Tecnologia e': 'Technology and', 'al servizio della tua idea': 'serving your idea',
-    'nasce da un metodo diverso: unisco le migliori tecnologie moderne agli strumenti di Intelligenza Artificiale per costruire prodotti digitali su misura, più in fretta e a un costo accessibile.':
-      'is born from a different method: I combine the best modern technologies with AI tools to build tailor-made digital products, faster and at an accessible cost.',
+    "L'approccio": 'The approach',
+    'Tecnologia al servizio della': 'Technology serving', 'tua idea': 'your idea',
+    'nasce da un metodo diverso: unisco le migliori tecnologie moderne a un modo di lavorare snello, senza passaggi inutili, per costruire prodotti digitali su misura, più in fretta e a un costo accessibile.':
+      'is born from a different method: I combine the best modern technologies with a lean way of working, with no pointless steps, to build tailor-made digital products, faster and at an accessible cost.',
     "Niente template riciclati né agenzie con dieci passaggi e tempi infiniti. Tu mi racconti l'obiettivo, io lo traduco in un prodotto curato nel design e pronto a funzionare.":
       'No recycled templates or agencies with ten steps and endless timelines. You tell me the goal, I turn it into a product crafted in design and ready to work.',
-    "Sviluppo potenziato dall'AI: più veloce, stesso risultato": 'AI-powered development: faster, same result',
+    'Consegne rapide senza rinunciare alla cura del dettaglio': 'Fast delivery without giving up attention to detail',
     'Design curato e su misura, mai copia-incolla': 'Crafted, tailor-made design, never copy-paste',
     'Interlocutore unico, comunicazione diretta, tempi rispettati': 'Single contact, direct communication, deadlines met',
     "Costi trasparenti, sotto il prezzo di un'agenzia": "Transparent costs, below an agency's price",
     // perche
     'Perché Dext Lab': 'Why Dext Lab', 'Il meglio dei': 'The best of', 'due mondi': 'both worlds',
-    "La cura di un'agenzia, la velocità e i costi di chi lavora in modo moderno con l'AI.":
-      'The care of an agency, the speed and cost of someone working in a modern way with AI.',
+    "La cura di un'agenzia, la velocità e i costi di chi lavora senza sovrastrutture.":
+      'The care of an agency, the speed and cost of someone working without overhead.',
     'Agenzia': 'Agency', 'Freelance classico': 'Classic freelancer', 'Tempi di consegna': 'Delivery time',
     'Lunghi': 'Long', 'Variabili': 'Variable', 'Rapidi': 'Fast', 'Costi': 'Costs', 'Alti': 'High',
     'Medi': 'Medium', 'Accessibili': 'Affordable', 'Design su misura': 'Custom design', 'Sì': 'Yes',
-    'Spesso template': 'Often templates', 'Sempre': 'Always', 'Tecnologia & AI': 'Technology & AI',
-    'A volte': 'Sometimes', 'Raramente': 'Rarely', 'Sempre integrata': 'Always integrated',
+    'Spesso template': 'Often templates', 'Sempre': 'Always', 'Tecnologia aggiornata': 'Up-to-date technology',
+    'A volte': 'Sometimes', 'Raramente': 'Rarely',
     'Interlocutore unico': 'Single contact', 'Più passaggi': 'Multiple steps', 'Sempre tu & io': 'Always you & me',
     // recensioni
     'Cosa dicono i': 'What', 'clienti': 'clients say',
@@ -104,18 +93,15 @@
     '"Ha capito subito cosa serviva alla mia attività. Il gestionale ci fa risparmiare ore ogni settimana."':
       '"He immediately understood what my business needed. The tool saves us hours every week."',
     'Studio professionale': 'Professional firm',
-    '"L\'assistente AI risponde ai clienti al posto mio. Soluzione che non pensavo fosse alla mia portata."':
-      '"The AI assistant answers clients for me. A solution I didn\'t think was within my reach."',
-    'PMI servizi': 'SME services',
     // configuratore
     'Preventivo istantaneo': 'Instant quote', 'Configura il tuo': 'Configure your', 'progetto': 'project',
     'Stima indicativa in tempo reale. Nessun impegno: serve a darci un punto di partenza.':
       'Real-time indicative estimate. No commitment: just a starting point.',
     'Cosa ti serve?': 'What do you need?', 'Landing page': 'Landing page', 'Sito vetrina': 'Showcase site',
-    'Web app su misura': 'Custom web app', 'Soluzione AI': 'AI solution',
+    'Web app su misura': 'Custom web app',
     'Aggiungi funzioni': 'Add features', 'Multilingua': 'Multilingual', 'SEO avanzata': 'Advanced SEO',
     'Blog / CMS': 'Blog / CMS', 'Area riservata / login': 'Members area / login',
-    'Integrazione AI': 'AI integration', 'Copywriting': 'Copywriting', 'Stima indicativa': 'Indicative estimate',
+    'Copywriting': 'Copywriting', 'Stima indicativa': 'Indicative estimate',
     'Design su misura': 'Custom design', 'Responsive + performance': 'Responsive + performance',
     'Supporto post-lancio': 'Post-launch support', 'Richiedi questo preventivo': 'Request this quote',
     'Stima orientativa, non vincolante. Il preventivo finale è gratuito.':
@@ -126,11 +112,8 @@
     "Dipende dall'obiettivo: una landing page parte da poche centinaia di euro, una web app su misura cresce in base alle funzioni. Ti do sempre un preventivo chiaro e fisso prima di iniziare, senza sorprese.":
       'It depends on the goal: a landing page starts from a few hundred euros, a custom web app grows with features. I always give a clear, fixed quote before starting, no surprises.',
     'Quanto tempo serve?': 'How long does it take?',
-    "Lavorando con strumenti moderni e AI consegno molto più in fretta di un'agenzia tradizionale: una landing in pochi giorni, progetti più complessi in qualche settimana.":
-      'Working with modern tools and AI I deliver much faster than a traditional agency: a landing in a few days, complex projects in a few weeks.',
-    'Usi l\'AI: la qualità ne risente?': 'You use AI: does quality suffer?',
-    'Al contrario. L\'AI accelera le parti ripetitive, così investo più tempo su design, esperienza utente e dettagli che fanno la differenza. Ogni progetto viene testato e curato a mano prima di andare online.':
-      'On the contrary. AI speeds up repetitive parts, so I invest more time in design, UX and the details that make the difference. Every project is tested and hand-crafted before going live.',
+    'Una landing è pronta in pochi giorni, un sito vetrina in un paio di settimane, i progetti su misura in qualche settimana in più. La data te la do prima di iniziare e la rispetto.':
+      'A landing page is ready in a few days, a showcase site in a couple of weeks, custom projects in a few weeks more. I give you the date before starting and I stick to it.',
     'Posso modificare il sito dopo la consegna?': 'Can I edit the site after delivery?',
     'Certo. Ti consegno un prodotto pronto e, se vuoi, un modo semplice per aggiornarlo da solo. In alternativa resto io il tuo punto di riferimento per modifiche e nuove funzioni.':
       'Of course. I deliver a ready product and, if you want, an easy way to update it yourself. Otherwise I remain your reference for changes and new features.',
@@ -145,15 +128,16 @@
     'Il tuo messaggio': 'Your message', 'Invia messaggio': 'Send message',
     // footer
     'Contatti': 'Contact', 'Privacy': 'Privacy', 'Termini': 'Terms',
-    'Tecnologia, design e AI su misura.': 'Tailor-made technology, design and AI.',
+    // La chiave comprende "Dext Lab — " perché il nodo di testo del footer parte
+    // dopo lo <span> dell'anno: senza il prefisso non combacia e resta in italiano.
+    'Dext Lab — Tecnologia e design su misura.': 'Dext Lab — Tailor-made technology and design.',
     // cookie
     'Usiamo cookie tecnici e, previo consenso, cookie di analisi per migliorare il sito. Vedi la':
       'We use technical cookies and, with consent, analytics cookies to improve the site. See the',
     'Privacy Policy': 'Privacy Policy', 'Rifiuta': 'Decline', 'Accetta': 'Accept',
-    // chat
-    'Assistente Dext Lab': 'Dext Lab Assistant',
-    'Ciao! 👋 Sono l\'assistente di Dext Lab. Chiedimi di servizi, prezzi o tempi — o lasciami un contatto.':
-      'Hi! 👋 I\'m the Dext Lab assistant. Ask me about services, prices or timing — or leave me a contact.',
+    // chat — il primo messaggio non è qui: sta dentro #chatMsgs, che collect()
+    // esclude perché contiene testo generato a runtime.
+    'Risposte rapide': 'Quick answers',
   };
 
   const placeholders = {

@@ -330,10 +330,6 @@ export const SETTING_KEYS = [
   'whatsapp',
   'calendly',
   'contact_email',
-  'ai_enabled',
-  'ai_provider',
-  'ai_api_key',
-  'ai_model',
   'smtp_enabled',
   'smtp_host',
   'smtp_user',
@@ -348,7 +344,6 @@ export const SETTING_KEYS = [
 /** Chiavi che nel form sono checkbox: assenti significa disattivate. */
 export const SETTING_TOGGLES = new Set([
   'maintenance',
-  'ai_enabled',
   'smtp_enabled',
   'tg_enabled',
 ]);
@@ -359,7 +354,7 @@ export const SETTING_TOGGLES = new Set([
  * vista ma li lascia in chiaro nel sorgente della pagina. Qui il campo parte
  * vuoto e un invio vuoto conserva il valore già salvato invece di azzerarlo.
  */
-export const SETTING_SECRETS = new Set(['ai_api_key', 'smtp_pass', 'tg_token']);
+export const SETTING_SECRETS = new Set(['smtp_pass', 'tg_token']);
 
 export function settingsFromForm(form: FormData): Record<string, string> {
   const out: Record<string, string> = {};

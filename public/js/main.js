@@ -132,64 +132,12 @@
     });
   });
 
-  /* AI mockup — scene rotation */
-  const aiWin = document.getElementById('aiWin');
-  if (aiWin) {
-    const tabs = aiWin.querySelectorAll('.ai-tab');
-    const scenes = aiWin.querySelectorAll('.scene');
-    let idx = 0;
-    let timer = null;
-
-    const show = (i) => {
-      idx = i;
-      tabs.forEach((t, k) => t.classList.toggle('active', k === i));
-      // retrigger animations: drop active, force reflow, re-add to target
-      scenes.forEach((s) => s.classList.remove('active'));
-      void scenes[i].offsetWidth;
-      scenes[i].classList.add('active');
-    };
-    const next = () => show((idx + 1) % scenes.length);
-    const startTimer = () => {
-      clearInterval(timer);
-      timer = setInterval(next, 3400);
-    };
-
-    tabs.forEach((t, i) =>
-      t.addEventListener('click', () => {
-        show(i);
-        startTimer();
-      })
-    );
-    aiWin.addEventListener('mouseenter', () => clearInterval(timer));
-    aiWin.addEventListener('mouseleave', startTimer);
-
-    // start only when scrolled into view
-    if ('IntersectionObserver' in window) {
-      const ao = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((e) => {
-            if (e.isIntersecting) {
-              show(0);
-              startTimer();
-              ao.unobserve(e.target);
-            }
-          });
-        },
-        { threshold: 0.4 }
-      );
-      ao.observe(aiWin);
-    } else {
-      show(0);
-      startTimer();
-    }
-  }
-
   /* hero rotating words */
   const rotator = document.getElementById('rotator');
   if (rotator) {
     const WORDS = {
-      it: ['prodotti digitali', 'siti web', 'web app', 'soluzioni AI'],
-      en: ['digital products', 'websites', 'web apps', 'AI solutions'],
+      it: ['prodotti digitali', 'siti web', 'web app', 'e-commerce'],
+      en: ['digital products', 'websites', 'web apps', 'e-commerce'],
     };
     const words = () => WORDS[document.documentElement.lang === 'en' ? 'en' : 'it'];
     let ri = 0;
@@ -309,7 +257,7 @@
     compute();
   }
 
-  /* chatbot */
+  /* widget risposte rapide */
   const chatWidget = document.getElementById('chatWidget');
   if (chatWidget) {
     const launch = document.getElementById('chatLaunch');
