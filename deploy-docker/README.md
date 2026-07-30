@@ -72,7 +72,7 @@ non deve poter lasciare il sito giù senza dirlo.
 Database e utente dedicati, se non esistono:
 
 ```bash
-docker compose exec postgres psql -U postgres \
+docker exec "$PG" psql -U postgres \
   -c "CREATE ROLE dext LOGIN PASSWORD 'password_forte';" \
   -c "CREATE DATABASE dext OWNER dext;"
 ```
@@ -158,7 +158,7 @@ Da compilare obbligatoriamente:
 funziona se le versioni non sono allineate. Verifica la tua:
 
 ```bash
-docker compose exec postgres psql -U postgres -tAc "SHOW server_version;"
+docker exec "$PG" psql -U postgres -tAc "SHOW server_version;"
 # risposta 17.x  ->  imposta la variabile PG_CLIENT = postgresql17-client
 ```
 
@@ -166,6 +166,11 @@ docker compose exec postgres psql -U postgres -tAc "SHOW server_version;"
 
 Conviene lanciarlo a mano, per vederlo funzionare una volta: GitHub → Actions →
 "Deploy in produzione" → Run workflow, lasciando vuoto il campo del tag.
+
+> L'avvio manuale compare nella scheda Actions solo quando il workflow è sul
+> ramo predefinito: il merge su `main` va fatto prima. Se i secret non sono
+> ancora impostati il deploy si arresta sul loro controllo senza toccare il VPS,
+> quindi il merge in anticipo è innocuo.
 
 Poi crea l'utente admin, una volta sola:
 
@@ -233,7 +238,7 @@ Ripristino:
 
 ```bash
 gunzip -c dext-AAAAMMGG-HHMMSS.sql.gz | \
-  docker compose exec -T postgres psql -U dext -d dext
+  docker exec -i "$PG" psql -U dext -d dext
 ```
 
 ### Verifiche rapide

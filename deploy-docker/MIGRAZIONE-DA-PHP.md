@@ -50,13 +50,48 @@ all'avvio.
 
 ## Procedura
 
+### 0. Ricognizione
+
+Il container PostgreSQL è gestito da un altro compose, quindi **non** si
+raggiunge con `docker compose exec` da questa cartella: serve `docker exec` con
+il nome del container. Ricavalo e mettilo in una variabile, usata da tutti i
+comandi che seguono.
+
+```bash
+# elenca i container e individua quello di PostgreSQL
+docker ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}'
+
+# mettine il nome qui (di solito "postgres")
+PG=postgres
+
+# controlli: risponde, e su quale versione
+docker exec "$PG" psql -U postgres -tAc "SHOW server_version;"
+
+# il nome del database e dell'utente sono nel .env attuale
+cd /opt/dextlab/deploy-docker && grep -E '^(DB_|SITE_)' .env
+```
+
+La versione del server determina `PG_CLIENT`: risposta `16.x` →
+`postgresql16-client`, `17.x` → `postgresql17-client`. Se sbagliata, il backup
+dal pannello non funzionerà (`pg_dump` rifiuta di leggere un server più recente
+di sé).
+
+Verifica anche che il container dell'app e quello del database si vedano sulla
+stessa rete:
+
+```bash
+docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' "$PG"
+```
+
+Fra le reti elencate deve comparire `proxy`.
+
 ### 1. Backup del database, e verifica che sia leggibile
 
 Dal VPS, con il sito PHP ancora attivo:
 
 ```bash
 cd /opt/dextlab/deploy-docker
-docker compose exec -T postgres pg_dump -U dext --no-owner --no-privileges dext \
+docker exec -i "$PG" pg_dump -U dext --no-owner --no-privileges dext \
   | gzip > ~/dext-prima-della-migrazione.sql.gz
 ls -lh ~/dext-prima-della-migrazione.sql.gz
 ```
@@ -68,10 +103,10 @@ ls -lh ~/dext-prima-della-migrazione.sql.gz
 Verifica subito che si rilegga, su un database di prova:
 
 ```bash
-docker compose exec -T postgres createdb -U dext dext_verifica
+docker exec -i "$PG" createdb -U dext dext_verifica
 gunzip -c ~/dext-prima-della-migrazione.sql.gz \
-  | docker compose exec -T postgres psql -q -U dext -d dext_verifica
-docker compose exec -T postgres psql -U dext -d dext_verifica -c "SELECT count(*) FROM leads;"
+  | docker exec -i "$PG" psql -q -U dext -d dext_verifica
+docker exec -i "$PG" psql -U dext -d dext_verifica -c "SELECT count(*) FROM leads;"
 ```
 
 Se il conteggio dei lead corrisponde, il backup è valido. Tieni il database di
@@ -79,24 +114,40 @@ prova: serve al passo 2.
 
 ### 2. Prova la migrazione senza applicarla
 
-Sul database di prova appena creato, così vedi cosa farà senza toccare la
-produzione. Da una macchina con Node e il repository:
+Il database non espone porte fuori dal VPS, quindi la prova va fatta da dentro
+la rete Docker. Il modo più fedele è usare l'immagine dell'applicazione, che
+contiene già lo script e le sue dipendenze: è esattamente il codice che poi
+migrerà per davvero.
+
+L'immagine esiste dopo la prima esecuzione della Action (vedi la nota sulla
+sequenza nel passo 5). Sul VPS:
 
 ```bash
-DB_HOST=IP_DEL_VPS DB_PORT=5432 DB_NAME=dext_verifica DB_USER=dext DB_PASS=... \
-  npm run migrate -- --dry-run
+cd /opt/dextlab/deploy-docker
+IMG=ghcr.io/dextsamu/dextlab_sito:latest
+docker pull "$IMG"
+
+# prova a vuoto sul database di PRODUZIONE: applica tutto in una transazione
+# e la annulla, senza lasciare traccia nemmeno di schema_migrations
+docker run --rm --network proxy --env-file .env \
+  -e APP_SECRET=solo-per-questa-prova-0123456789abcdef \
+  "$IMG" node ./scripts/migrate.mjs --dry-run
 ```
 
-Oppure, più semplice, direttamente sulla produzione: la prova a vuoto applica
-tutto in una transazione e la annulla, quindi non lascia traccia (verificato:
-non crea nemmeno la tabella `schema_migrations`).
+Stampa l'elenco delle conversioni che eseguirebbe. Deve finire con "Tutte le
+migrazioni girano senza errori" e "Modifiche annullate".
+
+Se preferisci non toccare affatto la produzione, punta la stessa prova al
+database di verifica creato al passo 1, aggiungendo `-e DB_NAME=dext_verifica`.
+
+Verifica poi che nulla sia cambiato:
 
 ```bash
-DB_NAME=dext ... npm run migrate -- --dry-run
+docker exec "$PG" psql -U dext -d dext -tAc \
+  "select data_type from information_schema.columns
+    where table_name='pricing_types' and column_name='active';"
+# deve rispondere ancora: smallint
 ```
-
-Stampa l'elenco delle conversioni che eseguirebbe. Se finisce con "Tutte le
-migrazioni girano senza errori", si può procedere.
 
 ### 3. Completa il `.env` sul VPS
 
@@ -135,7 +186,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 Verifica la versione del server per `PG_CLIENT`:
 
 ```bash
-docker compose exec postgres psql -U postgres -tAc "SHOW server_version;"
+docker exec "$PG" psql -U postgres -tAc "SHOW server_version;"
 ```
 
 `SITE_HOST`, `DB_NAME`, `DB_USER` e `DB_PASS` restano quelli che c'erano già.
@@ -144,9 +195,23 @@ docker compose exec postgres psql -U postgres -tAc "SHOW server_version;"
 
 Vedi la tabella in [README.md](README.md#3-secret-e-variabili-su-github).
 
-### 5. Fai il deploy, a mano la prima volta
+### 5. Fai il deploy
 
-GitHub → Actions → "Deploy in produzione" → Run workflow, campo del tag vuoto.
+**Sequenza consigliata.** `workflow_dispatch` compare nella scheda Actions solo
+quando il workflow è sul ramo predefinito, quindi il merge su `main` viene prima
+in ogni caso. Conviene sfruttarlo così:
+
+1. **Fai il merge su `main` senza aver ancora impostato i secret.** Controlli e
+   build girano, l'immagine viene pubblicata su GHCR, e il job di deploy si
+   arresta sul controllo dei secret **senza toccare il VPS**. È il
+   comportamento voluto: il workflow falla in chiusura.
+2. Ora che l'immagine esiste, fai il backup (passo 1) e la prova a vuoto
+   (passo 2) usando quell'immagine.
+3. Imposta i secret e completa il `.env`.
+4. Actions → "Deploy in produzione" → Run workflow, campo del tag vuoto.
+
+Così il primo aggiornamento del VPS avviene quando tutto è pronto e verificato,
+e nessun passaggio intermedio lo tocca.
 
 Segui i log. L'ordine è: controlli → immagine → sul VPS preflight della
 configurazione, migrazioni, avvio, attesa dello stato sano.
@@ -208,10 +273,10 @@ cd /opt/dextlab/deploy-docker
 docker compose down
 
 # 2. riporta il database allo stato precedente
-docker compose exec -T postgres dropdb -U dext dext
-docker compose exec -T postgres createdb -U dext dext
+docker exec -i "$PG" dropdb -U dext dext
+docker exec -i "$PG" createdb -U dext dext
 gunzip -c ~/dext-prima-della-migrazione.sql.gz \
-  | docker compose exec -T postgres psql -q -U dext -d dext
+  | docker exec -i "$PG" psql -q -U dext -d dext
 
 # 3. rimetti la configurazione e lo stack PHP
 cp .env.php.bak .env
