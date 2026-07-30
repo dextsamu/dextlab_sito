@@ -143,6 +143,32 @@ docker exec "$PG" psql -U dext -d dext -c "
 
 Se le due tabelle di conteggi coincidono, il backup è valido e ripristinabile.
 
+**Fotografia dello stato "prima".** Annota questi numeri: dopo il deploy vanno
+confrontati con gli stessi, ed è il modo più diretto per accorgersi se qualcosa
+è andato perso. Il cast a `int` rende la query eseguibile sia sullo schema PHP
+(`smallint`) sia su quello convertito (`boolean`), quindi i due lati del
+confronto sono confrontabili.
+
+```bash
+docker exec "$PG" psql -U dext -d dext -c "
+  SELECT count(*) visite,
+         count(*) FILTER (WHERE human::int = 1)          AS umani,
+         count(*) FILTER (WHERE is_maintenance::int = 1) AS in_manutenzione
+    FROM visits;"
+
+docker exec "$PG" psql -U dext -d dext -c "
+  SELECT count(*) totali,
+         count(*) FILTER (WHERE active::int = 1) AS attivi
+    FROM pricing_types;"
+
+docker exec "$PG" psql -U dext -d dext -tAc "SELECT count(*) FROM settings;"
+```
+
+> Senza il cast, `FILTER (WHERE human)` su un database non ancora migrato
+> risponde `argument of FILTER must be type boolean, not type smallint`. Non è
+> un guasto: è la conferma che lo schema è ancora quello vecchio e che la
+> migrazione serve.
+
 ### 2. Prova la migrazione senza applicarla
 
 Il database non espone porte fuori dal VPS, quindi la prova va fatta da dentro
@@ -290,6 +316,10 @@ sostituito da quello Node. Il disservizio è quello del riavvio, qualche secondo
 > (passo 8). Dal secondo deploy in avanti il rollback automatico funziona.
 
 ### 7. Verifica
+
+> I comandi di questo passo vanno eseguiti **dopo** che il deploy è andato a
+> buon fine: prima gira ancora il container PHP e i loro esiti non significano
+> nulla.
 
 Attenzione a **come** si verifica che i contenuti arrivino dal database.
 Guardare la pagina e riconoscere i propri prezzi funziona solo se quei contenuti
