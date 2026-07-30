@@ -120,7 +120,7 @@ contiene già lo script e le sue dipendenze: è esattamente il codice che poi
 migrerà per davvero.
 
 L'immagine esiste dopo la prima esecuzione della Action (vedi la nota sulla
-sequenza nel passo 5). Sul VPS:
+sequenza nel passo 6). Sul VPS:
 
 ```bash
 cd /opt/dextlab/deploy-docker
@@ -149,7 +149,27 @@ docker exec "$PG" psql -U dext -d dext -tAc \
 # deve rispondere ancora: smallint
 ```
 
-### 3. Completa il `.env` sul VPS
+### 3. Metti al sicuro lo stack PHP attuale
+
+Il deploy **sovrascrive `docker-compose.yml`** copiandolo dal repository. Senza
+una copia, la definizione dello stack PHP va persa e il ripristino diventa più
+laborioso. L'immagine PHP invece è già sul VPS: le si dà un nome stabile così il
+rollback non richiede una ricostruzione.
+
+```bash
+cd /opt/dextlab/deploy-docker
+
+# la definizione dello stack attuale, che il deploy sostituirà
+cp docker-compose.yml docker-compose.php.bak.yml
+cp .env .env.php.bak
+
+# un nome fisso per l'immagine PHP in esecuzione, così resta ripristinabile
+# (docker ps -> colonna IMAGE del container web; di norma deploy-docker-web)
+docker tag "$(docker inspect -f '{{.Config.Image}}' deploy-docker-web-1)" dextlab-php:pre-astro
+docker image ls | grep dextlab-php
+```
+
+### 4. Completa il `.env` sul VPS
 
 Il `.env` scritto per la versione PHP non ha le variabili nuove. Senza
 `APP_SECRET` il container si ferma all'avvio con l'elenco di cosa manca, quindi
@@ -157,7 +177,6 @@ Il `.env` scritto per la versione PHP non ha le variabili nuove. Senza
 
 ```bash
 cd /opt/dextlab/deploy-docker
-cp .env .env.php.bak        # copia di sicurezza della configurazione attuale
 nano .env
 ```
 
@@ -191,11 +210,11 @@ docker exec "$PG" psql -U postgres -tAc "SHOW server_version;"
 
 `SITE_HOST`, `DB_NAME`, `DB_USER` e `DB_PASS` restano quelli che c'erano già.
 
-### 4. Configura i secret su GitHub
+### 5. Configura i secret su GitHub
 
 Vedi la tabella in [README.md](README.md#3-secret-e-variabili-su-github).
 
-### 5. Fai il deploy
+### 6. Fai il deploy
 
 **Sequenza consigliata.** `workflow_dispatch` compare nella scheda Actions solo
 quando il workflow è sul ramo predefinito, quindi il merge su `main` viene prima
@@ -223,9 +242,9 @@ sostituito da quello Node. Il disservizio è quello del riavvio, qualche secondo
 > torna indietro riavviando un tag precedente del registry, ma l'immagine che
 > gira ora è costruita in locale e non ha un tag GHCR. Lo script lo riconosce e
 > lo dice invece di tentare qualcosa di inutile: il ripristino qui è manuale
-> (passo 7). Dal secondo deploy in avanti il rollback automatico funziona.
+> (passo 8). Dal secondo deploy in avanti il rollback automatico funziona.
 
-### 6. Verifica
+### 7. Verifica
 
 ```bash
 curl -s https://dextlab.it/api/health
@@ -262,32 +281,46 @@ al prossimo salvataggio si conservano.
 Infine prova un invio dal form contatti e controlla che il lead arrivi in
 Admin → Lead con la data corretta.
 
-### 7. Se qualcosa va storto
+### 8. Se qualcosa va storto
 
 Ripristino completo alla versione PHP:
 
+Grazie alle copie fatte al passo 3, il ripristino non richiede di ricostruire
+nulla.
+
 ```bash
 cd /opt/dextlab/deploy-docker
+PG=postgres   # il nome ricavato al passo 0
 
 # 1. ferma il container nuovo
 docker compose down
 
 # 2. riporta il database allo stato precedente
+#    Circoscritto al solo database "dext": sullo stesso PostgreSQL vivono
+#    altri progetti, che non vengono toccati.
 docker exec -i "$PG" dropdb -U dext dext
 docker exec -i "$PG" createdb -U dext dext
 gunzip -c ~/dext-prima-della-migrazione.sql.gz \
   | docker exec -i "$PG" psql -q -U dext -d dext
 
-# 3. rimetti la configurazione e lo stack PHP
+# 3. rimetti configurazione e stack PHP. L'immagine è già presente con il nome
+#    dato al passo 3, quindi non serve --build.
 cp .env.php.bak .env
-git -C /opt/dextlab checkout <commit-della-versione-php> -- deploy-docker/
-docker compose up -d --build
+cp docker-compose.php.bak.yml docker-compose.yml
+docker compose up -d
 ```
 
-Il passo 2 è indispensabile: senza di esso il PHP troverebbe colonne booleane
-dove si aspetta interi.
+Il punto 2 è indispensabile: senza di esso il PHP troverebbe colonne booleane
+dove si aspetta interi e il sito resterebbe rotto.
 
-### 8. Dopo il primo deploy riuscito
+Verifica che sia tornato su:
+
+```bash
+curl -sI https://dextlab.it | head -1
+docker compose ps
+```
+
+### 9. Dopo il primo deploy riuscito
 
 - Il deploy diventa automatico su ogni push a `main`.
 - Imposta il cron dei backup, ora che il pannello ne fa di completi
