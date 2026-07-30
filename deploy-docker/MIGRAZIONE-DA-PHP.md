@@ -100,17 +100,48 @@ ls -lh ~/dext-prima-della-migrazione.sql.gz
 > `INSERT` dei dati, senza lo schema, e per rileggerlo serviva `install.php`,
 > che non esiste più. Il `pg_dump` qui sopra è completo.
 
-Verifica subito che si rilegga, su un database di prova:
+Un backup non verificato non è un backup. La verifica si fa in un PostgreSQL
+usa-e-getta, non su quello di produzione: l'utente dell'applicazione di norma non
+ha il permesso di creare database (`permission denied to create database`), e
+comunque sullo stesso server vivono altri progetti.
 
 ```bash
-docker exec -i "$PG" createdb -U dext dext_verifica
+# l'immagine è già sul VPS, è quella del PostgreSQL in uso
+docker run -d --name pg-verifica -e POSTGRES_PASSWORD=verifica postgres:16-alpine
+until docker exec pg-verifica pg_isready -U postgres >/dev/null 2>&1; do sleep 1; done
+
 gunzip -c ~/dext-prima-della-migrazione.sql.gz \
-  | docker exec -i "$PG" psql -q -U dext -d dext_verifica
-docker exec -i "$PG" psql -U dext -d dext_verifica -c "SELECT count(*) FROM leads;"
+  | docker exec -i pg-verifica psql -q -U postgres -d postgres
+
+echo "--- righe ripristinate ---"
+docker exec pg-verifica psql -U postgres -d postgres -c "
+  SELECT 'leads' t, count(*) FROM leads
+  UNION ALL SELECT 'settings',       count(*) FROM settings
+  UNION ALL SELECT 'pricing_types',  count(*) FROM pricing_types
+  UNION ALL SELECT 'pricing_addons', count(*) FROM pricing_addons
+  UNION ALL SELECT 'reviews',        count(*) FROM reviews
+  UNION ALL SELECT 'faqs',           count(*) FROM faqs
+  UNION ALL SELECT 'admins',         count(*) FROM admins
+  UNION ALL SELECT 'visits',         count(*) FROM visits;"
+
+docker rm -f pg-verifica
 ```
 
-Se il conteggio dei lead corrisponde, il backup è valido. Tieni il database di
-prova: serve al passo 2.
+Confronta i conteggi con quelli del database vero:
+
+```bash
+docker exec "$PG" psql -U dext -d dext -c "
+  SELECT 'leads' t, count(*) FROM leads
+  UNION ALL SELECT 'settings',       count(*) FROM settings
+  UNION ALL SELECT 'pricing_types',  count(*) FROM pricing_types
+  UNION ALL SELECT 'pricing_addons', count(*) FROM pricing_addons
+  UNION ALL SELECT 'reviews',        count(*) FROM reviews
+  UNION ALL SELECT 'faqs',           count(*) FROM faqs
+  UNION ALL SELECT 'admins',         count(*) FROM admins
+  UNION ALL SELECT 'visits',         count(*) FROM visits;"
+```
+
+Se le due tabelle di conteggi coincidono, il backup è valido e ripristinabile.
 
 ### 2. Prova la migrazione senza applicarla
 
@@ -137,8 +168,8 @@ docker run --rm --network proxy --env-file .env \
 Stampa l'elenco delle conversioni che eseguirebbe. Deve finire con "Tutte le
 migrazioni girano senza errori" e "Modifiche annullate".
 
-Se preferisci non toccare affatto la produzione, punta la stessa prova al
-database di verifica creato al passo 1, aggiungendo `-e DB_NAME=dext_verifica`.
+La prova a vuoto è già innocua per costruzione: apre una transazione, applica
+tutto e la annulla. Il controllo qui sotto lo conferma sul campo.
 
 Verifica poi che nulla sia cambiato:
 
@@ -180,18 +211,29 @@ cd /home/samu/docker/dextlab/deploy-docker
 nano .env
 ```
 
-Da aggiungere:
+Prima di scrivere, recupera la regola di routing attualmente in uso: se il sito
+risponde su più host, va riportata per intero, altrimenti gli host esclusi
+diventano 404.
+
+```bash
+docker inspect -f '{{index .Config.Labels "traefik.http.routers.dext.rule"}}' deploy-docker-web-1
+```
+
+Da aggiungere al `.env`:
 
 ```ini
 # firma i cookie di sessione admin — obbligatoria
 APP_SECRET=<32+ caratteri casuali>
-# URL canonico, deve combaciare con SITE_HOST
+
+# regola Traefik completa, incollata dal comando qui sopra.
+# Serve quando gli host sono più di uno: SITE_HOST da solo li ridurrebbe a uno.
+SITE_RULE=Host(`dextlab.it`) || Host(`www.dextlab.it`)
+
+# host canonico, con schema: quello che i motori di ricerca devono considerare
+# ufficiale fra tutti quelli serviti
 SITE_URL=https://dextlab.it
-# nome del container Postgres sulla rete proxy
-DB_HOST=postgres
+
 DB_PORT=5432
-# versione del client per pg_dump: allineala al tuo server
-PG_CLIENT=postgresql16-client
 # un solo proxy davanti (Traefik)
 TRUSTED_PROXY_HOPS=1
 ```
@@ -199,16 +241,19 @@ TRUSTED_PROXY_HOPS=1
 Genera il segreto con:
 
 ```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+openssl rand -hex 32
 ```
 
-Verifica la versione del server per `PG_CLIENT`:
+`SITE_HOST`, `DB_HOST`, `DB_NAME`, `DB_USER` e `DB_PASS` restano quelli che
+c'erano già. `PG_CLIENT` va impostata solo se il server PostgreSQL non è la 16:
+verificalo con `docker exec "$PG" psql -U postgres -tAc "SHOW server_version;"`.
+
+Controlla che non manchi nulla:
 
 ```bash
-docker exec "$PG" psql -U postgres -tAc "SHOW server_version;"
+grep -cE '^(APP_SECRET|SITE_RULE|SITE_URL|SITE_HOST|DB_HOST|DB_NAME|DB_USER|DB_PASS)=' .env
+# deve rispondere 8
 ```
-
-`SITE_HOST`, `DB_NAME`, `DB_USER` e `DB_PASS` restano quelli che c'erano già.
 
 ### 5. Configura i secret su GitHub
 
@@ -295,11 +340,12 @@ PG=postgres   # il nome ricavato al passo 0
 # 1. ferma il container nuovo
 docker compose down
 
-# 2. riporta il database allo stato precedente
-#    Circoscritto al solo database "dext": sullo stesso PostgreSQL vivono
-#    altri progetti, che non vengono toccati.
-docker exec -i "$PG" dropdb -U dext dext
-docker exec -i "$PG" createdb -U dext dext
+# 2. riporta il database allo stato precedente.
+#    Non si cancella il database (l'utente dell'applicazione non ha il permesso
+#    di ricrearlo): si azzera il suo schema, cosa che il proprietario può fare.
+#    L'operazione resta circoscritta al solo database "dext": sullo stesso
+#    PostgreSQL vivono altri progetti, che non vengono toccati.
+docker exec -i "$PG" psql -U dext -d dext -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'
 gunzip -c ~/dext-prima-della-migrazione.sql.gz \
   | docker exec -i "$PG" psql -q -U dext -d dext
 

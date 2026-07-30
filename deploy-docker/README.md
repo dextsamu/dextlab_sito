@@ -144,6 +144,10 @@ Da compilare obbligatoriamente:
 
 - `SITE_HOST` e `SITE_URL` — stesso host, uno senza e uno con lo schema. Se
   divergono, il sito serve un `canonical` che punta altrove.
+- `SITE_RULE` — solo se il sito risponde su **più host** (per esempio con e senza
+  `www`): va indicata la regola Traefik completa, perché `SITE_HOST` da solo li
+  ridurrebbe a uno e gli altri diventerebbero 404. `SITE_URL` resta quello
+  canonico.
 - `DB_NAME`, `DB_USER`, `DB_PASS`.
 - `APP_SECRET` — almeno 32 caratteri casuali:
   ```bash

@@ -45,7 +45,11 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-      - "traefik.http.routers.dext.rule=Host(`${SITE_HOST}`)"
+      # Regola di routing. SITE_RULE permette di servire più host: il sito
+      # risponde su dextlab.it, www.dextlab.it e un host di prova, e dichiararne
+      # uno solo qui li farebbe diventare 404. Se SITE_RULE non è impostata si
+      # ricade sul singolo SITE_HOST.
+      - "traefik.http.routers.dext.rule=${SITE_RULE:-Host(`${SITE_HOST}`)}"
       - traefik.http.routers.dext.entrypoints=websecure
       - traefik.http.routers.dext.tls=true
       - traefik.http.routers.dext.tls.certresolver=letsencrypt
