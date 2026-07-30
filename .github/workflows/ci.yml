@@ -166,16 +166,57 @@ jobs:
           [ "$code" = "403" ] || { echo "::error::atteso 403, ricevuto $code"; exit 1; }
           echo "  ok    origine esterna -> 403"
 
+      # Regressione: il controllo di origine di Astro confronta Origin con
+      # url.origin, e l'adapter Node ricava lo schema dal socket ignorando
+      # X-Forwarded-Proto. Dietro un proxy che termina il TLS diventa
+      # "https://sito" contro "http://sito" e ogni form legittimo prende 403.
+      # Questi casi riproducono quella situazione: il server ascolta in chiaro
+      # mentre il browser dichiara https.
+      - name: Un invio dietro proxy con TLS terminato viene accettato
+        run: |
+          # Il form contatti accetta 5 invii ogni 15 minuti per IP, e i passi
+          # precedenti ne hanno già consumati: senza azzerare il contatore questo
+          # passo fallirebbe con 429 per esaurimento, non per il motivo in esame.
+          PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -qc 'TRUNCATE rate_limits;'
+
+          fail=0
+          prova() {
+            code=$(curl -s -o /dev/null -w '%{http_code}' \
+              -H "Host: $1" -H "X-Forwarded-Host: $1" -H 'X-Forwarded-Proto: https' \
+              -H "Origin: https://$1" \
+              -X POST http://127.0.0.1:4321/api/contact \
+              -F 'name=Proxy' -F 'email=proxy@esempio.it' -F 'message=prova')
+            if [ "$code" = "$2" ]; then echo "  ok    $3 -> $code"
+            else echo "::error::$3 ha risposto $code, attesi $2"; fail=1; fi
+          }
+          prova dextlab.it               200 'host primario'
+          prova www.dextlab.it           200 'host con www'
+          prova sito.dextlab.duckdns.org 200 'host alternativo'
+
+          # Con lo stesso schema dichiarato, un'origine estranea resta respinta.
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H 'Host: dextlab.it' -H 'X-Forwarded-Host: dextlab.it' -H 'X-Forwarded-Proto: https' \
+            -H 'Origin: https://dextlab.it.evil.example' \
+            -X POST http://127.0.0.1:4321/api/contact \
+            -F 'name=X' -F 'email=x@y.it' -F 'message=z')
+          if [ "$code" = "403" ]; then echo "  ok    host che inizia come il nostro -> 403"
+          else echo "::error::atteso 403 per un host che solo somiglia al nostro, ricevuto $code"; fail=1; fi
+          exit $fail
+
       - name: Backup e ripristino su database vuoto
         run: |
+          # Il numero atteso viene letto dal database di partenza, non scritto a
+          # mano: così aggiungere un test che salva un lead non rompe questo.
+          atteso=$(PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -tAc 'select count(*) from leads')
+          [ "$atteso" -gt 0 ] || { echo "::error::nessun lead da cui partire: il ripristino non verificherebbe nulla"; exit 1; }
           npm run backup
           file=$(ls /tmp/ci-backups/*.sql.gz | head -1)
           echo "  dump: $file"
           PGPASSWORD=dext_ci createdb -h 127.0.0.1 -U dext dext_restore
           gunzip -c "$file" | PGPASSWORD=dext_ci psql -q -h 127.0.0.1 -U dext -d dext_restore
           n=$(PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext_restore -tAc 'select count(*) from leads')
-          [ "$n" = "1" ] || { echo "::error::lead dopo il ripristino: $n, atteso 1"; exit 1; }
-          echo "  ok    ripristino verificato"
+          [ "$n" = "$atteso" ] || { echo "::error::lead dopo il ripristino: $n, attesi $atteso"; exit 1; }
+          echo "  ok    ripristino verificato ($n lead)"
 
       - name: Log del server in caso di errore
         if: failure()
