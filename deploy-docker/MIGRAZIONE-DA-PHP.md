@@ -68,7 +68,7 @@ PG=postgres
 docker exec "$PG" psql -U postgres -tAc "SHOW server_version;"
 
 # il nome del database e dell'utente sono nel .env attuale
-cd /opt/dextlab/deploy-docker && grep -E '^(DB_|SITE_)' .env
+cd /home/samu/docker/dextlab/deploy-docker && grep -E '^(DB_|SITE_)' .env
 ```
 
 La versione del server determina `PG_CLIENT`: risposta `16.x` →
@@ -90,7 +90,7 @@ Fra le reti elencate deve comparire `proxy`.
 Dal VPS, con il sito PHP ancora attivo:
 
 ```bash
-cd /opt/dextlab/deploy-docker
+cd /home/samu/docker/dextlab/deploy-docker
 docker exec -i "$PG" pg_dump -U dext --no-owner --no-privileges dext \
   | gzip > ~/dext-prima-della-migrazione.sql.gz
 ls -lh ~/dext-prima-della-migrazione.sql.gz
@@ -123,7 +123,7 @@ L'immagine esiste dopo la prima esecuzione della Action (vedi la nota sulla
 sequenza nel passo 6). Sul VPS:
 
 ```bash
-cd /opt/dextlab/deploy-docker
+cd /home/samu/docker/dextlab/deploy-docker
 IMG=ghcr.io/dextsamu/dextlab_sito:latest
 docker pull "$IMG"
 
@@ -157,7 +157,7 @@ laborioso. L'immagine PHP invece è già sul VPS: le si dà un nome stabile cos�
 rollback non richiede una ricostruzione.
 
 ```bash
-cd /opt/dextlab/deploy-docker
+cd /home/samu/docker/dextlab/deploy-docker
 
 # la definizione dello stack attuale, che il deploy sostituirà
 cp docker-compose.yml docker-compose.php.bak.yml
@@ -176,7 +176,7 @@ Il `.env` scritto per la versione PHP non ha le variabili nuove. Senza
 è un errore che si vede subito, ma tanto vale evitarlo.
 
 ```bash
-cd /opt/dextlab/deploy-docker
+cd /home/samu/docker/dextlab/deploy-docker
 nano .env
 ```
 
@@ -289,7 +289,7 @@ Grazie alle copie fatte al passo 3, il ripristino non richiede di ricostruire
 nulla.
 
 ```bash
-cd /opt/dextlab/deploy-docker
+cd /home/samu/docker/dextlab/deploy-docker
 PG=postgres   # il nome ricavato al passo 0
 
 # 1. ferma il container nuovo
@@ -329,7 +329,7 @@ docker compose ps
 - Puoi rimuovere il sorgente PHP dal VPS: non serve più a nulla.
   ```bash
   # solo dopo aver verificato che tutto funziona
-  rm -rf /opt/dextlab/{src,public,migrations,scripts,package*.json,astro.config.mjs}
+  rm -rf /home/samu/docker/dextlab/{src,public,migrations,scripts,package*.json,astro.config.mjs}
   ```
   In realtà con il flusso a immagine sul VPS servono solo `.env`,
   `docker-compose.yml` e `remote-deploy.sh`.

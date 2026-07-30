@@ -25,7 +25,7 @@ nelle label del servizio.
 registry. Sul VPS vivono soltanto:
 
 ```
-/opt/dextlab/deploy-docker/
+/home/samu/docker/dextlab/deploy-docker/
   .env                 creato una volta a mano, contiene i segreti
   docker-compose.yml   copiato dalla Action a ogni deploy
   remote-deploy.sh     copiato dalla Action a ogni deploy
@@ -113,7 +113,7 @@ ssh-keyscan -p 22 IP_DEL_VPS
 | `DEPLOY_SSH_KEY` | contenuto di `~/.ssh/dextlab_deploy`, la chiave **privata**, incluse le righe BEGIN/END |
 | `DEPLOY_HOST` | IP o hostname del VPS |
 | `DEPLOY_USER` | `deploy` |
-| `DEPLOY_PATH` | `/opt/dextlab` |
+| `DEPLOY_PATH` | `/home/samu/docker/dextlab` |
 | `DEPLOY_KNOWN_HOSTS` | output completo di `ssh-keyscan` |
 | `DEPLOY_PORT` | solo se SSH non è sulla 22 |
 
@@ -135,7 +135,7 @@ tocca mai.
 
 ```bash
 ssh deploy@IP_DEL_VPS
-mkdir -p /opt/dextlab/deploy-docker && cd /opt/dextlab/deploy-docker
+mkdir -p /home/samu/docker/dextlab/deploy-docker && cd /home/samu/docker/dextlab/deploy-docker
 # copia qui il contenuto di deploy-docker/.env.example dal repository
 nano .env
 ```
@@ -175,7 +175,7 @@ Conviene lanciarlo a mano, per vederlo funzionare una volta: GitHub → Actions 
 Poi crea l'utente admin, una volta sola:
 
 ```bash
-cd /opt/dextlab/deploy-docker
+cd /home/samu/docker/dextlab/deploy-docker
 docker compose exec web npm run create-admin -- --user tuonome
 ```
 
@@ -201,7 +201,7 @@ verificato quando è stato pubblicato.
 **Dal VPS**, se GitHub non è raggiungibile:
 
 ```bash
-cd /opt/dextlab/deploy-docker
+cd /home/samu/docker/dextlab/deploy-docker
 ./remote-deploy.sh sha-abc1234
 ```
 
@@ -222,7 +222,7 @@ git log --oneline -20 | awk '{print "sha-" substr($1,1,7), $0}'
 Cron sul VPS, una volta a notte:
 
 ```cron
-0 3 * * * cd /opt/dextlab/deploy-docker && docker compose exec -T web npm run backup
+0 3 * * * cd /home/samu/docker/dextlab/deploy-docker && docker compose exec -T web npm run backup
 ```
 
 I dump finiscono in `deploy-docker/data/backups/` sull'host, quindi sopravvivono
@@ -249,7 +249,7 @@ curl -s https://tuodominio/api/health
 # {"status":"ok","database":true}
 
 # immagine attualmente in esecuzione
-cd /opt/dextlab/deploy-docker && docker compose images web
+cd /home/samu/docker/dextlab/deploy-docker && docker compose images web
 
 # stato delle migrazioni applicate
 docker compose exec web npm run migrate -- --list
