@@ -200,6 +200,17 @@ BEGIN
     ALTER TABLE leads ALTER COLUMN source SET DEFAULT 'form', ALTER COLUMN source SET NOT NULL;
     ALTER TABLE leads ALTER COLUMN status SET DEFAULT 'new',  ALTER COLUMN status SET NOT NULL;
 
+    -- Un utente admin senza username o senza hash non è utilizzabile, ma non
+    -- si può inventare un valore al posto suo: meglio fermarsi con un messaggio
+    -- comprensibile che lasciare fallire l'ALTER con un errore opaco.
+    SELECT count(*) INTO n FROM admins WHERE username IS NULL OR pass_hash IS NULL;
+    IF n > 0 THEN
+        RAISE EXCEPTION
+            'La tabella admins contiene % righe con username o pass_hash nulli. '
+            'Vanno risolte a mano prima di procedere: esaminale con '
+            '"SELECT id, username FROM admins WHERE username IS NULL OR pass_hash IS NULL;" '
+            'ed eliminale se inutilizzabili, oppure ricrea l''utente con "npm run create-admin".', n;
+    END IF;
     ALTER TABLE admins ALTER COLUMN username  SET NOT NULL;
     ALTER TABLE admins ALTER COLUMN pass_hash SET NOT NULL;
 END $$;

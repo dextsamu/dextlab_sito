@@ -197,6 +197,24 @@ migrazioni girano senza errori" e "Modifiche annullate".
 La prova a vuoto è già innocua per costruzione: apre una transazione, applica
 tutto e la annulla. Il controllo qui sotto lo conferma sul campo.
 
+**Se sul VPS non c'è il sorgente e l'immagine non è ancora disponibile**, si può
+comunque verificare in anticipo tutto quello che conta, con una sonda in sola
+lettura:
+
+```bash
+docker exec -i "$PG" psql -U dext -d dext -f - < scripts/sonda-pre-migrazione.sql
+```
+
+Riporta quali colonne verranno convertite, quali dati la migrazione sistema da
+sé (stelle fuori intervallo, valori nulli), se c'è qualcosa che invece la
+**bloccherebbe**, e i conteggi da confrontare dopo. Se la sezione dei blocchi è a
+zero, la migrazione ha le condizioni per riuscire.
+
+Va comunque ricordato che ogni migrazione gira nella propria transazione: un
+errore lascia il database esattamente come era e non la registra come applicata.
+Il costo di un tentativo fallito è il tempo di rimettere in piedi lo stack
+precedente, non la perdita di dati.
+
 Verifica poi che nulla sia cambiato:
 
 ```bash
