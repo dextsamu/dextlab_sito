@@ -205,14 +205,18 @@ jobs:
 
       - name: Backup e ripristino su database vuoto
         run: |
+          # Il numero atteso viene letto dal database di partenza, non scritto a
+          # mano: così aggiungere un test che salva un lead non rompe questo.
+          atteso=$(PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -tAc 'select count(*) from leads')
+          [ "$atteso" -gt 0 ] || { echo "::error::nessun lead da cui partire: il ripristino non verificherebbe nulla"; exit 1; }
           npm run backup
           file=$(ls /tmp/ci-backups/*.sql.gz | head -1)
           echo "  dump: $file"
           PGPASSWORD=dext_ci createdb -h 127.0.0.1 -U dext dext_restore
           gunzip -c "$file" | PGPASSWORD=dext_ci psql -q -h 127.0.0.1 -U dext -d dext_restore
           n=$(PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext_restore -tAc 'select count(*) from leads')
-          [ "$n" = "1" ] || { echo "::error::lead dopo il ripristino: $n, atteso 1"; exit 1; }
-          echo "  ok    ripristino verificato"
+          [ "$n" = "$atteso" ] || { echo "::error::lead dopo il ripristino: $n, attesi $atteso"; exit 1; }
+          echo "  ok    ripristino verificato ($n lead)"
 
       - name: Log del server in caso di errore
         if: failure()
