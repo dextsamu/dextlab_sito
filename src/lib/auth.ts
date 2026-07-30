@@ -77,8 +77,9 @@ export function isLoggedIn(cookies: AstroCookies): boolean {
 
 /**
  * Token CSRF con schema double-submit: lo stesso valore nel cookie e in un
- * campo nascosto del form. Astro già rifiuta i POST form cross-origin, questo
- * è difesa in profondità e replica il comportamento dei form admin in PHP.
+ * campo nascosto del form. Il middleware già rifiuta i POST form da un'altra
+ * origine (src/lib/origin.ts), questo è difesa in profondità e replica il
+ * comportamento dei form admin in PHP.
  */
 export function csrfToken(cookies: AstroCookies): string {
   const existing = cookies.get(CSRF_COOKIE)?.value;
