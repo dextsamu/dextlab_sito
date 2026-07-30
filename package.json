@@ -24,9 +24,10 @@
     "pg": "^8.22.0"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.10",
     "@types/node": "^26.1.2",
     "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.20.0",
-    "typescript": "^7.0.2"
+    "typescript": "^6.0.3"
   }
 }

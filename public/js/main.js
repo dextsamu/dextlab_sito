@@ -354,7 +354,7 @@
       msgs.scrollTop = msgs.scrollHeight;
 
       try {
-        const res = await fetch('chat.php', {
+        const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ messages: history.slice(-12) }),
@@ -375,12 +375,15 @@
   }
 
   /* footer year */
-  document.getElementById('year').textContent = new Date().getFullYear();
+  const yearEl = document.getElementById('year');
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-  /* contact form — async submit to contact.php */
+  /* contact form — invio asincrono verso l'endpoint in form.action */
   const form = document.getElementById('contactForm');
   const status = document.getElementById('formStatus');
   const btn = document.getElementById('submitBtn');
+
+  if (!form || !status || !btn) return;
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();

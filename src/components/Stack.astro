@@ -1,0 +1,36 @@
+---
+// Il marquee scorre in continuo: la lista va ripetuta due volte perché
+// l'animazione CSS traslando del 50% dia l'illusione di un ciclo infinito.
+const tecnologie = [
+  'React',
+  'Next.js',
+  'TypeScript',
+  'Node.js',
+  'Python',
+  'Tailwind',
+  'PostgreSQL',
+  'Docker',
+  'OpenAI',
+  'Claude',
+  'Figma',
+  'Astro',
+];
+---
+
+<section class="section section-alt section-stack" id="stack">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">Tecnologie & strumenti</span>
+      <h2>Lo stack <span class="grad">moderno</span> che uso</h2>
+      <p class="section-lead">
+        Strumenti attuali e AI per costruire prodotti veloci, sicuri e scalabili.
+      </p>
+    </div>
+  </div>
+  <div class="marquee reveal" aria-hidden="true">
+    <div class="marquee-track">
+      {tecnologie.map((t) => <span>{t}</span>)}
+      {tecnologie.map((t) => <span>{t}</span>)}
+    </div>
+  </div>
+</section>

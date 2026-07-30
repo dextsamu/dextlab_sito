@@ -1,0 +1,88 @@
+---
+/**
+ * Composizione della landing pubblica. Vive in un componente perché la home
+ * scegle fra questa e la pagina di manutenzione, senza passare da un rewrite.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Chrome from './Chrome.astro';
+import Nav from './Nav.astro';
+import Hero from './Hero.astro';
+import Servizi from './Servizi.astro';
+import Showcase from './Showcase.astro';
+import Portfolio from './Portfolio.astro';
+import Processo from './Processo.astro';
+import Stack from './Stack.astro';
+import About from './About.astro';
+import Perche from './Perche.astro';
+import Recensioni from './Recensioni.astro';
+import Configuratore from './Configuratore.astro';
+import Faq from './Faq.astro';
+import Contatti from './Contatti.astro';
+import Footer from './Footer.astro';
+import WhatsAppFloat from './WhatsAppFloat.astro';
+import ChatWidget from './ChatWidget.astro';
+import CookieBanner from './CookieBanner.astro';
+import VisitBeacon from './VisitBeacon.astro';
+import { getLandingContent } from '../lib/content.ts';
+import { siteUrl } from '../lib/env.ts';
+
+// Le impostazioni sono già state caricate dal middleware: si riusano invece di
+// interrogare di nuovo il database.
+const content = await getLandingContent(Astro.locals.settings);
+
+const base = siteUrl();
+const structuredData = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'ProfessionalService',
+  name: 'Dext Lab',
+  description:
+    'Realizzazione siti web, web app, soluzioni di Intelligenza Artificiale e consulenza informatica con le migliori tecnologie.',
+  url: base,
+  email: content.contactEmail,
+  image: new URL('/assets/logo-v.png', base + '/').href,
+  areaServed: 'IT',
+  knowsLanguage: ['it'],
+  serviceType: [
+    'Realizzazione siti web',
+    'Sviluppo web app',
+    'Servizi di Intelligenza Artificiale',
+    'Consulenza informatica',
+  ],
+});
+---
+
+<BaseLayout
+  title="Dext Lab — Siti web, Web App, AI e Consulenza IT"
+  description="Dext Lab realizza siti web e web app con le migliori tecnologie. Consulenza informatica e soluzioni di Intelligenza Artificiale su misura per la tua impresa."
+  path="/"
+  structuredData={structuredData}
+>
+  <meta
+    slot="head"
+    name="keywords"
+    content="realizzazione siti web, sviluppo web app, servizi AI, intelligenza artificiale, consulenza informatica, sviluppo software, Italia"
+  />
+
+  <Chrome />
+  <Nav />
+  <Hero />
+  <Servizi />
+  <Showcase />
+  <Portfolio />
+  <Processo />
+  <Stack />
+  <About />
+  <Perche />
+  <Recensioni reviews={content.reviews} />
+  <Configuratore types={content.types} addons={content.addons} />
+  <Faq faqs={content.faqs} />
+  <Contatti contactEmail={content.contactEmail} calendly={content.calendly} />
+  <Footer />
+  <WhatsAppFloat href={content.whatsappLink} />
+  <ChatWidget />
+  <CookieBanner />
+
+  <script is:inline src="/js/i18n.js"></script>
+  <script is:inline src="/js/main.js"></script>
+  <VisitBeacon token={Astro.locals.visitToken} />
+</BaseLayout>

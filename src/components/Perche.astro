@@ -1,0 +1,77 @@
+---
+/**
+ * Tabella comparativa. Le celle hanno tre stati visivi: "v" positivo,
+ * "mid" intermedio, "x" negativo. L'attributo data-label alimenta le
+ * etichette di colonna nella versione mobile del CSS.
+ */
+type Tono = 'v' | 'mid' | 'x';
+
+const righe: { feat: string; agenzia: [string, Tono]; freelance: [string, Tono]; dext: [string, Tono] }[] = [
+  {
+    feat: 'Tempi di consegna',
+    agenzia: ['Lunghi', 'x'],
+    freelance: ['Variabili', 'x'],
+    dext: ['Rapidi', 'v'],
+  },
+  {
+    feat: 'Costi',
+    agenzia: ['Alti', 'x'],
+    freelance: ['Medi', 'mid'],
+    dext: ['Accessibili', 'v'],
+  },
+  {
+    feat: 'Design su misura',
+    agenzia: ['Sì', 'v'],
+    freelance: ['Spesso template', 'mid'],
+    dext: ['Sempre', 'v'],
+  },
+  {
+    feat: 'Tecnologia & AI',
+    agenzia: ['A volte', 'mid'],
+    freelance: ['Raramente', 'x'],
+    dext: ['Sempre integrata', 'v'],
+  },
+  {
+    feat: 'Interlocutore unico',
+    agenzia: ['Più passaggi', 'x'],
+    freelance: ['Sì', 'v'],
+    dext: ['Sempre tu & io', 'v'],
+  },
+];
+---
+
+<section class="section section-alt" id="perche">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">Perché Dext Lab</span>
+      <h2>Il meglio dei <span class="grad">due mondi</span></h2>
+      <p class="section-lead">
+        La cura di un'agenzia, la velocità e i costi di chi lavora in modo moderno con l'AI.
+      </p>
+    </div>
+    <div class="compare reveal">
+      <div class="compare-row compare-head">
+        <div class="compare-feat"></div>
+        <div class="compare-col">Agenzia</div>
+        <div class="compare-col">Freelance classico</div>
+        <div class="compare-col compare-me">Dext Lab</div>
+      </div>
+      {
+        righe.map((r) => (
+          <div class="compare-row">
+            <div class="compare-feat">{r.feat}</div>
+            <div class="compare-col" data-label="Agenzia">
+              <span class={r.agenzia[1]}>{r.agenzia[0]}</span>
+            </div>
+            <div class="compare-col" data-label="Freelance">
+              <span class={r.freelance[1]}>{r.freelance[0]}</span>
+            </div>
+            <div class="compare-col compare-me" data-label="Dext Lab">
+              <span class={r.dext[1]}>{r.dext[0]}</span>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>

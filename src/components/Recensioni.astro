@@ -1,0 +1,41 @@
+---
+import type { ReviewItem } from '../lib/content.ts';
+
+interface Props {
+  reviews: ReviewItem[];
+}
+
+const { reviews } = Astro.props;
+
+/** Iniziale dell'autore per l'avatar. Usa Array.from per non spezzare emoji o accenti. */
+function initial(author: string): string {
+  const first = Array.from(author.trim())[0] ?? '';
+  return first.toLocaleUpperCase('it-IT');
+}
+---
+
+<section class="section section-alt" id="recensioni">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">Recensioni</span>
+      <h2>Cosa dicono i <span class="grad">clienti</span></h2>
+    </div>
+    <div class="reviews">
+      {
+        reviews.map((rv) => (
+          <figure class="review reveal">
+            <div class="stars">{'★'.repeat(Math.max(1, Math.min(5, rv.stars)))}</div>
+            <blockquote>&ldquo;{rv.quote}&rdquo;</blockquote>
+            <figcaption>
+              <span class="rv-avatar">{initial(rv.author)}</span>
+              <span>
+                <strong>{rv.author}</strong>
+                {rv.role}
+              </span>
+            </figcaption>
+          </figure>
+        ))
+      }
+    </div>
+  </div>
+</section>

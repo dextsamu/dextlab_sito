@@ -1,0 +1,26 @@
+---
+interface Props {
+  /** Token della visita da confermare. Se null non viene emesso nulla. */
+  token: string | null;
+}
+
+const { token } = Astro.props;
+---
+
+{
+  /* I bot raramente eseguono JavaScript: questa chiamata distingue le visite
+     umane da quelle automatiche nelle statistiche dell'admin. */
+  token && (
+    <script is:inline define:vars={{ token }}>
+      (function () {
+        var url = '/api/beacon?t=' + encodeURIComponent(token);
+        try {
+          if (navigator.sendBeacon) navigator.sendBeacon(url);
+          else fetch(url, { keepalive: true });
+        } catch (e) {
+          /* nessun impatto sulla pagina */
+        }
+      })();
+    </script>
+  )
+}
