@@ -1,0 +1,11 @@
+.git
+.claude
+DEPLOY.md
+install.php
+migrate.php
+dext lab new orizontal.png
+dext lab new vertical.png
+deploy-docker/data
+deploy-docker/letsencrypt
+deploy-docker/.env
+backups

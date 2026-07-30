@@ -1,0 +1,648 @@
+<?php
+require_once __DIR__ . '/inc/db.php';
+
+// --- gate manutenzione + tracking visite ---
+$cfg = dext_config();
+$preview = isset($_GET['preview']) && !empty($cfg['app_secret']) && hash_equals($cfg['app_secret'], (string)$_GET['preview']);
+$maintenance = setting('maintenance', '') === '1';
+if ($maintenance && !$preview) {
+    $visitToken = track_visit('/', true);
+    include __DIR__ . '/maintenance.php';
+    exit;
+}
+$visitToken = track_visit('/', false);
+
+// dati dal DB con fallback hardcoded (sito resiliente anche senza DB)
+$types = rows_active('pricing_types') ?: [
+    ['label' => 'Landing page', 'price' => 490, 'weeks' => 1],
+    ['label' => 'Sito vetrina', 'price' => 990, 'weeks' => 2],
+    ['label' => 'E-commerce', 'price' => 2500, 'weeks' => 4],
+    ['label' => 'Web app su misura', 'price' => 4500, 'weeks' => 8],
+    ['label' => 'Soluzione AI', 'price' => 1800, 'weeks' => 3],
+];
+$addons = rows_active('pricing_addons') ?: [
+    ['label' => 'Multilingua', 'price' => 400, 'weeks' => 1],
+    ['label' => 'SEO avanzata', 'price' => 350, 'weeks' => 1],
+    ['label' => 'Blog / CMS', 'price' => 500, 'weeks' => 1],
+    ['label' => 'Area riservata / login', 'price' => 800, 'weeks' => 2],
+    ['label' => 'Integrazione AI', 'price' => 1200, 'weeks' => 2],
+    ['label' => 'Copywriting', 'price' => 300, 'weeks' => 0],
+];
+$reviews = rows_active('reviews') ?: [
+    ['quote' => 'Sito pronto in pochi giorni, esattamente come lo immaginavo. Comunicazione chiara e zero stress.', 'author' => 'Marco R.', 'role' => 'Titolare e-commerce', 'stars' => 5],
+    ['quote' => 'Ha capito subito cosa serviva alla mia attività. Il gestionale ci fa risparmiare ore ogni settimana.', 'author' => 'Laura B.', 'role' => 'Studio professionale', 'stars' => 5],
+    ['quote' => 'L\'assistente AI risponde ai clienti al posto mio. Soluzione che non pensavo fosse alla mia portata.', 'author' => 'Stefano P.', 'role' => 'PMI servizi', 'stars' => 5],
+];
+$faqs = rows_active('faqs') ?: [
+    ['question' => 'Quanto costa un sito o una web app?', 'answer' => 'Dipende dall\'obiettivo: una landing page parte da poche centinaia di euro, una web app su misura cresce in base alle funzioni. Ti do sempre un preventivo chiaro e fisso prima di iniziare, senza sorprese.'],
+    ['question' => 'Quanto tempo serve?', 'answer' => 'Lavorando con strumenti moderni e AI consegno molto più in fretta di un\'agenzia tradizionale: una landing in pochi giorni, progetti più complessi in qualche settimana.'],
+    ['question' => 'Usi l\'AI: la qualità ne risente?', 'answer' => 'Al contrario. L\'AI accelera le parti ripetitive, così investo più tempo su design, esperienza utente e dettagli che fanno la differenza. Ogni progetto viene testato e curato a mano prima di andare online.'],
+    ['question' => 'Posso modificare il sito dopo la consegna?', 'answer' => 'Certo. Ti consegno un prodotto pronto e, se vuoi, un modo semplice per aggiornarlo da solo. In alternativa resto io il tuo punto di riferimento per modifiche e nuove funzioni.'],
+    ['question' => 'Offri assistenza dopo il lancio?', 'answer' => 'Sì. Monitoro che tutto funzioni e resto disponibile per supporto, aggiornamenti e miglioramenti nel tempo.'],
+];
+$wa  = setting('whatsapp', '393000000000');
+$cal = setting('calendly', 'https://calendly.com/dextlab/call');
+$mail = setting('contact_email', 'info@dextlab.it');
+$waLink = 'https://wa.me/' . preg_replace('/[^0-9]/', '', $wa) . '?text=' . rawurlencode('Ciao Dext Lab, vorrei informazioni su un progetto');
+?>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dext Lab — Siti web, Web App, AI e Consulenza IT</title>
+  <meta name="description" content="Dext Lab realizza siti web e web app con le migliori tecnologie. Consulenza informatica e soluzioni di Intelligenza Artificiale su misura per la tua impresa." />
+  <meta name="theme-color" content="#070b16" />
+  <meta name="author" content="Dext Lab" />
+  <meta name="keywords" content="realizzazione siti web, sviluppo web app, servizi AI, intelligenza artificiale, consulenza informatica, sviluppo software, Italia" />
+  <link rel="canonical" href="https://dextlab.it/" />
+  <link rel="icon" type="image/png" href="assets/logo-h.png" />
+  <link rel="apple-touch-icon" href="assets/logo-v.png" />
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Dext Lab — Tecnologia, Design e AI" />
+  <meta property="og:description" content="Siti web, web app, AI e consulenza informatica con le migliori tecnologie." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://dextlab.it/" />
+  <meta property="og:locale" content="it_IT" />
+  <meta property="og:image" content="https://dextlab.it/assets/logo-v.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    "name": "Dext Lab",
+    "description": "Realizzazione siti web, web app, soluzioni di Intelligenza Artificiale e consulenza informatica con le migliori tecnologie.",
+    "url": "https://dextlab.it",
+    "email": "info@dextlab.it",
+    "image": "https://dextlab.it/assets/logo-v.png",
+    "areaServed": "IT",
+    "knowsLanguage": ["it"],
+    "serviceType": ["Realizzazione siti web", "Sviluppo web app", "Servizi di Intelligenza Artificiale", "Consulenza informatica"]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- intro loader -->
+  <div class="loader" id="loader" aria-hidden="true">
+    <img src="assets/logo-h.png" alt="" class="loader-logo" />
+    <div class="loader-bar"><span></span></div>
+  </div>
+
+  <!-- scroll progress -->
+  <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
+
+  <!-- animated background -->
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-aurora" aria-hidden="true"></div>
+  <div class="bg-glow glow-1" aria-hidden="true"></div>
+  <div class="bg-glow glow-2" aria-hidden="true"></div>
+
+  <!-- NAV -->
+  <header class="nav" id="nav">
+    <div class="container nav-inner">
+      <a href="#hero" class="brand" aria-label="Dext Lab home">
+        <img src="assets/logo-h.png" alt="Dext Lab" class="brand-logo" />
+      </a>
+      <nav class="nav-links" id="navLinks">
+        <a href="#servizi">Servizi</a>
+        <a href="#portfolio">Portfolio</a>
+        <a href="#perche">Perché me</a>
+        <a href="#recensioni">Recensioni</a>
+        <span class="lang-switch" role="group" aria-label="Lingua">
+          <button type="button" class="lang-btn active" data-lang="it">IT</button>
+          <button type="button" class="lang-btn" data-lang="en">EN</button>
+        </span>
+        <a href="#contatti" class="nav-cta">Contattami</a>
+      </nav>
+      <button class="nav-toggle" id="navToggle" aria-label="Apri menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <div class="hero-spot" id="heroSpot" aria-hidden="true"></div>
+    <div class="hero-hexes" aria-hidden="true">
+      <span class="hex" style="--x:8%;--y:18%;--s:54px;--d:0s;--dur:9s"></span>
+      <span class="hex" style="--x:84%;--y:22%;--s:78px;--d:1.5s;--dur:11s"></span>
+      <span class="hex" style="--x:16%;--y:70%;--s:40px;--d:.8s;--dur:8s"></span>
+      <span class="hex" style="--x:78%;--y:68%;--s:60px;--d:2.2s;--dur:12s"></span>
+      <span class="hex" style="--x:50%;--y:12%;--s:30px;--d:3s;--dur:10s"></span>
+      <span class="hex" style="--x:92%;--y:48%;--s:36px;--d:.4s;--dur:9.5s"></span>
+    </div>
+    <div class="container hero-inner">
+      <div class="hero-badge reveal">
+        <span class="dot"></span> Disponibile per nuovi progetti
+      </div>
+      <h1 class="hero-title reveal">
+        Trasformo idee in<br>
+        <span class="grad rotator" id="rotator" aria-live="polite">prodotti digitali</span><br>
+        che funzionano.
+      </h1>
+      <p class="hero-sub reveal">
+        Siti web, web app e soluzioni di <strong>Intelligenza Artificiale</strong> costruiti con
+        le migliori tecnologie. Design accattivante, performance reali e risultati concreti.
+      </p>
+      <div class="hero-actions reveal">
+        <a href="#contatti" class="btn btn-primary">Iniziamo un progetto</a>
+        <a href="#servizi" class="btn btn-ghost">Scopri i servizi</a>
+      </div>
+      <div class="hero-stats reveal">
+        <div class="stat"><span class="stat-num" data-count="100">0</span><span class="stat-suf">%</span><p>Codice su misura</p></div>
+        <div class="stat"><span class="stat-num" data-count="24">0</span><span class="stat-suf">/7</span><p>Supporto diretto</p></div>
+        <div class="stat"><span class="stat-num" data-count="5">0</span><span class="stat-suf">★</span><p>Qualità garantita</p></div>
+      </div>
+    </div>
+    <div class="hero-scroll" aria-hidden="true"><span></span></div>
+  </section>
+
+  <!-- SERVIZI -->
+  <section class="section" id="servizi">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Cosa faccio</span>
+        <h2>Servizi <span class="grad">end-to-end</span></h2>
+        <p class="section-lead">Dalla prima riga di codice al deploy in produzione. Un unico interlocutore per tutto lo stack.</p>
+      </div>
+      <div class="cards">
+        <article class="card reveal">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M2 9h20"/><circle cx="5" cy="6.5" r=".6" fill="currentColor"/><circle cx="7.2" cy="6.5" r=".6" fill="currentColor"/></svg>
+          </div>
+          <h3>Siti Web</h3>
+          <p>Siti vetrina e landing page veloci, responsive e ottimizzati SEO. Design moderno che converte i visitatori in clienti.</p>
+          <ul class="card-tags"><li>Next.js</li><li>Astro</li><li>SEO</li><li>Performance</li></ul>
+        </article>
+
+        <article class="card reveal">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/><rect x="8" y="8" width="8" height="8" rx="1.5"/></svg>
+          </div>
+          <h3>Web App</h3>
+          <p>Applicazioni web complete: gestionali, dashboard, piattaforme SaaS. Autenticazione, database e logica di business sicura.</p>
+          <ul class="card-tags"><li>React</li><li>API</li><li>Database</li><li>Cloud</li></ul>
+        </article>
+
+        <article class="card reveal card-featured">
+          <div class="card-badge">AI</div>
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2a4 4 0 0 0-4 4v1a3 3 0 0 0-3 3 3 3 0 0 0 1 5v1a4 4 0 0 0 6 3 4 4 0 0 0 6-3v-1a3 3 0 0 0 1-5 3 3 0 0 0-3-3V6a4 4 0 0 0-4-4Z"/><path d="M12 2v20"/></svg>
+          </div>
+          <h3>Servizi AI</h3>
+          <p>Chatbot, automazioni intelligenti, RAG su documenti aziendali e integrazione LLM. Porto l'AI dentro i tuoi processi.</p>
+          <ul class="card-tags"><li>LLM</li><li>RAG</li><li>Agenti</li><li>Automazioni</li></ul>
+        </article>
+
+        <article class="card reveal">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/></svg>
+          </div>
+          <h3>Consulenza IT</h3>
+          <p>Scelta dello stack, architettura, sicurezza e ottimizzazione. Ti affianco nelle decisioni tecniche che contano.</p>
+          <ul class="card-tags"><li>Architettura</li><li>Security</li><li>DevOps</li><li>Audit</li></ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- SHOWCASE / MOCKUP -->
+  <section class="section" id="showcase">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Anteprima dal vivo</span>
+        <h2>Interfacce che <span class="grad">prendono vita</span></h2>
+        <p class="section-lead">Non solo parole. Ecco il tipo di esperienze che costruisco — animate, reattive, su misura.</p>
+      </div>
+
+      <div class="mocks">
+        <!-- Mockup 1: sito web (browser) -->
+        <figure class="mock reveal">
+          <div class="browser">
+            <div class="browser-bar">
+              <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+              <div class="browser-url">dextlab.it</div>
+            </div>
+            <div class="browser-body">
+              <div class="bw-hero">
+                <div class="bw-line w60"></div>
+                <div class="bw-line w90"></div>
+                <div class="bw-btn"></div>
+              </div>
+              <div class="bw-grid">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+          </div>
+          <figcaption><strong>Siti Web</strong>veloci, responsive, fatti per convertire</figcaption>
+        </figure>
+
+        <!-- Mockup 2: dashboard web app -->
+        <figure class="mock reveal">
+          <div class="window">
+            <div class="win-side">
+              <span class="ws active"></span><span class="ws"></span><span class="ws"></span><span class="ws"></span>
+            </div>
+            <div class="win-main">
+              <div class="win-stats">
+                <div class="kpi"><span class="kpi-n" data-to="92">0</span><i></i></div>
+                <div class="kpi"><span class="kpi-n" data-to="48">0</span><i></i></div>
+              </div>
+              <div class="chart">
+                <span style="--h:42%"></span><span style="--h:66%"></span><span style="--h:38%"></span>
+                <span style="--h:80%"></span><span style="--h:55%"></span><span style="--h:96%"></span>
+                <span style="--h:70%"></span>
+              </div>
+            </div>
+          </div>
+          <figcaption><strong>Web App</strong>gestionali e dashboard in tempo reale</figcaption>
+        </figure>
+
+        <!-- Mockup 3: AI multi-scena -->
+        <figure class="mock reveal mock-ai">
+          <div class="window aiwin" id="aiWin">
+            <div class="ai-tabs" role="tablist">
+              <button class="ai-tab active" data-scene="0" role="tab">Genera</button>
+              <button class="ai-tab" data-scene="1" role="tab">Analizza</button>
+              <button class="ai-tab" data-scene="2" role="tab">Automatizza</button>
+            </div>
+            <div class="ai-stage">
+              <!-- scena 0: generazione contenuti -->
+              <div class="scene scene-gen active" data-scene="0">
+                <div class="ai-prompt"><span class="ai-spark"></span>"Scrivi un post per il lancio"</div>
+                <div class="ai-out">
+                  <span class="ao-line"></span>
+                  <span class="ao-line"></span>
+                  <span class="ao-line short"></span>
+                </div>
+              </div>
+              <!-- scena 1: analisi documenti (RAG) -->
+              <div class="scene scene-rag" data-scene="1">
+                <div class="doc">
+                  <span class="dl"></span><span class="dl"></span><span class="dl hl"></span>
+                  <span class="dl"></span><span class="dl short"></span><span class="dl hl"></span>
+                  <span class="scan"></span>
+                </div>
+                <div class="ai-found"><span class="ai-spark"></span>Clausola trovata · pag. 4</div>
+              </div>
+              <!-- scena 2: automazione / agente -->
+              <div class="scene scene-auto" data-scene="2">
+                <div class="flow">
+                  <span class="node">Email</span>
+                  <span class="link"></span>
+                  <span class="node ai">AI</span>
+                  <span class="link"></span>
+                  <span class="node">CRM</span>
+                </div>
+                <p class="flow-cap">Trigger → elaborazione → azione</p>
+              </div>
+            </div>
+          </div>
+          <figcaption><strong>Servizi AI</strong>genera, analizza e automatizza</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- PORTFOLIO -->
+  <section class="section section-alt" id="portfolio">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Lavori</span>
+        <h2>Progetti <span class="grad">selezionati</span></h2>
+        <p class="section-lead">Una selezione di prodotti digitali realizzati. Ogni progetto parte da zero, su misura.</p>
+      </div>
+      <div class="portfolio">
+        <article class="pcard reveal">
+          <div class="pcard-img grad-a"><span class="pcard-tag">Sito Web</span></div>
+          <div class="pcard-body">
+            <h3>E-commerce artigianale</h3>
+            <p>Vetrina e shop online con catalogo dinamico e checkout sicuro.</p>
+            <div class="pcard-stack"><span>Next.js</span><span>Stripe</span><span>SEO</span></div>
+          </div>
+        </article>
+        <article class="pcard reveal">
+          <div class="pcard-img grad-b"><span class="pcard-tag">Web App</span></div>
+          <div class="pcard-body">
+            <h3>Gestionale prenotazioni</h3>
+            <p>Dashboard per gestire appuntamenti, clienti e pagamenti in tempo reale.</p>
+            <div class="pcard-stack"><span>React</span><span>API</span><span>Database</span></div>
+          </div>
+        </article>
+        <article class="pcard reveal">
+          <div class="pcard-img grad-c"><span class="pcard-tag">AI</span></div>
+          <div class="pcard-body">
+            <h3>Assistente documenti</h3>
+            <p>Chatbot che risponde sui documenti aziendali con ricerca semantica.</p>
+            <div class="pcard-stack"><span>LLM</span><span>RAG</span><span>Automazioni</span></div>
+          </div>
+        </article>
+      </div>
+      <p class="portfolio-note reveal">I progetti mostrati sono esempi rappresentativi. Vuoi vedere casi reali? <a href="#contatti">Scrivimi</a>.</p>
+    </div>
+  </section>
+
+  <!-- PROCESSO -->
+  <section class="section" id="processo">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Come lavoro</span>
+        <h2>Un processo <span class="grad">trasparente</span></h2>
+        <p class="section-lead">Niente sorprese. Ogni fase è condivisa, misurabile e orientata al risultato.</p>
+      </div>
+      <div class="steps">
+        <div class="step reveal"><span class="step-n">01</span><h3>Ascolto</h3><p>Capisco obiettivi, target e vincoli. Definiamo insieme cosa significa "successo".</p></div>
+        <div class="step reveal"><span class="step-n">02</span><h3>Design</h3><p>Prototipo UI/UX accattivante e funzionale prima di scrivere codice.</p></div>
+        <div class="step reveal"><span class="step-n">03</span><h3>Sviluppo</h3><p>Codice pulito con le migliori tecnologie. Aggiornamenti costanti, zero black box.</p></div>
+        <div class="step reveal"><span class="step-n">04</span><h3>Deploy &amp; Supporto</h3><p>Vado live, monitoro e resto al tuo fianco anche dopo il lancio.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STACK -->
+  <section class="section section-alt section-stack" id="stack">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Tecnologie &amp; strumenti</span>
+        <h2>Lo stack <span class="grad">moderno</span> che uso</h2>
+        <p class="section-lead">Strumenti attuali e AI per costruire prodotti veloci, sicuri e scalabili.</p>
+      </div>
+    </div>
+    <div class="marquee reveal" aria-hidden="true">
+      <div class="marquee-track">
+        <span>React</span><span>Next.js</span><span>TypeScript</span><span>Node.js</span><span>Python</span><span>Tailwind</span><span>PostgreSQL</span><span>Docker</span><span>OpenAI</span><span>Claude</span><span>Figma</span><span>Astro</span>
+        <span>React</span><span>Next.js</span><span>TypeScript</span><span>Node.js</span><span>Python</span><span>Tailwind</span><span>PostgreSQL</span><span>Docker</span><span>OpenAI</span><span>Claude</span><span>Figma</span><span>Astro</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="section" id="about">
+    <div class="container about-inner">
+      <div class="about-visual reveal">
+        <img src="assets/logo-v.png" alt="Dext Lab" class="about-logo" />
+        <div class="about-ring" aria-hidden="true"></div>
+      </div>
+      <div class="about-text reveal">
+        <span class="eyebrow">L'approccio</span>
+        <h2>Tecnologia e <span class="grad">AI</span> al servizio della tua idea</h2>
+        <p><strong>Dext Lab</strong> nasce da un metodo diverso: unisco le migliori tecnologie moderne agli strumenti di Intelligenza Artificiale per costruire prodotti digitali su misura, più in fretta e a un costo accessibile.</p>
+        <p>Niente template riciclati né agenzie con dieci passaggi e tempi infiniti. Tu mi racconti l'obiettivo, io lo traduco in un prodotto curato nel design e pronto a funzionare.</p>
+        <ul class="about-list">
+          <li>Sviluppo potenziato dall'AI: più veloce, stesso risultato</li>
+          <li>Design curato e su misura, mai copia-incolla</li>
+          <li>Interlocutore unico, comunicazione diretta, tempi rispettati</li>
+          <li>Costi trasparenti, sotto il prezzo di un'agenzia</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- PERCHE -->
+  <section class="section section-alt" id="perche">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Perché Dext Lab</span>
+        <h2>Il meglio dei <span class="grad">due mondi</span></h2>
+        <p class="section-lead">La cura di un'agenzia, la velocità e i costi di chi lavora in modo moderno con l'AI.</p>
+      </div>
+      <div class="compare reveal">
+        <div class="compare-row compare-head">
+          <div class="compare-feat"></div>
+          <div class="compare-col">Agenzia</div>
+          <div class="compare-col">Freelance classico</div>
+          <div class="compare-col compare-me">Dext Lab</div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-feat">Tempi di consegna</div>
+          <div class="compare-col" data-label="Agenzia"><span class="x">Lunghi</span></div>
+          <div class="compare-col" data-label="Freelance"><span class="x">Variabili</span></div>
+          <div class="compare-col compare-me" data-label="Dext Lab"><span class="v">Rapidi</span></div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-feat">Costi</div>
+          <div class="compare-col" data-label="Agenzia"><span class="x">Alti</span></div>
+          <div class="compare-col" data-label="Freelance"><span class="mid">Medi</span></div>
+          <div class="compare-col compare-me" data-label="Dext Lab"><span class="v">Accessibili</span></div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-feat">Design su misura</div>
+          <div class="compare-col" data-label="Agenzia"><span class="v">Sì</span></div>
+          <div class="compare-col" data-label="Freelance"><span class="mid">Spesso template</span></div>
+          <div class="compare-col compare-me" data-label="Dext Lab"><span class="v">Sempre</span></div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-feat">Tecnologia &amp; AI</div>
+          <div class="compare-col" data-label="Agenzia"><span class="mid">A volte</span></div>
+          <div class="compare-col" data-label="Freelance"><span class="x">Raramente</span></div>
+          <div class="compare-col compare-me" data-label="Dext Lab"><span class="v">Sempre integrata</span></div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-feat">Interlocutore unico</div>
+          <div class="compare-col" data-label="Agenzia"><span class="x">Più passaggi</span></div>
+          <div class="compare-col" data-label="Freelance"><span class="v">Sì</span></div>
+          <div class="compare-col compare-me" data-label="Dext Lab"><span class="v">Sempre tu &amp; io</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RECENSIONI -->
+  <section class="section section-alt" id="recensioni">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Recensioni</span>
+        <h2>Cosa dicono i <span class="grad">clienti</span></h2>
+      </div>
+      <div class="reviews">
+        <?php foreach ($reviews as $rv):
+          $stars = max(1, min(5, (int)($rv['stars'] ?? 5)));
+          $initial = mb_strtoupper(mb_substr(trim($rv['author']), 0, 1));
+        ?>
+        <figure class="review reveal">
+          <div class="stars"><?= str_repeat('★', $stars) ?></div>
+          <blockquote>&ldquo;<?= e($rv['quote']) ?>&rdquo;</blockquote>
+          <figcaption><span class="rv-avatar"><?= e($initial) ?></span><span><strong><?= e($rv['author']) ?></strong><?= e($rv['role']) ?></span></figcaption>
+        </figure>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONFIGURATORE PREVENTIVO -->
+  <section class="section" id="preventivo">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Preventivo istantaneo</span>
+        <h2>Configura il tuo <span class="grad">progetto</span></h2>
+        <p class="section-lead">Stima indicativa in tempo reale. Nessun impegno: serve a darci un punto di partenza.</p>
+      </div>
+
+      <div class="config reveal">
+        <div class="config-form">
+          <div class="config-block">
+            <h3>1. Cosa ti serve?</h3>
+            <div class="config-types" id="cfgTypes">
+              <?php foreach ($types as $i => $t): ?>
+              <button type="button" class="cfg-type<?= $i === 0 ? ' active' : '' ?>" data-price="<?= (int)$t['price'] ?>" data-weeks="<?= (int)$t['weeks'] ?>"><?= e($t['label']) ?></button>
+              <?php endforeach; ?>
+            </div>
+          </div>
+
+          <div class="config-block">
+            <h3>2. Aggiungi funzioni</h3>
+            <div class="config-addons" id="cfgAddons">
+              <?php foreach ($addons as $a): ?>
+              <label class="cfg-addon"><input type="checkbox" data-price="<?= (int)$a['price'] ?>" data-weeks="<?= (int)$a['weeks'] ?>"><span><?= e($a['label']) ?></span></label>
+              <?php endforeach; ?>
+            </div>
+          </div>
+        </div>
+
+        <aside class="config-result">
+          <p class="cfg-label">Stima indicativa</p>
+          <div class="cfg-price"><span id="cfgMin">€450</span> – <span id="cfgMax">€640</span></div>
+          <p class="cfg-time">Tempi: <strong id="cfgTime">circa 1 settimana</strong></p>
+          <ul class="cfg-includes">
+            <li>Design su misura</li>
+            <li>Responsive + performance</li>
+            <li>Supporto post-lancio</li>
+          </ul>
+          <a href="#contatti" class="btn btn-primary btn-block" id="cfgCta">Richiedi questo preventivo</a>
+          <p class="cfg-note">Stima orientativa, non vincolante. Il preventivo finale è gratuito.</p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section section-alt" id="faq">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Domande frequenti</span>
+        <h2>Le risposte <span class="grad">prima ancora</span> di chiedere</h2>
+      </div>
+      <div class="faq">
+        <?php foreach ($faqs as $fq): ?>
+        <details class="faq-item reveal">
+          <summary><?= e($fq['question']) ?><span class="faq-ico" aria-hidden="true"></span></summary>
+          <p><?= nl2br(e($fq['answer'])) ?></p>
+        </details>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA / CONTATTI -->
+  <section class="section section-contact" id="contatti">
+    <div class="container contact-inner">
+      <div class="contact-text reveal">
+        <span class="eyebrow">Parliamone</span>
+        <h2>Hai un progetto <span class="grad">in mente?</span></h2>
+        <p>Raccontami la tua idea. Ti rispondo entro 24 ore con un primo riscontro, senza impegno.</p>
+        <div class="contact-direct">
+          <a href="mailto:<?= e($mail) ?>" class="contact-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7L22 6"/></svg>
+            <?= e($mail) ?>
+          </a>
+          <a href="<?= e($cal) ?>" target="_blank" rel="noopener noreferrer" class="contact-link contact-link-cal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            Prenota una call gratuita
+          </a>
+        </div>
+      </div>
+
+      <form class="contact-form reveal" id="contactForm" action="contact.php" method="POST" novalidate>
+        <div class="field">
+          <input type="text" id="name" name="name" required placeholder=" " />
+          <label for="name">Nome</label>
+        </div>
+        <div class="field">
+          <input type="email" id="email" name="email" required placeholder=" " />
+          <label for="email">Email</label>
+        </div>
+        <div class="field">
+          <input type="text" id="subject" name="subject" placeholder=" " />
+          <label for="subject">Oggetto</label>
+        </div>
+        <div class="field">
+          <textarea id="message" name="message" rows="4" required placeholder=" "></textarea>
+          <label for="message">Il tuo messaggio</label>
+        </div>
+        <!-- honeypot anti-spam -->
+        <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
+        <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Invia messaggio</button>
+        <p class="form-status" id="formStatus" role="status"></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <img src="assets/logo-h.png" alt="Dext Lab" class="footer-logo" />
+      <p class="footer-copy">© <span id="year"></span> Dext Lab — Tecnologia, design e AI su misura.</p>
+      <nav class="footer-links">
+        <a href="#servizi">Servizi</a>
+        <a href="#portfolio">Portfolio</a>
+        <a href="#contatti">Contatti</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="termini.html">Termini</a>
+      </nav>
+    </div>
+  </footer>
+
+  <!-- WhatsApp flottante (sostituisci il numero con il tuo, formato internazionale senza +) -->
+  <a href="<?= e($waLink) ?>"
+     class="wa-float" target="_blank" rel="noopener noreferrer" aria-label="Scrivici su WhatsApp">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 0 1 8.413 3.488 11.82 11.82 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zM6.597 20.13c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.82 9.82 0 0 0 1.51 5.26l-.999 3.648 3.978-1.607zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.078 4.487.71.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+  </a>
+
+  <!-- Chatbot AI -->
+  <div class="chat-widget" id="chatWidget">
+    <div class="chat-panel" id="chatPanel" role="dialog" aria-label="Assistente Dext Lab" hidden>
+      <div class="chat-top">
+        <span class="chat-id"><span class="ai-dot"></span> Assistente Dext Lab</span>
+        <button class="chat-close" id="chatClose" aria-label="Chiudi chat">✕</button>
+      </div>
+      <div class="chat-msgs" id="chatMsgs">
+        <div class="cmsg bot">Ciao! 👋 Sono l'assistente di Dext Lab. Chiedimi di servizi, prezzi o tempi — o lasciami un contatto.</div>
+      </div>
+      <form class="chat-input" id="chatForm">
+        <input type="text" id="chatText" placeholder="Scrivi un messaggio…" autocomplete="off" maxlength="500" />
+        <button type="submit" aria-label="Invia">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z"/></svg>
+        </button>
+      </form>
+    </div>
+    <button class="chat-launch" id="chatLaunch" aria-label="Apri assistente AI">
+      <svg class="ci-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10Z"/></svg>
+      <span class="chat-launch-badge">AI</span>
+    </button>
+  </div>
+
+  <!-- Cookie banner GDPR -->
+  <div class="cookie" id="cookie" hidden>
+    <p>Usiamo cookie tecnici e, previo consenso, cookie di analisi per migliorare il sito. Vedi la <a href="privacy.html">Privacy Policy</a>.</p>
+    <div class="cookie-actions">
+      <button class="btn btn-ghost btn-sm" id="cookieReject">Rifiuta</button>
+      <button class="btn btn-primary btn-sm" id="cookieAccept">Accetta</button>
+    </div>
+  </div>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/main.js"></script>
+  <?php if (!empty($visitToken)): ?>
+  <script>(function(){var t=<?= json_encode($visitToken) ?>;try{if(navigator.sendBeacon){navigator.sendBeacon('beacon.php?t='+t);}else{fetch('beacon.php?t='+t,{keepalive:true});}}catch(e){}})();</script>
+  <?php endif; ?>
+</body>
+</html>

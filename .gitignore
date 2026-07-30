@@ -1,0 +1,18 @@
+# --- secret / config reale (MAI committare) ---
+config.php
+deploy-docker/.env
+
+# --- runtime / generati ---
+backups/
+deploy-docker/data/
+deploy-docker/letsencrypt/
+*.log
+
+# --- locale / editor / OS ---
+.claude/
+Thumbs.db
+.DS_Store
+
+# --- file di lavoro fuori standard ---
+_admin_pw.txt
+_dext_pgpass.txt
