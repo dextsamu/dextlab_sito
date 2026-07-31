@@ -36,8 +36,9 @@ Vale la pena saperlo, perché il guasto sarebbe silenzioso invece che evidente.
 tocca nulla e si segna come applicata. Il sito partirebbe rispondendo 200, ma:
 
 - `WHERE active` falla su una colonna `SMALLINT`, gli helper degradano ai
-  contenuti di fallback e **i prezzi e le recensioni reali sparirebbero**,
-  sostituiti dai valori predefiniti scritti nel codice;
+  contenuti di fallback e **i prezzi e le recensioni reali sparirebbero**: i
+  prezzi sostituiti dai valori predefiniti nel codice, le recensioni non
+  sostituite da niente — non hanno un ripiego, quindi la sezione scomparirebbe;
 - i nuovi lead verrebbero salvati con `created_at` NULL, quindi **invisibili**
   nella dashboard, che filtra per data;
 - il tracciamento delle visite si interromperebbe.

@@ -11,7 +11,7 @@
  * Così il visitatore ottiene un numero suo nei primi secondi, e poi scorre per
  * capire chi glielo ha dato: è l'ordine giusto.
  */
-import { initialEstimate, type PricingItem } from '../lib/content.ts';
+import { initialEstimate, chiaveListino, type PricingItem } from '../lib/content.ts';
 
 interface Props {
   types: PricingItem[];
@@ -74,7 +74,11 @@ const hexes = [
       <div class="hero-tipi" id="heroTipi">
         {
           types.map((t, i) => (
-            <button type="button" class:list={['hero-tipo', { active: i === 0 }]} data-label={t.label}>
+            <button
+              type="button"
+              class:list={['hero-tipo', { active: i === 0 }]}
+              data-k={chiaveListino(t.label)}
+            >
               {t.label}
             </button>
           ))

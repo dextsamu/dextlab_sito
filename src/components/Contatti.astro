@@ -72,7 +72,29 @@ const { contactEmail, calendly } = Astro.props;
         autocomplete="off"
         aria-hidden="true"
       />
-      <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Invia messaggio</button>
+      {/*
+        DUE etichette, entrambe rese dal server, e il JavaScript non scrive testo
+        da nessuna parte: cambia solo una classe.
+
+        Il motivo è il dizionario. i18n.js raccoglie i nodi di testo una volta
+        sola all'avvio e poi riscrive nodeValue su quegli stessi nodi. Il JS
+        scriveva btn.textContent = 'Invio in corso…', che SOSTITUISCE il nodo:
+        dal primo invio in poi quel pulsante non si traduceva più, e restava
+        nell'ultima lingua per il resto della visita. Provato: in inglese, dopo un
+        invio, passare a IT non cambiava più l'etichetta.
+        Metterla in uno <span> non bastava — si sostituiva il nodo dentro lo span,
+        stesso difetto un livello più in basso. Con due etichette non c'è nessun
+        nodo da sostituire, e il dizionario le trova entrambe.
+
+        L'arco è la parte che si muove mentre la richiesta è in volo: dura quanto
+        dura la richiesta, non un tempo deciso da me.
+      */}
+      <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
+        <span class="btn-testo">Invia messaggio</span>
+        <span class="btn-attesa">Invio in corso…</span>
+        <span class="btn-arco" aria-hidden="true"></span>
+        <span class="btn-spunta" aria-hidden="true"></span>
+      </button>
       <p class="form-status" id="formStatus" role="status"></p>
     </form>
   </div>

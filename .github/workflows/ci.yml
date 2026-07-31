@@ -259,7 +259,10 @@ jobs:
       - name: I contenuti arrivano dal database
         run: |
           html=$(curl -s http://127.0.0.1:4321/)
-          for pair in "cfg-type:4" "cfg-addon:5" "review reveal:2" "faq-item reveal:3" "esa\":21"; do
+          # Le recensioni non sono più in questo elenco: dopo la 005 il database
+          # di prova non ne ha di attive, quindi la sezione non viene resa. Il
+          # controllo su di loro è il passo successivo, ed è al contrario.
+          for pair in "cfg-type:4" "cfg-addon:5" "faq-item reveal:3" "esa\":21"; do
             needle=${pair%:*}; want=${pair#*:}
             got=$(grep -o "class=\"$needle" <<<"$html" | wc -l)
             if [ "$got" != "$want" ]; then
@@ -268,6 +271,301 @@ jobs:
             fi
             echo "  ok    $needle x$got"
           done
+
+      # Le recensioni sono l'unico contenuto senza ripiego: se il database non ne
+      # ha, la sezione non esiste. Prima due firme d'esempio arrivavano dal codice
+      # e la sezione c'era sempre, anche a database spento.
+      - name: Senza recensioni vere la sezione non c'è
+        run: |
+          html=$(curl -s http://127.0.0.1:4321/)
+          fail=0
+          # Il database di prova, dopo la 005, non ha recensioni attive.
+          for assente in 'class="review ' 'id="recensioni"' 'href="#recensioni"'; do
+            if grep -qF "$assente" <<<"$html"; then
+              echo "::error::senza recensioni attive la pagina contiene ancora $assente"
+              fail=1
+            else
+              echo "  ok    niente $assente"
+            fi
+          done
+          # Le firme del seed non devono ricomparire, né nella pagina né nel
+          # codice. I testi esatti si prendono dalla 005 invece di riscriverli
+          # qui: così il controllo resta vero anche se domani si aggiunge un
+          # terzo esempio da ritirare, e non esiste una seconda copia da tenere
+          # allineata. Per lo stesso motivo src/ non deve nominarli affatto —
+          # nemmeno in un commento, perché una ricerca non distingue una
+          # spiegazione da un ripiego tornato in servizio.
+          firme=$(grep -oE "\('[A-Z][a-zA-Z]+ [A-Z]\.'," migrations/005_*.sql | grep -oE "'[^']+'" | tr -d "'")
+          [ -n "$firme" ] || { echo "::error::non riesco a leggere le firme d'esempio dalla 005"; exit 1; }
+          while read -r finta; do
+            [ -n "$finta" ] || continue
+            if grep -qF "$finta" <<<"$html"; then
+              echo "::error::la pagina mostra la recensione d'esempio «$finta»"
+              fail=1
+            fi
+            if grep -rqF "$finta" src/; then
+              echo "::error::«$finta» è nominata in src/: le recensioni non hanno ripiego, e il nome non va scritto nel codice"
+              fail=1
+            fi
+          done <<<"$firme"
+          [ $fail = 0 ] && echo "  ok    nessuna recensione inventata, nel codice né nella pagina ($(wc -l <<<"$firme") firme controllate)"
+          # Con una recensione vera in tabella la sezione deve tornare, altrimenti
+          # questo controllo passerebbe anche se la sezione fosse rotta per sempre.
+          PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -q -c \
+            "insert into reviews (quote, author, role, stars, sort) values ('Recensione di prova della CI, non è un cliente.','Prova CI','Controlli automatici',5,99)"
+          html2=$(curl -s http://127.0.0.1:4321/)
+          for atteso in 'id="recensioni"' 'href="#recensioni"' 'Prova CI'; do
+            if grep -qF "$atteso" <<<"$html2"; then echo "  ok    con una recensione vera torna $atteso"
+            else echo "::error::inserita una recensione, manca ancora $atteso"; fail=1; fi
+          done
+          PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -q -c "delete from reviews where author='Prova CI'"
+          exit $fail
+
+      # Le quattro cose che si vedono, e le tre trappole che nascondono.
+      - name: Indice, cuciture, titoli e domande
+        run: |
+          html=$(curl -s http://127.0.0.1:4321/)
+          fail=0
+
+          # 1) L'indice del bordo destro deve avere un trattino per OGNI sezione
+          # resa, e nessun trattino in più: un'ancora che porta al nulla è peggio
+          # di una voce mancante. Le recensioni ci sono solo se sono vere, quindi
+          # il conto va fatto sull'HTML servito, non su una lista scritta a mano.
+          for id in $(grep -o 'data-sez="[^"]*"' <<<"$html" | sed 's/data-sez="//;s/"//'); do
+            if grep -qE "id=\"$id\"" <<<"$html"; then echo "  ok    l'indice punta a #$id, che esiste"
+            else echo "::error::l'indice ha un trattino per #$id, che non è in pagina"; fail=1; fi
+          done
+          n_tratti=$(grep -o 'data-sez="' <<<"$html" | wc -l)
+          [ "$n_tratti" -ge 8 ] || { echo "::error::solo $n_tratti trattini nell'indice: manca qualche sezione"; fail=1; }
+          # E i link devono essere veri <a>: senza JS l'indice deve restare
+          # navigabile, non diventare un ornamento inerte.
+          if grep -qE '<nav class="indice"[^>]*>.*<a href="#' <<<"$(tr -d '\n' <<<"$html")"; then
+            echo "  ok    i trattini sono link, funzionano senza JS"
+          else
+            echo "::error::l'indice non contiene <a href=\"#…\">: senza JS non porterebbe da nessuna parte"
+            fail=1
+          fi
+
+          # 2) La cucitura di sezione parte VISIBILE e la nasconde solo .js: se lo
+          # stato di partenza fosse scaleX(0) senza condizione, chi non ha JS
+          # vedrebbe una pagina senza nessuna linea, per sempre. È lo stesso
+          # errore che era già stato fatto con .reveal.
+          # Il CSS è indentato su più righe: la regola va letta su una riga sola,
+          # altrimenti la ricerca non trova mai il valore dentro il blocco.
+          css=$(tr '\n' ' ' < public/css/style.css)
+          if grep -qE '\.section::before\{[^}]*transform:scaleX\(1\)' <<<"$css"; then
+            echo "  ok    la cucitura è visibile senza JS"
+          else
+            echo "::error::.section::before non parte da scaleX(1): senza JS le cuciture non comparirebbero mai"
+            fail=1
+          fi
+          grep -qE '\.js \.section::before\{[^}]*scaleX\(0\)' <<<"$css" \
+            && echo "  ok    ed è nascosta solo sotto .js" \
+            || { echo "::error::manca la regola .js .section::before che la nasconde prima dell'ingresso"; fail=1; }
+
+          # 3) I titoli NON devono essere spezzati in parole. Sembra un
+          # miglioramento e rompe la traduzione: i18n.js raccoglie i nodi di testo
+          # una volta sola, e tre nodi da una parola non corrispondono più a
+          # nessuna chiave del dizionario. Quel titolo resterebbe italiano per
+          # sempre, e non si ripara nemmeno cambiando lingua due volte.
+          if grep -qE "querySelectorAll\('[^']*h2'\)[^;]*(split\(' '\)|innerHTML)" public/js/main.js; then
+            echo "::error::qualcosa spezza i titoli in parole: rompe il dizionario inglese"
+            fail=1
+          else
+            echo "  ok    nessuno spezza i titoli in nodi di testo separati"
+          fi
+          grep -q '@property --passata' public/css/style.css \
+            && echo "  ok    la passata del titolo è dichiarata come proprietà animabile" \
+            || { echo "::error::manca @property --passata: senza, la maschera del titolo non si anima e resta ferma a 0%"; fail=1; }
+
+          # 4) Le domande si animano su ::details-content. Il trucco della griglia
+          # 0fr→1fr NON funziona su <details> — provato e misurato, altezza
+          # identica aperta e chiusa — quindi se ricomparisse sarebbe un ritorno a
+          # un'animazione che non c'è.
+          if grep -q '::details-content' public/css/style.css; then
+            echo "  ok    l'altezza delle domande si anima su ::details-content"
+          else
+            echo "::error::manca la regola su ::details-content: le risposte tornerebbero ad aprirsi di scatto"
+            fail=1
+          fi
+          if grep -qE '\.faq-item[^{]*\{[^}]*grid-template-rows:0fr' public/css/style.css; then
+            echo "::error::è tornato il trucco 0fr→1fr sulle domande: su <details> non anima niente"
+            fail=1
+          fi
+
+          # 5) Il testo del pulsante d'invio non va scritto dal JavaScript:
+          # sostituisce il nodo raccolto dal dizionario e da quel momento il
+          # pulsante resta nella lingua in cui era. Le due etichette stanno nel
+          # markup e il CSS scambia quale si vede.
+          if grep -qE '(btn|submitTesto|testo)\.textContent *=' public/js/main.js; then
+            echo "::error::il JS scrive di nuovo l'etichetta del pulsante: dopo il primo invio non si tradurrebbe più"
+            fail=1
+          else
+            echo "  ok    l'etichetta del pulsante non viene riscritta dal JS"
+          fi
+          for eti in 'class="btn-testo"' 'class="btn-attesa"'; do
+            grep -qF "$eti" <<<"$html" || { echo "::error::manca $eti nel pulsante d'invio"; fail=1; }
+          done
+          exit $fail
+
+      # Il preventivo si porta via come link (#p=tipo+funzione+funzione), e le
+      # chiavi che lo compongono le scrive il server negli attributi data-k.
+      # Prima l'aggancio fra hero e configuratore era sul TESTO dei pulsanti: con
+      # il sito in inglese le etichette sono tradotte, il confronto non trovava
+      # niente, e scegliere il tipo di progetto nell'hero non faceva nulla. Era
+      # rotto in produzione e nessun controllo lo vedeva. Questo lo vede.
+      - name: Il preventivo si può mandare, e l'hero muove il configuratore
+        run: |
+          html=$(curl -s http://127.0.0.1:4321/)
+          fail=0
+          estrai() { grep -o "$1" <<<"$html" | grep -o 'data-k="[^"]*"' | sed 's/data-k="//;s/"//' | sort; }
+          tipi=$(estrai 'class="cfg-type[^>]*data-k="[^"]*"')
+          eroe=$(estrai 'class="hero-tipo[^>]*data-k="[^"]*"')
+          extra=$(grep -o '<input[^>]*data-k="[^"]*"' <<<"$html" | grep -o 'data-k="[^"]*"' | sed 's/data-k="//;s/"//' | sort)
+
+          for coppia in "tipi:$tipi" "extra:$extra"; do
+            nome=${coppia%%:*}; lista=${coppia#*:}
+            n=$(grep -c . <<<"$lista" || true)
+            u=$(sort -u <<<"$lista" | grep -c . || true)
+            if [ "$n" = 0 ]; then echo "::error::nessuna chiave data-k fra i $nome"; fail=1
+            elif [ "$n" != "$u" ]; then echo "::error::chiavi data-k ripetute fra i $nome: due voci finirebbero nello stesso link"; fail=1
+            else echo "  ok    $n chiavi $nome, tutte diverse"; fi
+          done
+
+          # Le due liste devono coincidere: sono lo stesso listino mostrato due
+          # volte, e l'aggancio fra l'hero e il configuratore è proprio questo.
+          if [ "$tipi" = "$eroe" ]; then
+            echo "  ok    hero e configuratore condividono le stesse chiavi"
+          else
+            echo "::error::le chiavi dell'hero e del configuratore non coincidono: scegliere in cima non muoverebbe il configuratore"
+            echo "  hero:          $(tr '\n' ' ' <<<"$eroe")"
+            echo "  configuratore: $(tr '\n' ' ' <<<"$tipi")"
+            fail=1
+          fi
+
+          # E l'aggancio non deve tornare a basarsi sul testo mostrato, che è
+          # tradotto: è esattamente il difetto che era in produzione.
+          if grep -qE "textContent(\.trim\(\))? === .*dataset\.label" public/js/main.js; then
+            echo "::error::l'aggancio hero/configuratore confronta di nuovo il testo con l'etichetta: si rompe in inglese"
+            fail=1
+          else
+            echo "  ok    l'aggancio non passa dal testo mostrato"
+          fi
+
+          # Il pulsante di copia nasce nascosto: senza JS non potrebbe copiare
+          # niente, e un pulsante che non fa nulla è peggio di uno che non c'è.
+          if grep -qE '<button[^>]*id="cfgLink"[^>]*hidden' <<<"$html"; then
+            echo "  ok    il pulsante di copia nasce nascosto"
+          else
+            echo "::error::il pulsante «copia il link» non è hidden nell'HTML servito: senza JS resterebbe visibile e inerte"
+            fail=1
+          fi
+          # E l'attributo hidden deve vincere davvero. Non basta scriverlo nel
+          # markup: è una regola del browser, e .cfg-link{display:block} la
+          # annullava — il pulsante era hidden e si vedeva comunque. Il primo
+          # controllo qui sopra passava mentre la pagina era rotta; questo guarda
+          # la cosa che conta.
+          if grep -qE '^\[hidden\]\{display:none!important\}' public/css/style.css; then
+            echo "  ok    [hidden] vince su qualunque regola d'autore"
+          else
+            echo "::error::manca [hidden]{display:none!important} nel reset: qualsiasi display:block su un elemento hidden lo rende visibile"
+            fail=1
+          fi
+          exit $fail
+
+      # About e «Perché Dext Lab» erano due sezioni che dicevano la stessa cosa, e
+      # la seconda la diceva con una tabella che affermava cose su agenzie e
+      # freelance senza poterle provare. Ora è una sezione sola con quattro
+      # impegni verificabili. Le tre trappole che questo controllo copre: la
+      # tabella che torna, la sezione che si sdoppia di nuovo, e il numero scritto
+      # nella frase che non corrisponde più agli impegni elencati.
+      - name: Una sola sezione dice perché scegliermi
+        run: |
+          html=$(curl -s http://127.0.0.1:4321/)
+          fail=0
+          for morto in 'class="compare' 'class="about-list' 'id="about"' 'Freelance classico'; do
+            if grep -qF "$morto" <<<"$html"; then
+              echo "::error::è tornato $morto: la sezione doppia era stata fusa"
+              fail=1
+            else
+              echo "  ok    niente $morto"
+            fi
+          done
+          for vivo in 'id="perche"' 'class="about-visual' 'class="about-text' 'class="impegni'; do
+            grep -qF "$vivo" <<<"$html" || { echo "::error::manca $vivo nella sezione fusa"; fail=1; }
+          done
+          # Il numero nella frase e gli impegni elencati devono coincidere: la
+          # frase dice «Quattro cose», e se un giorno se ne aggiunge un quinto
+          # senza toccarla la pagina si contraddice da sola.
+          n=$(grep -o 'class="impegni-n"' <<<"$html" | wc -l)
+          parola=$(sed -n 's/.*class="impegni-cap">\([A-Za-z]*\) .*/\1/p' <<<"$html" | head -1)
+          case "$parola" in
+            Due)     atteso=2 ;;
+            Tre)     atteso=3 ;;
+            Quattro) atteso=4 ;;
+            Cinque)  atteso=5 ;;
+            Sei)     atteso=6 ;;
+            *)       echo "::error::non riconosco il numero scritto nella frase degli impegni: «$parola»"; fail=1; atteso=$n ;;
+          esac
+          if [ "$n" = "$atteso" ]; then echo "  ok    la frase dice «$parola» e gli impegni sono $n"
+          else echo "::error::la frase dice «$parola» ($atteso) ma gli impegni elencati sono $n"; fail=1; fi
+          # E le schede dei servizi devono riempire la griglia: con quattro schede
+          # su tre colonne restava un buco, che è il motivo per cui la griglia è
+          # passata a due colonne.
+          schede=$(grep -o 'class="card reveal' <<<"$html" | wc -l)
+          colonne=$(grep -c 'grid-template-columns:repeat(2,1fr)' public/css/style.css)
+          if [ "$colonne" -lt 1 ]; then
+            echo "::error::la griglia delle schede non è più a due colonne: con $schede schede si riapre il buco"
+            fail=1
+          elif [ $((schede % 2)) != 0 ]; then
+            echo "::error::$schede schede su due colonne lasciano un buco nell'ultima riga"
+            fail=1
+          else
+            echo "  ok    $schede schede, due colonne, nessun buco"
+          fi
+          exit $fail
+
+      # Lo stack dichiara solo ciò che il progetto conferma. Ogni voce del primo
+      # elenco ha una prova in un file del repository: se la prova cade, la voce
+      # deve cadere con lei — altrimenti la sezione ricomincia a essere un elenco
+      # di parole, che è esattamente il difetto che è stato corretto.
+      - name: Lo stack elenca solo quello che gira davvero
+        run: |
+          html=$(curl -s http://127.0.0.1:4321/)
+          fail=0
+          nomi=$(grep -o 'class="gira-v"><b>[^<]*' <<<"$html" | sed 's/.*<b>//')
+          [ -n "$nomi" ] || { echo "::error::nessuna voce nell'elenco di quello che gira"; exit 1; }
+          while read -r nome; do
+            [ -n "$nome" ] || continue
+            case "$nome" in
+              Astro)      prova=$(grep -c '"astro":' package.json) ;;
+              TypeScript) prova=$(grep -c '"typescript":' package.json) ;;
+              Node)       prova=$(grep -c '"@astrojs/node":' package.json) ;;
+              PostgreSQL) prova=$(grep -c '"pg":' package.json) ;;
+              Docker)     prova=$(grep -c '^FROM ' deploy-docker/Dockerfile) ;;
+              *)          echo "::error::«$nome» è nell'elenco ma non ha una prova dichiarata"; fail=1; continue ;;
+            esac
+            if [ "$prova" -ge 1 ]; then echo "  ok    $nome ha la sua prova nel progetto"
+            else echo "::error::«$nome» è mostrato ma la sua prova non c'è più"; fail=1; fi
+          done <<<"$nomi"
+          # Nessuna voce può stare in entrambi gli elenchi: «gira qui» e «lavoro
+          # anche con» dicono due cose diverse, e sovrapporle le annulla.
+          nastro=$(sed -n 's/.*class="marquee-track">\(.*\)/\1/p' <<<"$html" | head -1)
+          while read -r nome; do
+            [ -n "$nome" ] || continue
+            if grep -qF ">$nome<" <<<"$nastro"; then
+              echo "::error::«$nome» è sia fra quelle che girano sia nel nastro delle competenze"
+              fail=1
+            fi
+          done <<<"$nomi"
+          # E le versioni restano fuori: vedi la regola in src/lib/stato.ts.
+          if grep -oE 'class="gira-v">.{0,120}' <<<"$html" | grep -qE '[0-9]+\.[0-9]+'; then
+            echo "::error::nell'elenco è comparso un numero di versione"
+            fail=1
+          else
+            echo "  ok    nessun numero di versione pubblicato"
+          fi
+          exit $fail
 
       # Le cifre che salgono da zero all'ingresso nella vista devono avere il
       # valore d'arrivo già nell'HTML servito: quando erano uno zero risolto solo

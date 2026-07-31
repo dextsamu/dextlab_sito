@@ -96,6 +96,48 @@
     tappe.forEach((t, i) => t.classList.toggle('viva', i <= quale));
   };
 
+  /* il nastro delle competenze segue la mano
+     ----------------------------------------
+     Scorreva a velocità fissa, cioè indifferente a chi guarda. Ora ha una base
+     costante più una spinta che arriva dallo scorrimento e si esaurisce da sé:
+     accelera mentre scendi, rallenta quando ti fermi.
+
+     La transform la scrive il JS, quindi l'animazione CSS va spenta (classe
+     .a-mano): due cose sulla stessa proprietà si sovrascrivono a vicenda. Senza
+     JS, o con movimento ridotto, la classe non si mette e resta l'animazione CSS
+     — che è un ripiego perfettamente valido, non un degrado.
+
+     Il ciclo è metà degli elementi PIÙ un divario: fra le due copie della lista
+     ce n'è uno in più, e ignorarlo fa saltare il nastro a ogni giro. */
+  const nastro = document.querySelector('.marquee-track');
+  let nastroPos = 0;
+  let nastroCiclo = 1;
+  let spintaNastro = 0;
+  let ultimoY = window.scrollY;
+  const misuraNastro = () => {
+    const divario = parseFloat(getComputedStyle(nastro).columnGap) || 0;
+    nastroCiclo = (nastro.scrollWidth + divario) / 2 || 1;
+  };
+  if (nastro && !menoMoto.matches) {
+    nastro.classList.add('a-mano');
+    misuraNastro();
+    window.addEventListener('resize', misuraNastro, { passive: true });
+    const giraNastro = () => {
+      // Se il movimento ridotto viene attivato a pagina aperta si restituisce il
+      // nastro al CSS invece di continuare a spingerlo.
+      if (menoMoto.matches) {
+        nastro.classList.remove('a-mano');
+        nastro.style.transform = '';
+        return;
+      }
+      nastroPos = (nastroPos + 0.35 + spintaNastro * 0.14) % nastroCiclo;
+      nastro.style.transform = 'translateX(' + -nastroPos.toFixed(1) + 'px)';
+      spintaNastro *= 0.9;
+      requestAnimationFrame(giraNastro);
+    };
+    requestAnimationFrame(giraNastro);
+  }
+
   /* Tempo di risposta nel pannello del footer: quello vero di questa richiesta,
      letto dalle misure di navigazione del browser. Se il browser non le espone
      — o il valore è zero, come da file:// — la voce dice che qui non si misura,
@@ -127,6 +169,13 @@
         attesaScroll = false;
         if (esagoni.length) muoviAlveare();
         if (tappe.length) muoviProcesso();
+        // Quanto si è spostata la pagina da questo fotogramma al precedente, con
+        // un tetto: un salto d'ancora sposta di migliaia di pixel in un colpo, e
+        // senza tetto il nastro partirebbe come una fionda.
+        if (nastro) {
+          spintaNastro = Math.min(Math.abs(window.scrollY - ultimoY), 60);
+          ultimoY = window.scrollY;
+        }
         // Il peso del titolo si ferma dopo la prima schermata: oltre, il titolo
         // non è più in vista e riscrivere la variabile costerebbe un ridisegno
         // di testo per niente.
@@ -194,7 +243,11 @@
     clearTimeout(sezione._pulizia);
     sezione._pulizia = setTimeout(() => sezione.classList.remove('arrivo'), 1300);
   };
-  document.querySelectorAll('.nav-links a[href^="#"], .footer-links a[href^="#"]').forEach((a) => {
+  // Anche i trattini dell'indice: portano dove portano le voci di menu, quindi
+  // devono annunciare l'arrivo allo stesso modo. Un salto che dice dove ti ha
+  // messo e un salto muto sulla stessa pagina sono un'incoerenza che si nota.
+  const ancore = '.nav-links a[href^="#"], .footer-links a[href^="#"], .indice a[href^="#"]';
+  document.querySelectorAll(ancore).forEach((a) => {
     a.addEventListener('click', () => {
       const sezione = document.querySelector(a.getAttribute('href'));
       if (!sezione || menoMoto.matches) return;
@@ -226,6 +279,72 @@
   } else {
     reveals.forEach((el) => el.classList.add('in'));
   }
+
+  /* la cucitura di ogni sezione si disegna all'ingresso
+     ----------------------------------------------------
+     Un osservatore a parte da quello dei .reveal, e non un pezzo di quello:
+     i .reveal sono i blocchi INTERNI (la testata, le schede, il riquadro), e la
+     riga va disegnata quando entra la sezione, che è un altro elemento e un
+     altro momento. Una volta disegnata resta: non si osserva più. */
+  const sezioniPagina = document.querySelectorAll('.section');
+  if ('IntersectionObserver' in window) {
+    const so = new IntersectionObserver(
+      (voci) => {
+        voci.forEach((v) => {
+          if (!v.isIntersecting) return;
+          v.target.classList.add('entrata');
+          so.unobserve(v.target);
+        });
+      },
+      { threshold: 0, rootMargin: '0px 0px -60px 0px' }
+    );
+    sezioniPagina.forEach((s) => so.observe(s));
+  } else {
+    sezioniPagina.forEach((s) => s.classList.add('entrata'));
+  }
+
+  /* indice di lettura sul bordo destro
+     ----------------------------------
+     I trattini sono link resi dal server e funzionano da soli; qui si aggiunge
+     solo quale sia quello attivo. Il criterio è la sezione che contiene la metà
+     della finestra: sceglierla in base a «la prima visibile» faceva accendere
+     due trattini insieme al confine, e in base al bordo alto faceva accendere la
+     successiva mentre si stava ancora leggendo la precedente. */
+  const indice = document.getElementById('indice');
+  if (indice) {
+    const voci = [...indice.querySelectorAll('a[data-sez]')]
+      .map((a) => ({ a, sez: document.getElementById(a.dataset.sez) }))
+      .filter((v) => v.sez);
+    let accesa = null;
+    const segnaIndice = () => {
+      const meta = window.scrollY + window.innerHeight / 2;
+      let vinta = voci[0];
+      for (const v of voci) if (v.sez.offsetTop <= meta) vinta = v;
+      if (!vinta || vinta === accesa) return;
+      if (accesa) accesa.a.removeAttribute('aria-current');
+      vinta.a.setAttribute('aria-current', 'true');
+      accesa = vinta;
+    };
+    segnaIndice();
+    window.addEventListener('scroll', segnaIndice, { passive: true });
+    window.addEventListener('resize', segnaIndice, { passive: true });
+  }
+
+  /* le domande si aprono una per volta
+     ----------------------------------
+     L'altezza la anima il CSS su ::details-content (vedi il commento là).
+     Qui c'è solo la parte che il CSS non può fare: chiudere le altre. Con
+     quattro risposte aperte insieme la sezione diventava un muro di testo, e
+     l'altezza della pagina cambiava sotto le dita mentre si leggeva. */
+  const domande = [...document.querySelectorAll('.faq-item')];
+  domande.forEach((d) =>
+    d.addEventListener('toggle', () => {
+      if (!d.open) return;
+      domande.forEach((altra) => {
+        if (altra !== d) altra.open = false;
+      });
+    })
+  );
 
   /* KPI count-up inside dashboard mockup */
   const kpis = document.querySelectorAll('.kpi-n');
@@ -505,6 +624,8 @@
     const elEco = document.getElementById('cfgEcho');
     const elEcoVis = document.getElementById('cfgEchoVis');
     const elEcoSr = document.getElementById('cfgEchoSr');
+    const elLink = document.getElementById('cfgLink');
+    const elLinkEsito = document.getElementById('cfgLinkEsito');
     // Stesso raggruppamento di src/lib/content.ts, e per lo stesso motivo: non
     // dipendere dai dati locale di ICU, che sul server possono mancare e far
     // uscire "4500" dove qui usciva "4.500".
@@ -539,6 +660,58 @@
     /** Valori attualmente mostrati, per sapere da dove far partire il conteggio. */
     let mostrati = null;
     let timerDelta = null;
+
+    /* ---- Il preventivo come indirizzo ----------------------------------------
+       Le scelte finiscono nel frammento: #p=ecommerce+seoavanzata+multilingua.
+       Il primo pezzo è il tipo di progetto, gli altri sono le funzioni aggiunte.
+
+       La chiave è ricavata dall'etichetta e non da un indice, perché gli indici
+       cambiano: basta che qualcuno riordini il listino nel pannello e ogni link
+       già mandato punterebbe a un preventivo diverso senza dirlo. Ricavarla dal
+       testo la rende stabile finché l'etichetta è la stessa, e se un'etichetta
+       viene riscritta il pezzo semplicemente non corrisponde più — si ignora,
+       invece di applicare la voce sbagliata.
+       Gli accenti sono normalizzati e la punteggiatura sparisce, così
+       «Area riservata / login» diventa «areariservatalogin»: leggibile in una
+       chat, e senza caratteri che un client di posta possa troncare. */
+    /* La chiave NON si ricalcola qui: la scrive il server nell'attributo data-k
+       (vedi chiaveListino in src/lib/content.ts). Ricavarla dal testo mostrato
+       era il difetto: con il sito in inglese le etichette sono tradotte, quindi
+       un link fatto in italiano non si riapriva in inglese e le funzioni
+       aggiunte cadevano in silenzio. Leggere l'attributo elimina il problema e
+       una duplicazione di logica insieme. */
+    const chiave = (el) => el.dataset.k || '';
+    const chiaveAddon = (input) => input.dataset.k || '';
+
+    /** Vero appena il visitatore tocca qualcosa: prima di allora l'indirizzo
+        resta quello che ha digitato, che non va riscritto sotto il cursore. */
+    let toccato = false;
+
+    const indirizzoPreventivo = () => {
+      const attivo = cfgTypes.querySelector('.cfg-type.active');
+      const pezzi = [chiave(attivo)];
+      addons.forEach((a) => {
+        if (a.checked) pezzi.push(chiaveAddon(a));
+      });
+      const u = new URL(window.location.href);
+      u.hash = 'p=' + pezzi.join('+');
+      return u.href;
+    };
+
+    /* replaceState e non location.hash: quest'ultimo aggiunge una voce alla
+       cronologia a ogni spunta, e dopo dieci scelte il tasto «indietro» avrebbe
+       dieci passi da rifare prima di uscire dalla pagina. Fa anche saltare la
+       vista all'ancora, che qui non esiste. */
+    const scriviIndirizzo = () => {
+      if (!toccato) return;
+      try {
+        history.replaceState(null, '', indirizzoPreventivo());
+      } catch (e) {
+        /* Alcuni browser rifiutano replaceState su file:// o in contesti
+           particolari. Non è un motivo per far fallire il configuratore: il
+           pulsante di copia costruisce l'indirizzo da sé e continua a funzionare. */
+      }
+    };
 
     const compute = () => {
       const active = cfgTypes.querySelector('.cfg-type.active');
@@ -595,10 +768,15 @@
       // prezzo: quello resta qui, dove accanto ci sono le funzioni che lo
       // compongono. Il pallino serve perché scegliendo qui in fondo l'hero
       // mostrava il tempo giusto con l'opzione sbagliata accesa.
+      // Anche qui il confronto è sull'attributo: con il sito in inglese
+      // b.dataset.label (italiano) non corrispondeva mai al testo tradotto, e il
+      // pallino dell'hero restava fermo sulla prima voce qualunque cosa si
+      // scegliesse in fondo.
       if (eroeTipi) {
-        eroeTipi.querySelectorAll('.hero-tipo').forEach((b) =>
-          b.classList.toggle('active', b.dataset.label === label.trim())
-        );
+        const k = chiave(active);
+        eroeTipi
+          .querySelectorAll('.hero-tipo')
+          .forEach((b) => b.classList.toggle('active', chiave(b) === k));
       }
 
       const en = document.documentElement.lang === 'en';
@@ -615,6 +793,7 @@
         ? `Hi, I'd like a quote for: ${label}${extras.length ? ' + ' + extras.join(', ') : ''} (estimate ${stima}).`
         : `Ciao, vorrei un preventivo per: ${label}${extras.length ? ' + ' + extras.join(', ') : ''} (stima ${stima}).`;
       elCta.dataset.msg = msg;
+      scriviIndirizzo();
     };
 
     cfgTypes.addEventListener('click', (e) => {
@@ -622,9 +801,15 @@
       if (!btn) return;
       cfgTypes.querySelectorAll('.cfg-type').forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
+      toccato = true;
       compute();
     });
-    addons.forEach((a) => a.addEventListener('change', compute));
+    addons.forEach((a) =>
+      a.addEventListener('change', () => {
+        toccato = true;
+        compute();
+      })
+    );
     document.addEventListener('langchange', compute);
 
     // prefill contact message on CTA click
@@ -678,13 +863,159 @@
         b.addEventListener('click', () => {
           eroeTipi.querySelectorAll('.hero-tipo').forEach((x) => x.classList.remove('active'));
           b.classList.add('active');
-          const gemello = tipiCfg.find((t) => t.textContent.trim() === b.dataset.label);
+          // Sull'attributo, non sul testo: il confronto fra il testo del pulsante
+          // e l'etichetta italiana non trovava niente con il sito in inglese, e
+          // scegliere il tipo di progetto nell'hero non faceva nulla. Provato:
+          // in italiano funzionava, in inglese il configuratore non si muoveva.
+          const gemello = tipiCfg.find((t) => chiave(t) === chiave(b));
           if (gemello) gemello.click();
         });
       });
     }
 
+    /* ---- Riapre un preventivo arrivato per link ------------------------------
+       Si applica una volta, prima del primo compute(), così i valori resi dal
+       server vengono sostituiti in silenzio invece di essere animati da una
+       cifra che il visitatore non ha mai visto.
+       Quello che non corrisponde viene ignorato senza dire niente: un'etichetta
+       riscritta nel pannello rende vecchi i link già mandati, e in quel caso
+       aprire il configuratore sui valori di partenza è il comportamento giusto —
+       molto meglio di un errore per qualcosa che il visitatore non ha sbagliato. */
+    const applicaDaIndirizzo = () => {
+      const m = /(?:^|[#&])p=([^&]+)/.exec(window.location.hash);
+      if (!m) return false;
+      const pezzi = decodeURIComponent(m[1]).split('+').filter(Boolean);
+      if (!pezzi.length) return false;
+
+      let applicato = false;
+      const tipo = [...cfgTypes.querySelectorAll('.cfg-type')].find((t) => chiave(t) === pezzi[0]);
+      if (tipo) {
+        cfgTypes.querySelectorAll('.cfg-type').forEach((b) => b.classList.remove('active'));
+        tipo.classList.add('active');
+        applicato = true;
+      }
+      // Le funzioni si azzerano solo se il link ne nomina almeno una valida:
+      // così un link con il solo tipo di progetto non spegne una spunta che il
+      // visitatore avesse già messo prima di ricaricare.
+      const chiesti = new Set(pezzi.slice(1));
+      if (chiesti.size) {
+        addons.forEach((a) => {
+          if (chiesti.has(chiaveAddon(a))) {
+            a.checked = true;
+            applicato = true;
+          } else {
+            a.checked = false;
+          }
+        });
+      }
+      // Anche i pulsanti dell'hero devono mostrare la scelta arrivata dal link:
+      // compute() li allinea da sé sull'etichetta, quindi qui non serve altro.
+      return applicato;
+    };
+
+    const daLink = applicaDaIndirizzo();
+    if (daLink) toccato = true;
+
     compute();
+
+    if (daLink) {
+      /* Chi arriva da un link è già oltre la fase «cosa vendi»: sta guardando
+         una cifra sua. Portarlo al configuratore invece di lasciarlo in cima è
+         il motivo per cui il link esiste. */
+      const sezione = document.getElementById('preventivo');
+      if (sezione) {
+        // Un fotogramma di attesa: al momento in cui questo file gira il
+        // layout non è ancora definitivo (i caratteri stanno arrivando) e la
+        // posizione calcolata adesso sarebbe quella sbagliata di poco.
+        requestAnimationFrame(() =>
+          sezione.scrollIntoView({ behavior: menoMoto.matches ? 'auto' : 'smooth', block: 'start' })
+        );
+      }
+      /* E il messaggio del form parte già pieno, senza dover passare dal
+         pulsante: chi ha ricevuto il link ha già visto la configurazione, e
+         chiedergli di ricliccarla per poterla mandare è un passaggio a vuoto.
+         Solo se il campo è vuoto — non si sovrascrive quello che ha scritto lui. */
+      const campo = document.getElementById('message');
+      const ogg = document.getElementById('subject');
+      if (campo && !campo.value && elCta.dataset.msg) {
+        campo.value = elCta.dataset.msg;
+        if (ogg && !ogg.value) ogg.value = 'Richiesta preventivo (configuratore)';
+      }
+    }
+
+    /* ---- Copia il link ------------------------------------------------------- */
+    if (elLink) {
+      // Il pulsante esiste solo se il JS gira: nel markup nasce hidden.
+      elLink.hidden = false;
+
+      const esito = (testo) => {
+        if (!elLinkEsito) return;
+        elLinkEsito.textContent = testo;
+        clearTimeout(elLinkEsito._t);
+        elLinkEsito._t = setTimeout(() => {
+          elLinkEsito.textContent = '';
+        }, 4000);
+      };
+
+      /* Ripiego per quando la clipboard non è disponibile: su http la API non
+         esiste affatto (serve un contesto sicuro), e su alcuni browser è negata
+         senza permesso. In quel caso si seleziona il testo in un campo
+         temporaneo — se anche la copia vecchio stile viene rifiutata, il campo
+         resta selezionato e basta un Ctrl+C. Nessun ramo finisce senza dire
+         niente al visitatore. */
+      const copiaVecchioStile = (testo) => {
+        const campo = document.createElement('input');
+        campo.value = testo;
+        campo.setAttribute('readonly', '');
+        campo.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+        document.body.appendChild(campo);
+        campo.select();
+        campo.setSelectionRange(0, testo.length);
+        let riuscito = false;
+        try {
+          riuscito = document.execCommand('copy');
+        } catch (e) {
+          riuscito = false;
+        }
+        campo.remove();
+        return riuscito;
+      };
+
+      elLink.addEventListener('click', async () => {
+        const url = indirizzoPreventivo();
+        const en = document.documentElement.lang === 'en';
+        // L'indirizzo viene scritto comunque nella barra: se la copia non
+        // riesce, quello che si vede è già il link giusto da prendere a mano.
+        toccato = true;
+        scriviIndirizzo();
+        try {
+          if (!navigator.clipboard) throw new Error('senza clipboard');
+          /* Con una scadenza, perché writeText può restare appesa per sempre:
+             dove il permesso per gli appunti va concesso a mano, la promessa non
+             si risolve né si rifiuta finché qualcuno non risponde, e il
+             visitatore non riceve nessun riscontro — ha premuto un pulsante che
+             non dice niente. Trovato provando: nessun messaggio, e nessun errore.
+             Dopo un secondo e due decimi si passa al ripiego. */
+          await Promise.race([
+            navigator.clipboard.writeText(url),
+            new Promise((_, rifiuta) =>
+              setTimeout(() => rifiuta(new Error('appunti senza risposta')), 1200)
+            ),
+          ]);
+          esito(en ? 'Link copied.' : 'Link copiato.');
+        } catch (e) {
+          if (copiaVecchioStile(url)) {
+            esito(en ? 'Link copied.' : 'Link copiato.');
+          } else {
+            esito(
+              en
+                ? 'Copy it from the address bar: it is already the right link.'
+                : "Copialo dalla barra dell'indirizzo: è già il link giusto."
+            );
+          }
+        }
+      });
+    }
 
     // La barra della stima su telefono segue la visibilità del configuratore.
     // Il CSS la mostra solo sotto 780px, quindi qui non serve controllare la
@@ -774,6 +1105,7 @@
   const status = document.getElementById('formStatus');
   const btn = document.getElementById('submitBtn');
 
+
   if (!form || !status || !btn) return;
 
   form.addEventListener('submit', async (e) => {
@@ -787,9 +1119,19 @@
       return;
     }
 
+    /* L'arco gira per tutto e solo il tempo in cui la richiesta è in volo.
+       Nessuna durata scritta da me: un'animazione di otto decimi su una risposta
+       che arriva in centoventi millesimi è una finta che rallenta, e su una che
+       ne prende tre secondi è una finta che mente al contrario. Qui il movimento
+       è indeterminato — non finge di sapere quanto manca — e si ferma quando c'è
+       la risposta. */
     btn.disabled = true;
-    const original = btn.textContent;
-    btn.textContent = 'Invio in corso…';
+    btn.classList.add('in-volo');
+    btn.classList.remove('fatto');
+    /* Nessuna scrittura di testo: l'etichetta d'attesa è già nel markup e la
+       mostra il CSS. Scriverla da qui staccava il nodo che il dizionario aveva
+       raccolto, e dopo il primo invio il pulsante restava nella lingua di quel
+       momento per sempre. Vedi il commento in Contatti.astro. */
 
     try {
       const res = await fetch(form.action, {
@@ -803,6 +1145,11 @@
         status.textContent = data.message || 'Messaggio inviato! Ti rispondo entro 24 ore.';
         status.classList.add('ok');
         form.reset();
+        // La spunta è una conferma, non un progresso: appare a cose fatte e se
+        // ne va. Il testo di stato resta, perché è quello che si legge.
+        btn.classList.add('fatto');
+        clearTimeout(btn._spunta);
+        btn._spunta = setTimeout(() => btn.classList.remove('fatto'), 2200);
       } else {
         status.textContent = (data && data.message) || 'Errore durante l’invio. Riprova o scrivimi via email.';
         status.classList.add('err');
@@ -812,7 +1159,7 @@
       status.classList.add('err');
     } finally {
       btn.disabled = false;
-      btn.textContent = original;
+      btn.classList.remove('in-volo');
     }
   });
 })();

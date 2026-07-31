@@ -61,6 +61,18 @@ body{
    stira l'immagine. Con height:auto il browser usa gli attributi solo come
    proporzione, che è il motivo per cui sono lì. */
 img{max-width:100%;display:block;height:auto}
+/* L'attributo hidden vale come display:none, ma è una regola del BROWSER: basta
+   una qualsiasi regola nostra che imposti un display sullo stesso elemento per
+   annullarlo, senza nessun avviso.
+   È già successo: il pulsante «copia il link del preventivo» nasce hidden proprio
+   perché senza JavaScript non potrebbe copiare niente, e .cfg-link{display:block}
+   lo rendeva visibile e inerte a chi non ha JS. Trovato solo provando la pagina
+   con gli script spenti — il markup era corretto, il risultato no. Prima di
+   questa riga il problema era stato tappato una volta a mano su .chat-panel, che
+   è il modo in cui una trappola si ripresenta.
+   Con !important perché deve vincere su qualunque regola futura: chi scrive
+   hidden nel markup sta dichiarando un'intenzione, non un suggerimento. */
+[hidden]{display:none!important}
 a{color:inherit;text-decoration:none}
 h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;letter-spacing:-.02em}
 .container{width:100%;max-width:var(--maxw);margin:0 auto;padding:0 24px}
@@ -213,6 +225,54 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .btn-ghost{background:var(--surface);color:var(--text);border-color:var(--border)}
 .btn-ghost:hover{border-color:var(--border-2);transform:translateY(-3px)}
 .btn-block{width:100%}
+
+/* Il pulsante d'invio si chiude su sé stesso.
+   ------------------------------------------
+   Il form è il punto in cui la pagina guadagna o non guadagna niente, e l'invio
+   era un pulsante che cambiava testo. Ora, mentre la richiesta è in volo, un
+   filetto passa sul bordo basso; quando è andata, una spunta si disegna.
+
+   Il movimento è INDETERMINATO di proposito: non finge di sapere quanto manca.
+   Una barra che si riempie in otto decimi su una risposta che arriva in
+   centoventi millesimi è una finta che rallenta; su una che ne prende tre è una
+   finta che mente al contrario. Qui la durata è quella della richiesta, perché
+   la classe la mette e la toglie il codice che l'aspetta. */
+#submitBtn{position:relative;overflow:hidden}
+.btn-arco{
+  position:absolute;left:0;bottom:0;height:2px;width:100%;pointer-events:none;
+  opacity:0;transition:opacity .2s;
+  background:linear-gradient(90deg,transparent,rgba(4,18,26,.85),transparent);
+  transform:translateX(-100%);
+}
+#submitBtn.in-volo .btn-arco{opacity:1;animation:arcoInVolo 1.05s linear infinite}
+@keyframes arcoInVolo{to{transform:translateX(100%)}}
+/* Le due etichette sono entrambe nel markup e il CSS scambia quale si vede: il
+   JavaScript non scrive testo, perché scriverlo rompeva la traduzione del
+   pulsante per il resto della visita (vedi Contatti.astro). */
+.btn-attesa{display:none}
+#submitBtn.in-volo .btn-testo{display:none}
+#submitBtn.in-volo .btn-attesa{display:inline}
+/* La spunta nasconde l'etichetta mentre c'è: due scritte sovrapposte nello
+   stesso pulsante non si leggono. */
+#submitBtn .btn-testo{transition:opacity .2s}
+#submitBtn.fatto .btn-testo{opacity:0}
+/* Un elemento e non ::after: su .btn-primary quello pseudo-elemento è già il
+   lampo che passa al passaggio del mouse, e ridefinirlo qui avrebbe lasciato in
+   eredità il suo gradiente bianco e la sua inclinazione — una spunta storta con
+   dentro una sfumatura. Le collisioni sui pseudo-elementi non si vincono con la
+   specificità, si evitano. */
+.btn-spunta{
+  position:absolute;left:50%;top:50%;width:22px;height:12px;pointer-events:none;
+  translate:-50% -65%;rotate:-45deg;
+  border-left:2.5px solid #04121a;border-bottom:2.5px solid #04121a;
+  opacity:0;
+}
+#submitBtn.fatto .btn-spunta{opacity:1;animation:spuntaSiDisegna .34s var(--ease) forwards}
+@keyframes spuntaSiDisegna{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 -2px -2px 0)}}
+@media (prefers-reduced-motion:reduce){
+  .btn-arco{animation:none!important}
+  #submitBtn.fatto .btn-spunta{animation:none;clip-path:none}
+}
 .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
 
 /* ---------- hero ---------- */
@@ -326,18 +386,57 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   .esa{animation:none}
 }
 
+/* ---------- indice di lettura ---------- */
+/* Compare dai 1240px: sotto, il contenuto arriva al bordo e la colonnina gli
+   starebbe addosso. Su telefono non serve — c'è il menu — e la barra di
+   progresso in cima resta per tutti. */
+.indice{display:none}
+@media (min-width:1240px){
+  .indice{
+    display:block;position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:80;
+  }
+  .indice ul{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+  .indice a{display:block;position:relative;width:26px;height:12px}
+  /* Il trattino è un ::after e non un bordo: così l'area cliccabile resta alta
+     12px anche se la riga visibile è di uno, che è la differenza fra un bersaglio
+     centrabile e uno da cercare. */
+  .indice a::after{
+    content:"";position:absolute;right:0;top:50%;translate:0 -50%;height:1px;width:11px;
+    background:var(--border-2);transition:width .35s var(--ease),background .35s;
+  }
+  .indice a:hover::after{width:26px;background:var(--text)}
+  .indice a[aria-current="true"]::after{width:26px;background:var(--cyan)}
+  .indice a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:2px}
+  .indice-nome{
+    position:absolute;right:34px;top:50%;translate:0 -50%;white-space:nowrap;
+    font-family:'Space Grotesk',sans-serif;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--cyan);opacity:0;transition:opacity .25s;pointer-events:none;
+  }
+  .indice a:hover .indice-nome,.indice a:focus-visible .indice-nome{opacity:1}
+}
+
 /* ---------- sections ---------- */
 .section{padding:110px 0;position:relative}
 .section-alt{background:linear-gradient(180deg,transparent,var(--bg-2),transparent)}
-/* Cucitura fra le sezioni alternate: un filetto che sfuma ai lati invece di un
-   bordo pieno da un capo all'altro, che su fondo scuro sembra una crepa. Dà una
-   struttura visibile a una pagina che è lunga dodici sezioni. */
-.section-alt::before,.section-alt::after{
-  content:"";position:absolute;left:0;right:0;height:1px;pointer-events:none;
-  background:linear-gradient(90deg,transparent,var(--border-2),transparent);
+
+/* Cucitura fra le sezioni: un filetto che sfuma ai lati invece di un bordo
+   pieno da un capo all'altro, che su fondo scuro sembra una crepa.
+   Prima ce l'avevano solo le sezioni a fondo alternato, ed era ferma. Ora ce
+   l'hanno tutte e si disegna da sinistra a destra quando la sezione entra: dieci
+   volte lungo la discesa diventa una linea sola che accompagna la lettura,
+   invece di dieci decorazioni ripetute.
+   Il bordo basso di .section-alt è stato togliuto: con il filetto su OGNI
+   sezione, al confine fra due se ne trovavano due sovrapposti a un pixel di
+   distanza. */
+.section::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(84,201,200,.55) 16%,var(--border-2) 60%,transparent);
+  /* Visibile per default: senza JS non c'è niente che possa disegnarlo, e una
+     riga che non compare mai è un difetto, non una sobrietà. */
+  transform:scaleX(1);transform-origin:left
 }
-.section-alt::before{top:0}
-.section-alt::after{bottom:0}
+.js .section::before{transform:scaleX(0);transition:transform .9s var(--ease)}
+.js .section.entrata::before{transform:scaleX(1)}
 
 .section-head{max-width:640px;margin:0 auto 64px;text-align:center}
 /* Il filetto prima dell'occhiello: due pixel di grafica che dicono "questo è un
@@ -354,7 +453,43 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   position:relative;
   font-size:clamp(2.15rem,4.4vw,3.3rem);margin-bottom:16px;
   font-variation-settings:'wght' 680;letter-spacing:-.028em;
+  /* Nella colonna stretta di .section-head.aperta i titoli lasciavano una sola
+     parola sull'ultima riga — «Quello che gira qui / sotto». balance distribuisce
+     le righe invece di riempirle. */
+  text-wrap:balance;
 }
+
+/* Il titolo si compone invece di apparire.
+   ----------------------------------------
+   L'idea era di spezzarlo in parole con dei <span> sfalsati. Non si può, e il
+   motivo è il dizionario inglese: i18n.js raccoglie i NODI di testo una volta
+   sola e poi riscrive nodeValue su quegli stessi nodi. Spezzando «Quello che
+   gira» in tre nodi da una parola, la chiave del dizionario non si trova più e
+   quel titolo non si traduce mai — e i nodi raccolti in origine restano staccati
+   dal documento, quindi non si ripara nemmeno cambiando lingua due volte.
+   Un'animazione che rompe la traduzione non è un miglioramento.
+
+   Quello che si può fare senza toccare un solo nodo di testo: una passata di
+   maschera da sinistra a destra, che è lo stesso effetto di qualcosa che si
+   scrive, e poi la parola in colore che arriva per ultima — quella è un
+   elemento vero (.grad), quindi si anima da sé senza spezzare niente.
+
+   Un solo selettore per tutti i titoli: ogni h2 della pagina sta dentro un
+   blocco .reveal, quindi non serve elencare .section-head, .about-text e
+   .contact-text separatamente. */
+@property --passata{syntax:'<percentage>';inherits:false;initial-value:0%}
+.js .reveal h2{
+  -webkit-mask-image:linear-gradient(90deg,#000 0 var(--passata),transparent var(--passata));
+  mask-image:linear-gradient(90deg,#000 0 var(--passata),transparent var(--passata));
+}
+.js .reveal.in h2{animation:titoloSiScrive .85s var(--ease) forwards}
+@keyframes titoloSiScrive{from{--passata:0%}to{--passata:112%}}
+/* La parola in colore arriva dopo che la passata l'ha raggiunta: è il punto in
+   cui l'occhio si è già fermato, ed è l'unica parte del titolo che porta
+   un'informazione in più. */
+.js .reveal h2 .grad{opacity:0;transform:translateY(.14em);display:inline-block}
+.js .reveal.in h2 .grad{animation:paroleInColore .5s var(--ease) .5s forwards}
+@keyframes paroleInColore{to{opacity:1;transform:none}}
 
 /* Il segnale che arriva prima di te.
    Con dodici sezioni, un salto dal menu ti scarica altrove senza dire niente:
@@ -400,7 +535,12 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .section-head.aperta .section-lead{grid-column:2;grid-row:2;align-self:end;padding-bottom:6px}
 
 /* ---------- cards ---------- */
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:24px}
+/* Da tre schede a quattro (è arrivato l'E-commerce). Con auto-fit e minmax 250px
+   ne entravano quattro in fila da 282px l'una: leggibili ma strette, con
+   paragrafi di sei righe. Due per due dà a ognuna il doppio dello spazio e la
+   quarta non sembra aggiunta all'ultimo momento. Sotto i 900px si impila. */
+.cards{display:grid;grid-template-columns:1fr;gap:24px}
+@media(min-width:900px){.cards{grid-template-columns:repeat(2,1fr)}}
 .card{
   position:relative;padding:34px 28px;border-radius:var(--radius);
   /* Colore d'accento per card, preso dai tre del gradiente: --acc lo imposta il
@@ -590,9 +730,25 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .about-text h2{font-size:clamp(1.8rem,3.5vw,2.6rem);margin:14px 0 20px}
 .about-text p{color:var(--muted);margin-bottom:16px}
 .about-text strong{color:var(--text)}
-.about-list{list-style:none;margin-top:24px;display:grid;gap:12px}
-.about-list li{position:relative;padding-left:30px;color:var(--text)}
-.about-list li::before{content:"";position:absolute;left:0;top:9px;width:16px;height:16px;border-radius:5px;background:var(--grad)}
+/* .about-list non c'è più: erano i quattro punti che ripetevano la tabella di
+   confronto. Al loro posto gli impegni qui sotto, che stanno a tutta larghezza
+   perché sono la parte che si può verificare. */
+
+/* ---------- impegni ---------- */
+/* Numerati perché sono un elenco chiuso e contato — «quattro cose» nella riga
+   sopra — non per decorazione: se domani diventano cinque, la riga cambia e i
+   numeri restano veri. */
+.impegni{margin-top:74px;padding-top:34px;border-top:1px solid var(--border)}
+.impegni-cap{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;color:var(--text);
+  font-variation-settings:'wght' 560;margin:0 0 26px}
+.impegni ul{list-style:none;margin:0;padding:0;display:grid;gap:28px 34px;
+  grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.impegni li{display:grid;gap:6px;align-content:start}
+.impegni-n{font-family:'Space Grotesk',sans-serif;font-size:.78rem;letter-spacing:.14em;
+  color:var(--cyan);font-variation-settings:'wght' 500}
+.impegni li b{font-family:'Space Grotesk',sans-serif;font-size:1.02rem;color:var(--text);
+  font-variation-settings:'wght' 600;line-height:1.3}
+.impegni-t{color:var(--muted);font-size:.92rem;line-height:1.55}
 
 /* ---------- contact ---------- */
 .section-contact{padding-bottom:130px}
@@ -619,32 +775,6 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .form-status{font-size:.92rem;text-align:center;min-height:1.2em}
 .form-status.ok{color:var(--green)}
 .form-status.err{color:#ff8a8a}
-
-/* ---------- compare table ---------- */
-.compare{
-  border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;
-  background:var(--surface);
-}
-.compare-row{
-  display:grid;grid-template-columns:1.4fr 1fr 1fr 1.1fr;
-  border-bottom:1px solid var(--border);
-}
-.compare-row:last-child{border-bottom:0}
-.compare-feat,.compare-col{padding:18px 20px;font-size:.95rem;display:flex;align-items:center}
-.compare-feat{color:var(--text);font-weight:500}
-.compare-col{color:var(--muted);justify-content:center;text-align:center;border-left:1px solid var(--border)}
-.compare-head{background:var(--surface-2)}
-.compare-head .compare-col,.compare-head .compare-feat{font-family:'Space Grotesk',sans-serif;font-weight:600;color:var(--text)}
-.compare-me{
-  background:linear-gradient(180deg,rgba(84,201,200,.1),rgba(139,216,158,.04));
-  position:relative;
-}
-.compare-head .compare-me{color:#04121a;background:var(--grad)}
-.compare .v{color:var(--green);font-weight:600}
-.compare .x{color:#ff8a8a}
-.compare .mid{color:#e6c86a}
-.compare .v::before{content:"✓ "}
-.compare .x::before{content:"✕ "}
 
 /* ---------- configuratore ---------- */
 .config{display:grid;grid-template-columns:1.5fr 1fr;gap:28px;align-items:start}
@@ -681,7 +811,19 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .cfg-includes{list-style:none;display:grid;gap:9px;margin-bottom:24px}
 .cfg-includes li{position:relative;padding-left:24px;font-size:.9rem;color:var(--muted)}
 .cfg-includes li::before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:700}
-.cfg-note{font-size:.78rem;color:var(--muted);margin-top:14px;text-align:center}
+/* Copia il link: secondario per forma, non per importanza. Il pulsante pieno
+   sopra porta ai contatti — è l'azione principale — e questo non deve
+   contendergli l'attenzione, ma deve restare chiaramente un pulsante. */
+.cfg-link{display:block;width:100%;margin-top:10px;padding:11px 14px;font:inherit;
+  font-size:.86rem;color:var(--muted);background:transparent;cursor:pointer;
+  border:1px solid var(--border);border-radius:12px;
+  transition:color .3s,border-color .3s}
+.cfg-link:hover{color:var(--text);border-color:var(--border-2)}
+.cfg-link:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+/* L'esito occupa la sua riga da vuoto: comparendo spingerebbe giù la nota e il
+   riquadro cambierebbe altezza sotto il dito che ha appena premuto. */
+.cfg-link-esito{min-height:1.2em;margin-top:8px;font-size:.78rem;color:var(--green);text-align:center}
+.cfg-note{font-size:.78rem;color:var(--muted);margin-top:10px;text-align:center}
 /* Il totale conta invece di saltare: il numero è a cifre tabellari perché
    durante il conteggio le cifre cambiano tutte, e senza larghezza fissa la
    riga tremerebbe. Il conteggio lo fa il JS, qui serve solo la stabilità. */
@@ -754,6 +896,26 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .faq-item[open] .faq-ico::after{transform:rotate(90deg);opacity:0}
 .faq-item p{color:var(--muted);padding:0 0 22px;font-size:.97rem;margin:0;max-width:62ch}
 
+/* L'altezza si anima, invece di scattare.
+   ---------------------------------------
+   Il modo che tutti conoscono — una griglia da 0fr a 1fr — qui NON funziona, e
+   l'ho provato prima di scriverlo: un <details> chiuso non viene disposto ad
+   altezza zero, il browser gli spegne la visibilità in un colpo solo, e la
+   transizione non parte mai. Misurato: aperto e chiuso, la stessa altezza.
+   Si anima invece ::details-content, l'involucro che il browser crea da sé
+   attorno a tutto ciò che non è il <summary>. Serve interpolate-size per poter
+   andare da 0 a auto, e transition-behavior per portarsi dietro la visibilità
+   che altrimenti si spegnerebbe subito, tagliando l'animazione a metà.
+   Dove non è supportato non si anima niente e la risposta apre di scatto come
+   prima: nessun browser resta con una risposta invisibile. */
+.faq{interpolate-size:allow-keywords}
+.faq-item::details-content{
+  block-size:0;overflow:clip;
+  transition:block-size .42s var(--ease),content-visibility .42s;
+  transition-behavior:allow-discrete;
+}
+.faq-item[open]::details-content{block-size:auto}
+
 /* ---------- hero rotator ---------- */
 .rotator{display:inline-block;transition:opacity .35s var(--ease),transform .35s var(--ease);filter:drop-shadow(0 0 26px rgba(84,201,200,.35))}
 .rotator.rot-out{opacity:0;transform:translateY(-12px)}
@@ -779,11 +941,35 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .portfolio-note{text-align:center;color:var(--muted);font-size:.95rem;margin-top:34px}
 .portfolio-note a{color:var(--cyan);border-bottom:1px solid var(--border-2)}
 
-/* ---------- stack marquee ---------- */
+/* ---------- stack ---------- */
 .section-stack{padding-bottom:90px}
+/* Quello che gira davvero: una griglia di riquadri, non un nastro. Il nastro
+   scorre e quindi si legge male di proposito — va bene per un elenco di
+   competenze, non per l'unica affermazione verificabile della sezione. */
+.gira{list-style:none;margin:34px 0 0;padding:0;display:grid;gap:1px;background:var(--border);
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.gira-v{background:var(--bg);padding:20px 22px;display:grid;gap:4px;position:relative}
+.gira-v b{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:1.05rem;
+  font-variation-settings:'wght' 620;color:var(--text)}
+.gira-v span{font-size:.85rem;color:var(--muted);line-height:1.45}
+/* Il filetto sopra il nome nasce dal ciano e si spegne: dice «questa riga è un
+   fatto» senza scriverlo, e lo dice con lo stesso segno del resto del sito. */
+.gira-v::before{content:'';position:absolute;top:0;left:0;width:100%;height:2px;
+  background:linear-gradient(90deg,var(--cyan),transparent 70%);opacity:.55}
+.gira-v:hover::before{opacity:1}
+.stack-anche{margin:46px 0 0;font-size:.9rem;letter-spacing:.02em;color:var(--muted)}
+/* Il nastro ora segue la riga che lo introduce, non un titolo: i 50px di
+   default lo staccavano dalla frase a cui appartiene. */
+.section-stack .marquee{margin-top:16px}
 .marquee{margin-top:50px;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
 .marquee-track{display:flex;gap:16px;width:max-content;animation:marquee 28s linear infinite}
 .marquee:hover .marquee-track{animation-play-state:paused}
+/* Quando il JS guida il nastro, l'animazione CSS si spegne: due cose che
+   scrivono la stessa transform si sovrascriverebbero a vicenda e il nastro
+   tremerebbe. La classe la mette main.js solo se il movimento è consentito,
+   quindi senza JS — e con movimento ridotto — resta questa animazione, che è un
+   ripiego perfettamente valido. */
+.marquee-track.a-mano{animation:none}
 .marquee-track span{
   flex:0 0 auto;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:1rem;
   padding:12px 24px;border-radius:12px;background:var(--surface);border:1px solid var(--border);color:var(--text);
@@ -997,12 +1183,6 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   .chat-launch svg{width:24px;height:24px}
   .wa-float::before{animation:none}
 
-  .compare-row{grid-template-columns:1fr;}
-  .compare-head{display:none}
-  .compare-feat{font-family:'Space Grotesk',sans-serif;font-weight:600;background:var(--surface-2);border-bottom:1px solid var(--border)}
-  .compare-col{justify-content:space-between;border-left:0;border-bottom:1px solid var(--border)}
-  .compare-col::before{content:attr(data-label);color:var(--muted);font-size:.85rem}
-  .compare-row:not(.compare-head) .compare-col:last-child{border-bottom:0}
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
@@ -1017,4 +1197,13 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
      blocchi dell'hero comparirebbero comunque a scaglioni fino a mezzo secondo,
      che è movimento. */
   .js .hero .reveal{transition-delay:0s}
+  /* Il filetto di cucitura resta disegnato: è una riga di grafica, non è
+     l'animazione. Senza questa riga con movimento ridotto scomparirebbe del
+     tutto, perché lo stato di partenza è scaleX(0). */
+  .js .section::before{transform:scaleX(1)}
+  /* I titoli: niente passata di maschera e niente ritardo sulla parola in
+     colore. La maschera va spenta del tutto — con durata azzerata resterebbe
+     ferma al suo valore iniziale, cioè il titolo tagliato via per sempre. */
+  .js .reveal h2{-webkit-mask-image:none;mask-image:none;animation:none}
+  .js .reveal h2 .grad{opacity:1;transform:none;animation:none}
 }

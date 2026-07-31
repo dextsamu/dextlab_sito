@@ -1,4 +1,12 @@
 ---
+/**
+ * Recensioni.
+ *
+ * Il componente si toglie di mezzo se non ce ne sono: prima le due d'esempio
+ * arrivavano dal ripiego in content.ts, quindi la sezione c'era sempre — anche
+ * con il database vuoto, anche con il database spento. Ora la sezione esiste
+ * solo se esistono le recensioni. Vedi il commento in src/lib/content.ts.
+ */
 import type { ReviewItem } from '../lib/content.ts';
 
 interface Props {

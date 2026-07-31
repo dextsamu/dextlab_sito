@@ -27,20 +27,23 @@ const FALLBACK_ADDONS: PricingItem[] = [
   { label: 'Copywriting', price: 300, weeks: 0 },
 ];
 
-const FALLBACK_REVIEWS: ReviewItem[] = [
-  {
-    quote: 'Sito pronto in pochi giorni, esattamente come lo immaginavo. Comunicazione chiara e zero stress.',
-    author: 'Marco R.',
-    role: 'Titolare e-commerce',
-    stars: 5,
-  },
-  {
-    quote: 'Ha capito subito cosa serviva alla mia attività. Il gestionale ci fa risparmiare ore ogni settimana.',
-    author: 'Laura B.',
-    role: 'Studio professionale',
-    stars: 5,
-  },
-];
+/**
+ * Le recensioni sono l'unica cosa che NON ha un ripiego, ed è deliberato.
+ *
+ * Qui c'erano due recensioni firmate con nome e iniziale del cognome, cinque
+ * stelle entrambe (i testi esatti sono in migrations/005, che le ritira dalla
+ * produzione: NON vanno riportati qui, e un controllo in CI lo impedisce —
+ * altrimenti una ricerca del nome non distingue più una spiegazione da un
+ * ripiego tornato in servizio). Erano contenuto d'esempio, e per un
+ * listino o una FAQ un esempio plausibile è un ripiego onesto: nessuno viene
+ * ingannato da un prezzo di riferimento. Una recensione no. Una recensione è
+ * un'affermazione su una persona che esiste, e inventarla è l'unico modo in cui
+ * questo sito poteva dire una cosa falsa senza accorgersene.
+ *
+ * Quindi: se il database non ha recensioni vere, la sezione non c'è. Vale anche
+ * per il caso in cui il database sia giù — meglio una sezione in meno che due
+ * clienti inesistenti. Vedi la 005 per la stessa pulizia in produzione.
+ */
 
 const FALLBACK_FAQS: FaqItem[] = [
   {
@@ -75,6 +78,42 @@ export interface LandingContent {
   whatsappLink: string;
 }
 
+/**
+ * Chiave stabile per una voce del listino, dall'etichetta italiana.
+ *
+ * Serve a due cose che prima si appoggiavano al testo mostrato, ed entrambe si
+ * rompevano in inglese:
+ *
+ *  1. L'aggancio fra i pulsanti dell'hero e quelli del configuratore. Il
+ *     confronto era fra il testo del pulsante e l'etichetta italiana: con il
+ *     sito in inglese il testo è tradotto, il confronto non trovava niente, e
+ *     scegliere il tipo di progetto nell'hero non faceva NULLA. Il pezzo più
+ *     convincente della pagina era morto per metà dei visitatori.
+ *  2. Il preventivo scritto nell'indirizzo (#p=...). Con le chiavi ricavate dal
+ *     testo mostrato, un link generato in italiano non si sarebbe riaperto in
+ *     inglese: le funzioni aggiunte sarebbero state ignorate in silenzio.
+ *
+ * L'etichetta arriva dal database, cioè è sempre quella italiana, e la chiave
+ * finisce in un attributo — che il dizionario non tocca, perché lavora sui nodi
+ * di testo. Così client e server guardano la stessa stringa in tutte le lingue,
+ * e il JavaScript non ha bisogno di ricalcolare niente: legge l'attributo.
+ *
+ * Gli accenti vengono sciolti e tutto ciò che non è alfanumerico cade, così
+ * «Area riservata / login» diventa «areariservatalogin»: leggibile dentro un
+ * link mandato in chat, e senza caratteri che un client di posta possa troncare.
+ */
+export function chiaveListino(label: string): string {
+  return label
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    // Intervallo di codepoint e non caratteri incollati: i diacritici combinanti
+    // scritti letteralmente sono invisibili in un editor, e chi normalizza il
+    // file rompe la regola senza lasciare traccia.
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
 /** Link WhatsApp precompilato. Ritorna stringa vuota se il numero non è impostato. */
 export function whatsappLink(rawNumber: string, message = 'Ciao Dext Lab, vorrei informazioni su un progetto'): string {
   const digits = rawNumber.replace(/[^0-9]/g, '');
@@ -94,7 +133,9 @@ export async function getLandingContent(settings?: Settings): Promise<LandingCon
   return {
     types: types.length > 0 ? types : FALLBACK_TYPES,
     addons: addons.length > 0 ? addons : FALLBACK_ADDONS,
-    reviews: reviews.length > 0 ? reviews : FALLBACK_REVIEWS,
+    // Nessun ripiego, per il motivo scritto sopra: quello che c'è nel database
+    // o niente.
+    reviews,
     faqs: faqs.length > 0 ? faqs : FALLBACK_FAQS,
     contactEmail: setting(s, 'contact_email', 'info@dextlab.it'),
     calendly: setting(s, 'calendly', 'https://calendly.com/dextlab/call'),
