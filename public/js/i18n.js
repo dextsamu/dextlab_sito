@@ -165,7 +165,7 @@
     'Raccontami la tua idea. Ti rispondo entro 24 ore con un primo riscontro, senza impegno.':
       "Tell me your idea. I'll reply within 24 hours with first feedback, no commitment.",
     'Prenota una call gratuita': 'Book a free call', 'Nome': 'Name', 'Email': 'Email', 'Oggetto': 'Subject',
-    'Il tuo messaggio': 'Your message', 'Invia messaggio': 'Send message',
+    'Il tuo messaggio': 'Your message', 'Invia messaggio': 'Send message', 'Invio in corso…': 'Sending…',
     // footer
     'Contatti': 'Contact', 'Privacy': 'Privacy', 'Termini': 'Terms',
     // La chiave comprende "Dext Lab — " perché il nodo di testo del footer parte

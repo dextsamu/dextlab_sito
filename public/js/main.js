@@ -96,6 +96,48 @@
     tappe.forEach((t, i) => t.classList.toggle('viva', i <= quale));
   };
 
+  /* il nastro delle competenze segue la mano
+     ----------------------------------------
+     Scorreva a velocità fissa, cioè indifferente a chi guarda. Ora ha una base
+     costante più una spinta che arriva dallo scorrimento e si esaurisce da sé:
+     accelera mentre scendi, rallenta quando ti fermi.
+
+     La transform la scrive il JS, quindi l'animazione CSS va spenta (classe
+     .a-mano): due cose sulla stessa proprietà si sovrascrivono a vicenda. Senza
+     JS, o con movimento ridotto, la classe non si mette e resta l'animazione CSS
+     — che è un ripiego perfettamente valido, non un degrado.
+
+     Il ciclo è metà degli elementi PIÙ un divario: fra le due copie della lista
+     ce n'è uno in più, e ignorarlo fa saltare il nastro a ogni giro. */
+  const nastro = document.querySelector('.marquee-track');
+  let nastroPos = 0;
+  let nastroCiclo = 1;
+  let spintaNastro = 0;
+  let ultimoY = window.scrollY;
+  const misuraNastro = () => {
+    const divario = parseFloat(getComputedStyle(nastro).columnGap) || 0;
+    nastroCiclo = (nastro.scrollWidth + divario) / 2 || 1;
+  };
+  if (nastro && !menoMoto.matches) {
+    nastro.classList.add('a-mano');
+    misuraNastro();
+    window.addEventListener('resize', misuraNastro, { passive: true });
+    const giraNastro = () => {
+      // Se il movimento ridotto viene attivato a pagina aperta si restituisce il
+      // nastro al CSS invece di continuare a spingerlo.
+      if (menoMoto.matches) {
+        nastro.classList.remove('a-mano');
+        nastro.style.transform = '';
+        return;
+      }
+      nastroPos = (nastroPos + 0.35 + spintaNastro * 0.14) % nastroCiclo;
+      nastro.style.transform = 'translateX(' + -nastroPos.toFixed(1) + 'px)';
+      spintaNastro *= 0.9;
+      requestAnimationFrame(giraNastro);
+    };
+    requestAnimationFrame(giraNastro);
+  }
+
   /* Tempo di risposta nel pannello del footer: quello vero di questa richiesta,
      letto dalle misure di navigazione del browser. Se il browser non le espone
      — o il valore è zero, come da file:// — la voce dice che qui non si misura,
@@ -127,6 +169,13 @@
         attesaScroll = false;
         if (esagoni.length) muoviAlveare();
         if (tappe.length) muoviProcesso();
+        // Quanto si è spostata la pagina da questo fotogramma al precedente, con
+        // un tetto: un salto d'ancora sposta di migliaia di pixel in un colpo, e
+        // senza tetto il nastro partirebbe come una fionda.
+        if (nastro) {
+          spintaNastro = Math.min(Math.abs(window.scrollY - ultimoY), 60);
+          ultimoY = window.scrollY;
+        }
         // Il peso del titolo si ferma dopo la prima schermata: oltre, il titolo
         // non è più in vista e riscrivere la variabile costerebbe un ridisegno
         // di testo per niente.
@@ -194,7 +243,11 @@
     clearTimeout(sezione._pulizia);
     sezione._pulizia = setTimeout(() => sezione.classList.remove('arrivo'), 1300);
   };
-  document.querySelectorAll('.nav-links a[href^="#"], .footer-links a[href^="#"]').forEach((a) => {
+  // Anche i trattini dell'indice: portano dove portano le voci di menu, quindi
+  // devono annunciare l'arrivo allo stesso modo. Un salto che dice dove ti ha
+  // messo e un salto muto sulla stessa pagina sono un'incoerenza che si nota.
+  const ancore = '.nav-links a[href^="#"], .footer-links a[href^="#"], .indice a[href^="#"]';
+  document.querySelectorAll(ancore).forEach((a) => {
     a.addEventListener('click', () => {
       const sezione = document.querySelector(a.getAttribute('href'));
       if (!sezione || menoMoto.matches) return;
@@ -226,6 +279,72 @@
   } else {
     reveals.forEach((el) => el.classList.add('in'));
   }
+
+  /* la cucitura di ogni sezione si disegna all'ingresso
+     ----------------------------------------------------
+     Un osservatore a parte da quello dei .reveal, e non un pezzo di quello:
+     i .reveal sono i blocchi INTERNI (la testata, le schede, il riquadro), e la
+     riga va disegnata quando entra la sezione, che è un altro elemento e un
+     altro momento. Una volta disegnata resta: non si osserva più. */
+  const sezioniPagina = document.querySelectorAll('.section');
+  if ('IntersectionObserver' in window) {
+    const so = new IntersectionObserver(
+      (voci) => {
+        voci.forEach((v) => {
+          if (!v.isIntersecting) return;
+          v.target.classList.add('entrata');
+          so.unobserve(v.target);
+        });
+      },
+      { threshold: 0, rootMargin: '0px 0px -60px 0px' }
+    );
+    sezioniPagina.forEach((s) => so.observe(s));
+  } else {
+    sezioniPagina.forEach((s) => s.classList.add('entrata'));
+  }
+
+  /* indice di lettura sul bordo destro
+     ----------------------------------
+     I trattini sono link resi dal server e funzionano da soli; qui si aggiunge
+     solo quale sia quello attivo. Il criterio è la sezione che contiene la metà
+     della finestra: sceglierla in base a «la prima visibile» faceva accendere
+     due trattini insieme al confine, e in base al bordo alto faceva accendere la
+     successiva mentre si stava ancora leggendo la precedente. */
+  const indice = document.getElementById('indice');
+  if (indice) {
+    const voci = [...indice.querySelectorAll('a[data-sez]')]
+      .map((a) => ({ a, sez: document.getElementById(a.dataset.sez) }))
+      .filter((v) => v.sez);
+    let accesa = null;
+    const segnaIndice = () => {
+      const meta = window.scrollY + window.innerHeight / 2;
+      let vinta = voci[0];
+      for (const v of voci) if (v.sez.offsetTop <= meta) vinta = v;
+      if (!vinta || vinta === accesa) return;
+      if (accesa) accesa.a.removeAttribute('aria-current');
+      vinta.a.setAttribute('aria-current', 'true');
+      accesa = vinta;
+    };
+    segnaIndice();
+    window.addEventListener('scroll', segnaIndice, { passive: true });
+    window.addEventListener('resize', segnaIndice, { passive: true });
+  }
+
+  /* le domande si aprono una per volta
+     ----------------------------------
+     L'altezza la anima il CSS su ::details-content (vedi il commento là).
+     Qui c'è solo la parte che il CSS non può fare: chiudere le altre. Con
+     quattro risposte aperte insieme la sezione diventava un muro di testo, e
+     l'altezza della pagina cambiava sotto le dita mentre si leggeva. */
+  const domande = [...document.querySelectorAll('.faq-item')];
+  domande.forEach((d) =>
+    d.addEventListener('toggle', () => {
+      if (!d.open) return;
+      domande.forEach((altra) => {
+        if (altra !== d) altra.open = false;
+      });
+    })
+  );
 
   /* KPI count-up inside dashboard mockup */
   const kpis = document.querySelectorAll('.kpi-n');
@@ -986,6 +1105,7 @@
   const status = document.getElementById('formStatus');
   const btn = document.getElementById('submitBtn');
 
+
   if (!form || !status || !btn) return;
 
   form.addEventListener('submit', async (e) => {
@@ -999,9 +1119,19 @@
       return;
     }
 
+    /* L'arco gira per tutto e solo il tempo in cui la richiesta è in volo.
+       Nessuna durata scritta da me: un'animazione di otto decimi su una risposta
+       che arriva in centoventi millesimi è una finta che rallenta, e su una che
+       ne prende tre secondi è una finta che mente al contrario. Qui il movimento
+       è indeterminato — non finge di sapere quanto manca — e si ferma quando c'è
+       la risposta. */
     btn.disabled = true;
-    const original = btn.textContent;
-    btn.textContent = 'Invio in corso…';
+    btn.classList.add('in-volo');
+    btn.classList.remove('fatto');
+    /* Nessuna scrittura di testo: l'etichetta d'attesa è già nel markup e la
+       mostra il CSS. Scriverla da qui staccava il nodo che il dizionario aveva
+       raccolto, e dopo il primo invio il pulsante restava nella lingua di quel
+       momento per sempre. Vedi il commento in Contatti.astro. */
 
     try {
       const res = await fetch(form.action, {
@@ -1015,6 +1145,11 @@
         status.textContent = data.message || 'Messaggio inviato! Ti rispondo entro 24 ore.';
         status.classList.add('ok');
         form.reset();
+        // La spunta è una conferma, non un progresso: appare a cose fatte e se
+        // ne va. Il testo di stato resta, perché è quello che si legge.
+        btn.classList.add('fatto');
+        clearTimeout(btn._spunta);
+        btn._spunta = setTimeout(() => btn.classList.remove('fatto'), 2200);
       } else {
         status.textContent = (data && data.message) || 'Errore durante l’invio. Riprova o scrivimi via email.';
         status.classList.add('err');
@@ -1024,7 +1159,7 @@
       status.classList.add('err');
     } finally {
       btn.disabled = false;
-      btn.textContent = original;
+      btn.classList.remove('in-volo');
     }
   });
 })();

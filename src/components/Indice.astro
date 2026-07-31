@@ -1,0 +1,47 @@
+---
+/**
+ * Indice di lettura sul bordo destro.
+ *
+ * La pagina ha dieci sezioni e il menu ne elenca quattro: chi scorre non sa
+ * dove è arrivato né quanto manca, e la barra di progresso in cima dice «sei al
+ * 60%» senza dire di cosa. Una colonnina di trattini risolve entrambe le cose
+ * con trenta pixel di larghezza.
+ *
+ * Sono link veri e non pulsanti, e l'elenco lo rende il server: senza
+ * JavaScript restano dei collegamenti che funzionano, e portano dove dicono. Il
+ * JavaScript aggiunge solo quale sia quello attivo — cioè l'unica parte che il
+ * markup non può sapere da fermo.
+ *
+ * L'elenco arriva da fuori invece di essere scritto qui perché deve
+ * corrispondere alle sezioni effettivamente rese: le recensioni ci sono solo se
+ * ce ne sono di vere, e un trattino che porta a una sezione inesistente è
+ * peggio di un trattino in meno.
+ */
+export interface VoceIndice {
+  id: string;
+  nome: string;
+}
+
+interface Props {
+  voci: VoceIndice[];
+}
+
+const { voci } = Astro.props;
+---
+
+<nav class="indice" id="indice" aria-label="Indice della pagina">
+  <ul>
+    {
+      voci.map((v) => (
+        <li>
+          <a href={`#${v.id}`} data-sez={v.id}>
+            {/* Il nome è per gli screen reader sempre, e a vista solo al
+                passaggio: un elenco di dieci etichette sempre accese sarebbe un
+                secondo menu addosso al contenuto. */}
+            <span class="indice-nome">{v.nome}</span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>

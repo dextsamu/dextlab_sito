@@ -321,6 +321,93 @@ jobs:
           PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -q -c "delete from reviews where author='Prova CI'"
           exit $fail
 
+      # Le quattro cose che si vedono, e le tre trappole che nascondono.
+      - name: Indice, cuciture, titoli e domande
+        run: |
+          html=$(curl -s http://127.0.0.1:4321/)
+          fail=0
+
+          # 1) L'indice del bordo destro deve avere un trattino per OGNI sezione
+          # resa, e nessun trattino in più: un'ancora che porta al nulla è peggio
+          # di una voce mancante. Le recensioni ci sono solo se sono vere, quindi
+          # il conto va fatto sull'HTML servito, non su una lista scritta a mano.
+          for id in $(grep -o 'data-sez="[^"]*"' <<<"$html" | sed 's/data-sez="//;s/"//'); do
+            if grep -qE "id=\"$id\"" <<<"$html"; then echo "  ok    l'indice punta a #$id, che esiste"
+            else echo "::error::l'indice ha un trattino per #$id, che non è in pagina"; fail=1; fi
+          done
+          n_tratti=$(grep -o 'data-sez="' <<<"$html" | wc -l)
+          [ "$n_tratti" -ge 8 ] || { echo "::error::solo $n_tratti trattini nell'indice: manca qualche sezione"; fail=1; }
+          # E i link devono essere veri <a>: senza JS l'indice deve restare
+          # navigabile, non diventare un ornamento inerte.
+          if grep -qE '<nav class="indice"[^>]*>.*<a href="#' <<<"$(tr -d '\n' <<<"$html")"; then
+            echo "  ok    i trattini sono link, funzionano senza JS"
+          else
+            echo "::error::l'indice non contiene <a href=\"#…\">: senza JS non porterebbe da nessuna parte"
+            fail=1
+          fi
+
+          # 2) La cucitura di sezione parte VISIBILE e la nasconde solo .js: se lo
+          # stato di partenza fosse scaleX(0) senza condizione, chi non ha JS
+          # vedrebbe una pagina senza nessuna linea, per sempre. È lo stesso
+          # errore che era già stato fatto con .reveal.
+          # Il CSS è indentato su più righe: la regola va letta su una riga sola,
+          # altrimenti la ricerca non trova mai il valore dentro il blocco.
+          css=$(tr '\n' ' ' < public/css/style.css)
+          if grep -qE '\.section::before\{[^}]*transform:scaleX\(1\)' <<<"$css"; then
+            echo "  ok    la cucitura è visibile senza JS"
+          else
+            echo "::error::.section::before non parte da scaleX(1): senza JS le cuciture non comparirebbero mai"
+            fail=1
+          fi
+          grep -qE '\.js \.section::before\{[^}]*scaleX\(0\)' <<<"$css" \
+            && echo "  ok    ed è nascosta solo sotto .js" \
+            || { echo "::error::manca la regola .js .section::before che la nasconde prima dell'ingresso"; fail=1; }
+
+          # 3) I titoli NON devono essere spezzati in parole. Sembra un
+          # miglioramento e rompe la traduzione: i18n.js raccoglie i nodi di testo
+          # una volta sola, e tre nodi da una parola non corrispondono più a
+          # nessuna chiave del dizionario. Quel titolo resterebbe italiano per
+          # sempre, e non si ripara nemmeno cambiando lingua due volte.
+          if grep -qE "querySelectorAll\('[^']*h2'\)[^;]*(split\(' '\)|innerHTML)" public/js/main.js; then
+            echo "::error::qualcosa spezza i titoli in parole: rompe il dizionario inglese"
+            fail=1
+          else
+            echo "  ok    nessuno spezza i titoli in nodi di testo separati"
+          fi
+          grep -q '@property --passata' public/css/style.css \
+            && echo "  ok    la passata del titolo è dichiarata come proprietà animabile" \
+            || { echo "::error::manca @property --passata: senza, la maschera del titolo non si anima e resta ferma a 0%"; fail=1; }
+
+          # 4) Le domande si animano su ::details-content. Il trucco della griglia
+          # 0fr→1fr NON funziona su <details> — provato e misurato, altezza
+          # identica aperta e chiusa — quindi se ricomparisse sarebbe un ritorno a
+          # un'animazione che non c'è.
+          if grep -q '::details-content' public/css/style.css; then
+            echo "  ok    l'altezza delle domande si anima su ::details-content"
+          else
+            echo "::error::manca la regola su ::details-content: le risposte tornerebbero ad aprirsi di scatto"
+            fail=1
+          fi
+          if grep -qE '\.faq-item[^{]*\{[^}]*grid-template-rows:0fr' public/css/style.css; then
+            echo "::error::è tornato il trucco 0fr→1fr sulle domande: su <details> non anima niente"
+            fail=1
+          fi
+
+          # 5) Il testo del pulsante d'invio non va scritto dal JavaScript:
+          # sostituisce il nodo raccolto dal dizionario e da quel momento il
+          # pulsante resta nella lingua in cui era. Le due etichette stanno nel
+          # markup e il CSS scambia quale si vede.
+          if grep -qE '(btn|submitTesto|testo)\.textContent *=' public/js/main.js; then
+            echo "::error::il JS scrive di nuovo l'etichetta del pulsante: dopo il primo invio non si tradurrebbe più"
+            fail=1
+          else
+            echo "  ok    l'etichetta del pulsante non viene riscritta dal JS"
+          fi
+          for eti in 'class="btn-testo"' 'class="btn-attesa"'; do
+            grep -qF "$eti" <<<"$html" || { echo "::error::manca $eti nel pulsante d'invio"; fail=1; }
+          done
+          exit $fail
+
       # Il preventivo si porta via come link (#p=tipo+funzione+funzione), e le
       # chiavi che lo compongono le scrive il server negli attributi data-k.
       # Prima l'aggancio fra hero e configuratore era sul TESTO dei pulsanti: con
@@ -371,6 +458,17 @@ jobs:
             echo "  ok    il pulsante di copia nasce nascosto"
           else
             echo "::error::il pulsante «copia il link» non è hidden nell'HTML servito: senza JS resterebbe visibile e inerte"
+            fail=1
+          fi
+          # E l'attributo hidden deve vincere davvero. Non basta scriverlo nel
+          # markup: è una regola del browser, e .cfg-link{display:block} la
+          # annullava — il pulsante era hidden e si vedeva comunque. Il primo
+          # controllo qui sopra passava mentre la pagina era rotta; questo guarda
+          # la cosa che conta.
+          if grep -qE '^\[hidden\]\{display:none!important\}' public/css/style.css; then
+            echo "  ok    [hidden] vince su qualunque regola d'autore"
+          else
+            echo "::error::manca [hidden]{display:none!important} nel reset: qualsiasi display:block su un elemento hidden lo rende visibile"
             fail=1
           fi
           exit $fail

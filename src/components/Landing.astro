@@ -6,6 +6,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Chrome from './Chrome.astro';
 import Nav from './Nav.astro';
+import Indice from './Indice.astro';
 import Hero from './Hero.astro';
 import Servizi from './Servizi.astro';
 import Showcase from './Showcase.astro';
@@ -29,6 +30,25 @@ import { versioned } from '../lib/assets.ts';
 // Le impostazioni sono già state caricate dal middleware: si riusano invece di
 // interrogare di nuovo il database.
 const content = await getLandingContent(Astro.locals.settings);
+
+// L'indice del bordo destro. Sta qui e non dentro Indice.astro perché è questo
+// file che sa quali sezioni vengono rese davvero: le recensioni ci sono solo se
+// il database ne ha di vere, e un trattino che porta al nulla è peggio di un
+// trattino in meno. I nomi sono corti di proposito — devono stare su una riga
+// accanto al trattino, non ripetere il titolo della sezione.
+const sezioni = [
+  { id: 'hero', nome: 'Inizio' },
+  { id: 'servizi', nome: 'Servizi' },
+  { id: 'showcase', nome: 'Il codice' },
+  { id: 'portfolio', nome: 'Caso reale' },
+  { id: 'processo', nome: 'Processo' },
+  { id: 'stack', nome: 'Tecnologie' },
+  { id: 'perche', nome: 'Approccio' },
+  ...(content.reviews.length > 0 ? [{ id: 'recensioni', nome: 'Recensioni' }] : []),
+  { id: 'preventivo', nome: 'Preventivo' },
+  { id: 'faq', nome: 'Domande' },
+  { id: 'contatti', nome: 'Contatti' },
+];
 
 const base = siteUrl();
 const structuredData = JSON.stringify({
@@ -67,6 +87,7 @@ const structuredData = JSON.stringify({
   {/* La voce «Recensioni» nel menu esiste solo se la sezione esiste: un'ancora
       che porta a niente è peggio di una voce in meno. */}
   <Nav mostraRecensioni={content.reviews.length > 0} />
+  <Indice voci={sezioni} />
   <Hero types={content.types} />
   <Servizi />
   <Showcase />
