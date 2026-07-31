@@ -331,6 +331,7 @@ jobs:
           html=$(curl -s http://127.0.0.1:4321/)
           fail=0
           q() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -q -c "$1"; }
+          qv() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -tA -c "$1"; }
 
           # 1) Nessun ripiego nel codice: se la tabella è vuota o spenta la
           # sezione resta il caso studio di questo sito, con le sue sei prove.
@@ -340,18 +341,54 @@ jobs:
           else
             echo "  ok    nessun ripiego per i lavori nel codice"
           fi
-          # La 006 inserisce tre bozze disattivate: a database appena migrato la
-          # sezione non deve mostrare nessuna scheda.
+          # La 008 compila e attiva le tre righe che la 006 aveva lasciato in
+          # bozza, quindi a database appena migrato le tre schede DEVONO esserci:
+          # se una migrazione futura svuotasse la tabella la sezione tornerebbe
+          # muta senza che nessuno se ne accorga. Il conto si fa sulle righe
+          # attive e complete, non su un 3 scritto qui, altrimenti la guardia va
+          # riscritta ogni volta che si aggiunge un lavoro dal pannello.
+          attesi=$(qv "select count(*) from works where active and title <> '' and url ~ '^https?://'")
           n=$(grep -o 'class="lavoro"' <<<"$html" | wc -l)
-          if [ "$n" != 0 ]; then
-            echo "::error::$n schede lavoro con le sole bozze in tabella: le bozze non vanno mostrate"
+          if [ "$n" != "$attesi" ]; then
+            echo "::error::in tabella ci sono $attesi lavori mostrabili ma in pagina le schede sono $n"
             fail=1
           else
-            echo "  ok    con le sole bozze non si mostra nessun lavoro"
+            echo "  ok    le $n schede in pagina sono i $attesi lavori mostrabili in tabella"
           fi
+          [ "$attesi" -gt 0 ] \
+            && echo "  ok    dopo le migrazioni un lavoro c'è: la sezione non è muta" \
+            || { echo "::error::nessun lavoro mostrabile a database migrato: la 008 non ha compilato niente"; fail=1; }
+          for dominio in sagrago.it poderelavandaro.it ristoranteatena.it; do
+            grep -qF "$dominio" <<<"$html" \
+              && echo "  ok    $dominio è in pagina" \
+              || { echo "::error::$dominio non compare: la riga è stata svuotata o spenta"; fail=1; }
+          done
           grep -qF 'class="prova"' <<<"$html" \
             && echo "  ok    il caso studio di questo sito resta al suo posto" \
             || { echo "::error::sono sparite le prove del caso studio"; fail=1; }
+
+          # 1-bis) E la prova al contrario: spente tutte le righe, la sezione deve
+          # tornare esattamente com'era prima che esistessero i lavori. È il
+          # controllo che l'assenza di ripiego vale anche a runtime e non solo
+          # come grep sul sorgente.
+          q "update works set active = false"
+          h0=$(curl -s http://127.0.0.1:4321/)
+          n0=$(grep -o 'class="lavoro"' <<<"$h0" | wc -l)
+          if [ "$n0" != 0 ]; then
+            echo "::error::$n0 schede con la tabella tutta spenta: da qualche parte c'è un ripiego"
+            fail=1
+          else
+            echo "  ok    con la tabella spenta non si mostra nessun lavoro"
+          fi
+          grep -qF 'Il sito che stai' <<<"$h0" \
+            && echo "  ok    e la sezione torna a intitolarsi «Il sito che stai guardando»" \
+            || { echo "::error::senza lavori l'intestazione non è tornata quella del caso studio"; fail=1; }
+          grep -qF 'class="prova"' <<<"$h0" \
+            && echo "  ok    con le sei prove al loro posto" \
+            || { echo "::error::senza lavori sono sparite anche le prove"; fail=1; }
+          # Si riaccende quello che la 008 aveva acceso: in CI il database è
+          # appena migrato, quindi le righe complete sono esattamente quelle.
+          q "update works set active = true where title <> '' and url <> ''"
 
           # 2) Una riga senza titolo o senza indirizzo non passa, nemmeno se
           # attiva: è il caso di chi spunta «active» su una bozza per sbaglio.
@@ -396,17 +433,24 @@ jobs:
           # 4) «Progetto mio» compare solo dove è segnato. Confondere un prodotto
           # nato da sé con una commessa non è modestia, è un'informazione
           # sbagliata — e il contrario è un vanto non dovuto.
-          if grep -qF 'class="lavoro-mio"' <<<"$h3"; then
-            echo "::error::l'etichetta «progetto mio» compare su un lavoro che non è segnato come tale"
+          # Non si può più pretendere zero etichette: la 007 segna sagrago.it come
+          # progetto proprio e la 008 lo attiva, quindi una etichetta legittima in
+          # pagina c'è. Il conto va fatto contro la tabella — così la guardia
+          # continua a valere quando i lavori propri diventeranno due.
+          mio_attesi=$(qv "select count(*) from works where active and proprio and title <> '' and url ~ '^https?://'")
+          mio_pagina=$(grep -o 'class="lavoro-mio"' <<<"$h3" | wc -l)
+          if [ "$mio_pagina" != "$mio_attesi" ]; then
+            echo "::error::etichette «progetto mio» in pagina: $mio_pagina, righe segnate in tabella: $mio_attesi"
             fail=1
           else
-            echo "  ok    nessuna etichetta «progetto mio» su una commessa"
+            echo "  ok    le etichette «progetto mio» in pagina ($mio_pagina) sono le righe segnate come tali"
           fi
           q "update works set proprio = true where sort = 92"
           h4=$(curl -s http://127.0.0.1:4321/)
-          grep -qF 'class="lavoro-mio"' <<<"$h4" \
-            && echo "  ok    e compare quando il lavoro è segnato come proprio" \
-            || { echo "::error::il lavoro è segnato come proprio ma l'etichetta non compare"; fail=1; }
+          mio_dopo=$(grep -o 'class="lavoro-mio"' <<<"$h4" | wc -l)
+          [ "$mio_dopo" = "$((mio_attesi + 1))" ] \
+            && echo "  ok    e ne compare una in più quando si segna un altro lavoro come proprio" \
+            || { echo "::error::segnato un altro lavoro come proprio, le etichette dovevano essere $((mio_attesi + 1)) e sono $mio_dopo"; fail=1; }
 
           q "delete from works where sort in (90, 91, 92)"
           exit $fail
