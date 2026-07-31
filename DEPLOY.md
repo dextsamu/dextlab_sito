@@ -186,6 +186,13 @@ gunzip -c dext-AAAAMMGG-HHMMSS.sql.gz | psql "$DATABASE_URL"
 
 ## Resilienza
 
-Se PostgreSQL è irraggiungibile il sito pubblico **resta online**: prezzi,
-recensioni e FAQ ricadono su contenuti predefiniti, gli errori vengono loggati e
-la pagina risponde comunque 200. Il pannello admin invece richiede il database.
+Se PostgreSQL è irraggiungibile il sito pubblico **resta online**: prezzi e FAQ
+ricadono su contenuti predefiniti, gli errori vengono loggati e la pagina
+risponde comunque 200. Il pannello admin invece richiede il database.
+
+Le **recensioni** sono l'unica eccezione e non hanno un ripiego: se il database
+non ne restituisce, la sezione non viene resa affatto e la voce corrispondente
+scompare dal menu. Per un listino un valore di riferimento plausibile è un
+ripiego onesto; una recensione è un'affermazione su una persona che esiste, e
+inventarla sarebbe l'unico modo in cui questo sito potrebbe dire una cosa falsa
+senza accorgersene. Vedi il commento in `src/lib/content.ts`.
