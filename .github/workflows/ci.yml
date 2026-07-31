@@ -109,6 +109,50 @@ jobs:
           presente public/js/main.js "dataset.js = 'on'" 'main.js si dichiara presente'
           exit $fail
 
+      # Due trappole silenziose nelle animazioni del fondo e delle comparse.
+      - name: Le animazioni non si annullano fra loro
+        run: |
+          fail=0
+          riga() { grep -n "$1" public/css/style.css | head -1 | cut -d: -f1; }
+
+          # 1) Le regole per tipo di blocco hanno la stessa specificità di
+          # .js .reveal.in, quindi se finiscono DOPO vincono loro e i blocchi
+          # restano spostati anche una volta entrati: si vedrebbero card piccole
+          # e l'About sfalsato, per sempre.
+          fine=$(riga '^\.js \.reveal\.in{')
+          if [ -z "$fine" ]; then
+            echo "::error::non trovo la regola .js .reveal.in"
+            fail=1
+          else
+            for r in '^\.js \.marquee\.reveal{' '^\.js \.about-visual\.reveal{' '^\.js \.about-text\.reveal{' '^\.js \.config\.reveal{'; do
+              n=$(riga "$r")
+              if [ -z "$n" ]; then
+                echo "::error::manca la regola $r"
+                fail=1
+              elif [ "$n" -ge "$fine" ]; then
+                echo "::error::$r è alla riga $n, dopo .js .reveal.in (riga $fine): l'arrivo non annullerebbe la partenza"
+                fail=1
+              else
+                echo "  ok    $r precede .reveal.in"
+              fi
+            done
+          fi
+
+          # 2) L'accensione degli esagoni deve muovere solo l'opacità: la
+          # posizione la scrive il JS mentre scorri, e due animazioni sulla
+          # stessa proprietà si sovrascriverebbero a vicenda.
+          kf=$(sed -n '/@keyframes esaTurno/,/}$/p' public/css/style.css)
+          if [ -z "$kf" ]; then
+            echo "::error::non trovo @keyframes esaTurno"
+            fail=1
+          elif grep -q 'transform' <<<"$kf"; then
+            echo "::error::@keyframes esaTurno muove anche transform: entrerebbe in conflitto con la profondità scritta dal JS"
+            fail=1
+          else
+            echo "  ok    esaTurno muove solo l'opacità"
+          fi
+          exit $fail
+
       - name: Build
         run: npm run build
 
@@ -215,7 +259,7 @@ jobs:
       - name: I contenuti arrivano dal database
         run: |
           html=$(curl -s http://127.0.0.1:4321/)
-          for pair in "cfg-type:4" "cfg-addon:5" "review reveal:2" "faq-item reveal:3"; do
+          for pair in "cfg-type:4" "cfg-addon:5" "review reveal:2" "faq-item reveal:3" "esa\":21"; do
             needle=${pair%:*}; want=${pair#*:}
             got=$(grep -o "class=\"$needle" <<<"$html" | wc -l)
             if [ "$got" != "$want" ]; then

@@ -33,18 +33,65 @@
     });
   }
 
+  /* alveare: profondità sullo scorrimento
+     ---------------------------------------
+     Gli esagoni salgono mentre scendi, ognuno a una velocità sua, e rientrano
+     dal basso quando escono dall'alto: lo strato è fixed, quindi ventuno
+     bastano per tutta la pagina invece di doverne mettere uno ogni schermata.
+
+     Il resto (l'accensione a turno) è un'animazione CSS che muove solo
+     l'opacità: qui si tocca solo transform, così le due non si sovrappongono
+     sulla stessa proprietà. */
+  const esagoni = [...document.querySelectorAll('#bgAlveare .esa')].map((e) => ({
+    e,
+    prof: Number(e.dataset.prof) || 0.5,
+    passo: Number(e.dataset.passo) || 0,
+  }));
+  // Il ciclo è più alto della finestra di 300px, così il salto da sotto a sopra
+  // avviene fuori dallo schermo e non si vede mai un esagono teletrasportarsi.
+  let ciclo = window.innerHeight + 300;
+  const muoviAlveare = () => {
+    const y = window.scrollY;
+    for (const s of esagoni) {
+      // Modulo positivo: in JS (-5 % 3) fa -2, e un esagono con offset negativo
+      // se ne andrebbe invece di rientrare dal basso.
+      const g = (((s.passo * ciclo - y * s.prof * 0.24) % ciclo) + ciclo) % ciclo;
+      s.e.style.transform = 'translate3d(0,' + (g - 150).toFixed(1) + 'px,0)';
+    }
+  };
+
   /* nav scroll state + scroll progress bar */
   const nav = document.getElementById('nav');
   const progress = document.getElementById('scrollProgress');
+  let attesaScroll = false;
   const onScroll = () => {
     nav.classList.toggle('scrolled', window.scrollY > 30);
     if (progress) {
       const h = document.documentElement.scrollHeight - window.innerHeight;
       progress.style.width = (h > 0 ? (window.scrollY / h) * 100 : 0) + '%';
     }
+    // L'alveare si aggiorna al fotogramma successivo e non a ogni evento di
+    // scroll: gli eventi arrivano più spesso dei fotogrammi, e ventuno scritture
+    // di stile ripetute per niente sono il modo classico di rendere legnoso lo
+    // scorrimento.
+    if (esagoni.length && !menoMoto.matches && !attesaScroll) {
+      attesaScroll = true;
+      requestAnimationFrame(() => {
+        attesaScroll = false;
+        muoviAlveare();
+      });
+    }
   };
   onScroll();
   window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener(
+    'resize',
+    () => {
+      ciclo = window.innerHeight + 300;
+      if (!menoMoto.matches) muoviAlveare();
+    },
+    { passive: true }
+  );
 
   /* mobile menu */
   const toggle = document.getElementById('navToggle');

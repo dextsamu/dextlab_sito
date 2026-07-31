@@ -241,6 +241,39 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 }
 @keyframes hexFloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-26px) rotate(12deg)}}
 
+/* ---------- alveare di fondo ----------
+   Gli stessi esagoni dell'hero, ma su tutta la pagina e disposti a nido d'ape
+   invece che sparsi: con le tracce che corrono sulla griglia, insieme rifanno
+   il motivo del logo — un esagono con le piste dentro.
+   Due cose deliberate:
+   - si accendono a turno e non tutti insieme, come un bus interrogato: uno alla
+     volta, un secondo, poi torna al suo tono di fondo;
+   - l'animazione muove SOLO l'opacità. La posizione la muove il JS mentre
+     scorri (vedi main.js), e le due cose non si pestano i piedi perché toccano
+     proprietà diverse.
+   Niente backdrop-filter qui, a differenza di .hex: sei elementi che leggono lo
+   sfondo dietro di sé sono gratis, diciotto no. */
+.bg-alveare{position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden}
+.esa{
+  position:absolute;left:var(--x);top:0;width:var(--s);height:calc(var(--s) * .92);
+  background:linear-gradient(135deg,rgba(63,169,214,.16),rgba(139,216,158,.11));
+  border:1px solid rgba(132,216,160,.2);
+  clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
+  opacity:var(--base);
+  /* La posizione di partenza sta qui e non nel top, così l'alveare è già
+     disposto prima che il JS tocchi qualcosa: senza questa riga, e senza JS,
+     tutti e ventuno gli esagoni finirebbero impilati in cima. Il JS sovrascrive
+     questa trasformazione con lo stile inline mentre scorri. */
+  transform:translateY(var(--y0));
+  animation:esaTurno 15s var(--ease) var(--turno) infinite;
+  will-change:transform;
+}
+@keyframes esaTurno{0%,88%,100%{opacity:var(--base)}94%{opacity:calc(var(--base) * 3.4)}}
+@media (prefers-reduced-motion:reduce){
+  /* Restano, fermi e al loro tono di fondo: sono un motivo, non un'animazione. */
+  .esa{animation:none}
+}
+
 /* ---------- sections ---------- */
 .section{padding:110px 0;position:relative}
 .section-alt{background:linear-gradient(180deg,transparent,var(--bg-2),transparent)}
@@ -678,6 +711,25 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
    errore a metà lasciano queste undici sezioni visibili, invece di una pagina
    vuota sotto l'hero. */
 .js .reveal{opacity:0;transform:translateY(30px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+
+/* La direzione d'ingresso dipende da che cos'è il blocco, non è la stessa per
+   tutti: trentotto comparse identiche non si leggono come un'animazione, si
+   leggono come un tic. Le immagini e le card crescono di scala, la coppia
+   dell'About si apre dai due lati in cui i due pezzi già stanno, il riquadro
+   della stima scende. Il resto — titoli, testo, passi, FAQ — sale, che è quello
+   che faceva già tutto.
+   ATTENZIONE ALL'ORDINE: queste regole hanno la stessa specificità di
+   .js .reveal.in, quindi devono stare PRIMA, o l'arrivo non annullerebbe la
+   partenza e i blocchi resterebbero spostati (c'è un controllo in CI). */
+.js .card.reveal,
+.js .mock.reveal,
+.js .pcard.reveal,
+.js .review.reveal,
+.js .marquee.reveal{transform:scale(.965)}
+.js .about-visual.reveal{transform:translateX(-32px)}
+.js .about-text.reveal{transform:translateX(32px)}
+.js .config.reveal{transform:translateY(-26px)}
+
 .js .reveal.in{opacity:1;transform:none}
 
 /* ---------- responsive ---------- */

@@ -1,6 +1,47 @@
 ---
 // Elementi decorativi globali: loader d'ingresso, barra di progresso dello
 // scroll e sfondo animato. Tutti puramente visivi, quindi aria-hidden.
+
+/**
+ * Alveare di fondo: posizioni su un reticolo a nido d'ape, non sparse a caso.
+ * Le colonne distano il 13% e quelle dispari sono sfalsate di mezza fila, che è
+ * come si incastrano gli esagoni veri.
+ *
+ * Sono dati e non un ciclo con Math.random per due motivi: il rendering è lato
+ * server, quindi un valore casuale cambierebbe a ogni richiesta e nessuna cache
+ * di pagina reggerebbe; e i turni d'accensione devono essere in ordine di
+ * reticolo per leggersi come una sequenza, non come un tremolio.
+ *
+ * Ogni esagono porta due numeri per il JS:
+ * - prof, quanto è "vicino", cioè quanto si muove;
+ * - passo, la sua posizione come frazione del ciclo verticale. Il JS ne ricava
+ *   i pixel, perché il ciclo dipende dall'altezza della finestra e questa qui
+ *   non la conosciamo.
+ * --y0 invece è la posizione statica in vh: serve quando il JS non gira e come
+ * punto di riposo con movimento ridotto attivo.
+ */
+const COLONNE = 7;
+const FILE = 3;
+const alveare = Array.from({ length: COLONNE * FILE }, (_, i) => {
+  const col = i % COLONNE;
+  const fila = Math.floor(i / COLONNE);
+  const dispari = col % 2 === 1;
+  // Profondità: sequenza fissa e non casuale, vedi sopra.
+  const prof = 0.3 + ((col * 5 + fila * 3) % 7) / 9;
+  // Le colonne dispari sfalsate di mezza fila: è così che gli esagoni si
+  // incastrano, ed è anche ciò che distribuisce le partenze sul ciclo.
+  const passo = (fila + (dispari ? 0.5 : 0)) / FILE;
+  return {
+    x: `${3 + col * 13.6}%`,
+    y0: `${(passo * 100).toFixed(1)}vh`,
+    s: `${26 + Math.round(prof * 58)}px`,
+    base: (0.1 + (i % 4) * 0.035).toFixed(3),
+    // Un turno ogni 0,7 s in ordine di reticolo, sul ciclo di 15 s del CSS.
+    turno: `${(-i * 0.7).toFixed(1)}s`,
+    prof: prof.toFixed(2),
+    passo: passo.toFixed(4),
+  };
+});
 ---
 
 <div class="loader" id="loader" aria-hidden="true">
@@ -11,6 +52,22 @@
 <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
 
 <div class="bg-grid" aria-hidden="true"></div>
+
+<!-- Alveare: esagoni che si accendono a turno e scorrono a profondità diverse.
+     Lo strato è fixed, quindi ne bastano ventuno per tutta la visita invece di
+     coprire tredicimila pixel di pagina. -->
+<div class="bg-alveare" id="bgAlveare" aria-hidden="true">
+  {
+    alveare.map((e) => (
+      <span
+        class="esa"
+        data-prof={e.prof}
+        data-passo={e.passo}
+        style={`--x:${e.x};--y0:${e.y0};--s:${e.s};--base:${e.base};--turno:${e.turno}`}
+      />
+    ))
+  }
+</div>
 <div class="bg-aurora" aria-hidden="true"></div>
 <div class="bg-glow glow-1" aria-hidden="true"></div>
 <div class="bg-glow glow-2" aria-hidden="true"></div>
