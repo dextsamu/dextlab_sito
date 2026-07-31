@@ -60,6 +60,24 @@
     }
   };
 
+  /* il peso del titolo dell'hero è un asse, non un gradino
+     -----------------------------------------------------
+     Space Grotesk è un carattere variabile e da quando lo serviamo noi si può
+     chiedere un peso a metà strada: qui il titolo parte pieno e si alleggerisce
+     mentre esce di scena. Cambia la forma delle lettere, non la loro posizione.
+
+     Due limiti rispettati: si aggiorna solo finché l'hero è a schermo — dopo la
+     prima schermata non c'è più niente da muovere — e non parte affatto con
+     movimento ridotto attivo, perché è comunque un'animazione. */
+  const titolo = document.querySelector('.hero-title');
+  const PESO_PIENO = 700;
+  const PESO_MAGRO = 450;
+  const muoviPeso = () => {
+    const alto = window.innerHeight;
+    const q = Math.min(1, window.scrollY / alto);
+    titolo.style.setProperty('--w', Math.round(PESO_PIENO - q * (PESO_PIENO - PESO_MAGRO)));
+  };
+
   /* nav scroll state + scroll progress bar */
   const nav = document.getElementById('nav');
   const progress = document.getElementById('scrollProgress');
@@ -74,11 +92,15 @@
     // scroll: gli eventi arrivano più spesso dei fotogrammi, e ventuno scritture
     // di stile ripetute per niente sono il modo classico di rendere legnoso lo
     // scorrimento.
-    if (esagoni.length && !menoMoto.matches && !attesaScroll) {
+    if (!menoMoto.matches && !attesaScroll) {
       attesaScroll = true;
       requestAnimationFrame(() => {
         attesaScroll = false;
-        muoviAlveare();
+        if (esagoni.length) muoviAlveare();
+        // Il peso del titolo si ferma dopo la prima schermata: oltre, il titolo
+        // non è più in vista e riscrivere la variabile costerebbe un ridisegno
+        // di testo per niente.
+        if (titolo && window.scrollY <= window.innerHeight) muoviPeso();
       });
     }
   };

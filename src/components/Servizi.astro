@@ -3,21 +3,10 @@
 // sono varianti di un unico modello, e un ciclo costringerebbe a scegliere
 // l'icona in base al titolo.
 //
-// I prezzi arrivano dal listino del configuratore, non scritti qui: "quanto
-// costa" è la prima domanda di chi scrive — le FAQ la mettono per prima — e
-// prima compariva soltanto nel configuratore, in fondo alla pagina.
-import { servicePrice, type PricingItem } from '../lib/content.ts';
-
-interface Props {
-  types: PricingItem[];
-}
-
-const { types } = Astro.props;
-
-// "Siti Web" copre due voci di listino, "Consulenza IT" nessuna: si vende a
-// giornata e un "a partire da" sarebbe fuorviante.
-const sitiWeb = servicePrice(types, ['Landing page', 'Sito vetrina']);
-const webApp = servicePrice(types, ['Web app su misura']);
+// Qui i prezzi non ci sono. C'erano, presi dal listino del configuratore, ma
+// mettere una cifra accanto a una descrizione di tre righe sposta la lettura sul
+// confronto fra numeri prima che si sappia cosa si sta comprando. Il prezzo
+// resta dove ha un contesto: nel configuratore, dove lo si costruisce scegliendo.
 ---
 
 <section class="section" id="servizi">
@@ -44,14 +33,6 @@ const webApp = servicePrice(types, ['Web app su misura']);
           Siti vetrina e landing page veloci, responsive e ottimizzati SEO. Design moderno che
           converte i visitatori in clienti.
         </p>
-        {
-          sitiWeb && (
-            <div class="card-price">
-              <b><i>a partire da</i> <span>{sitiWeb.from}</span></b>
-              <em><span>{sitiWeb.weeks}</span> <i>settimane</i></em>
-            </div>
-          )
-        }
         <ul class="card-tags"><li>Next.js</li><li>Astro</li><li>SEO</li><li>Performance</li></ul>
       </article>
 
@@ -69,14 +50,6 @@ const webApp = servicePrice(types, ['Web app su misura']);
           Applicazioni web complete: gestionali, dashboard, piattaforme SaaS. Autenticazione,
           database e logica di business sicura.
         </p>
-        {
-          webApp && (
-            <div class="card-price">
-              <b><i>a partire da</i> <span>{webApp.from}</span></b>
-              <em><span>{webApp.weeks}</span> <i>settimane</i></em>
-            </div>
-          )
-        }
         <ul class="card-tags"><li>React</li><li>API</li><li>Database</li><li>Cloud</li></ul>
       </article>
 

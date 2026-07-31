@@ -34,8 +34,8 @@ const alveare = Array.from({ length: COLONNE * FILE }, (_, i) => {
   return {
     x: `${3 + col * 13.6}%`,
     y0: `${(passo * 100).toFixed(1)}vh`,
-    s: `${26 + Math.round(prof * 58)}px`,
-    base: (0.1 + (i % 4) * 0.035).toFixed(3),
+    s: `${30 + Math.round(prof * 70)}px`,
+    base: (0.14 + (i % 4) * 0.045).toFixed(3),
     // Un turno ogni 0,7 s in ordine di reticolo, sul ciclo di 15 s del CSS.
     turno: `${(-i * 0.7).toFixed(1)}s`,
     prof: prof.toFixed(2),

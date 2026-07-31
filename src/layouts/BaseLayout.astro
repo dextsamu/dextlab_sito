@@ -8,6 +8,7 @@
  * divergere.
  */
 import { siteUrl } from '../lib/env.ts';
+import { versioned } from '../lib/assets.ts';
 
 interface Props {
   title: string;
@@ -96,7 +97,13 @@ const ogImage = new URL('/assets/logo-v.png', base + '/').href;
       type="font/woff2"
       crossorigin
     />
-    <link rel="stylesheet" href="/css/style.css" />
+    {/*
+      L'impronta del contenuto in coda all'URL non è un dettaglio: senza, chi ha
+      visitato il sito PHP nell'ultima settimana continua a ricevere dalla
+      propria cache lo style.css di allora, perché quel .htaccess lo dichiarava
+      valido sette giorni. Vedi src/lib/assets.ts.
+    */}
+    <link rel="stylesheet" href={versioned('/css/style.css')} />
     <slot name="head" />
   </head>
   <body class={bodyClass}>

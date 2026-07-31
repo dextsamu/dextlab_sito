@@ -117,6 +117,15 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
     linear-gradient(90deg,rgba(132,216,160,.04) 1px,transparent 1px);
   background-size:54px 54px;
   mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000 40%,transparent 100%);
+  /* Si posa all'ingresso: parte più larga e trasparente e si assesta sul passo
+     giusto in un secondo. Una volta sola — forwards, non infinite — quindi dopo
+     l'ingresso non costa niente. È il "la pagina si è appena costruita" al posto
+     di un logo che pulsa e non dice nulla. */
+  animation:grigliaSiPosa 1.1s var(--ease) forwards;
+}
+@keyframes grigliaSiPosa{
+  from{opacity:0;background-size:104px 104px}
+  to{opacity:1;background-size:54px 54px}
 }
 .bg-glow{
   position:fixed;z-index:-2;border-radius:50%;
@@ -216,7 +225,11 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 }
 .hero-badge .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(139,216,158,.6);animation:pulse 2s infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(139,216,158,.5)}70%{box-shadow:0 0 0 9px rgba(139,216,158,0)}100%{box-shadow:0 0 0 0 rgba(139,216,158,0)}}
-.hero-title{font-size:clamp(2.4rem,6vw,4.4rem);margin-bottom:24px}
+/* Il peso è un asse continuo, non quattro gradini: Space Grotesk è un carattere
+   variabile e da quando lo serviamo noi si può chiedere un valore a metà. Il JS
+   muove --w mentre esci dall'hero (vedi main.js); il valore di riposo è 600, lo
+   stesso di tutti gli altri titoli, quindi senza JS non cambia niente. */
+.hero-title{font-size:clamp(2.4rem,6vw,4.4rem);margin-bottom:24px;font-variation-settings:'wght' var(--w,600)}
 .hero-title .grad{display:inline-block}
 .hero-sub{font-size:clamp(1.05rem,2vw,1.3rem);color:var(--muted);max-width:640px;margin-bottom:38px}
 .hero-sub strong{color:var(--text);font-weight:600}
@@ -253,11 +266,19 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
      proprietà diverse.
    Niente backdrop-filter qui, a differenza di .hex: sei elementi che leggono lo
    sfondo dietro di sé sono gratis, diciotto no. */
-.bg-alveare{position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden}
+.bg-alveare{
+  position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden;
+  /* L'alveare arriva dopo che la griglia si è posata, non insieme: prima le
+     linee, poi le celle. L'animazione sta sul contenitore e non sui ventuno
+     figli, che hanno già la loro sull'opacità — due animazioni sulla stessa
+     proprietà si sovrascriverebbero, e vincerebbe l'ultima dichiarata. */
+  animation:alveareArriva 1.5s var(--ease) .5s backwards;
+}
+@keyframes alveareArriva{from{opacity:0}to{opacity:1}}
 .esa{
   position:absolute;left:var(--x);top:0;width:var(--s);height:calc(var(--s) * .92);
-  background:linear-gradient(135deg,rgba(63,169,214,.16),rgba(139,216,158,.11));
-  border:1px solid rgba(132,216,160,.2);
+  background:linear-gradient(135deg,rgba(63,169,214,.22),rgba(139,216,158,.15));
+  border:1px solid rgba(132,216,160,.28);
   clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
   opacity:var(--base);
   /* La posizione di partenza sta qui e non nel top, così l'alveare è già
@@ -268,7 +289,7 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   animation:esaTurno 15s var(--ease) var(--turno) infinite;
   will-change:transform;
 }
-@keyframes esaTurno{0%,88%,100%{opacity:var(--base)}94%{opacity:calc(var(--base) * 3.4)}}
+@keyframes esaTurno{0%,88%,100%{opacity:var(--base)}94%{opacity:calc(var(--base) * 3)}}
 @media (prefers-reduced-motion:reduce){
   /* Restano, fermi e al loro tono di fondo: sono un motivo, non un'animazione. */
   .esa{animation:none}
@@ -326,10 +347,6 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .card-tags li{font-size:.78rem;color:var(--cyan);padding:4px 11px;border-radius:999px;background:rgba(84,201,200,.08);border:1px solid var(--border-2)}
 /* Prezzo di partenza nella card. Cifre tabellari perché le tre card stanno
    affiancate: senza, i numeri di larghezza diversa non si allineano fra loro. */
-.card-price{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:18px;padding-top:15px;border-top:1px solid var(--border)}
-.card-price b{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.3rem;letter-spacing:-.01em;font-variant-numeric:tabular-nums;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.card-price b i{font-style:normal;font-size:.7rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;display:block;color:var(--muted);-webkit-text-fill-color:var(--muted);margin-bottom:2px}
-.card-price em{font-style:normal;font-size:.82rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
 
 /* ---------- showcase mockups ---------- */
 .mocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:28px}
@@ -763,6 +780,10 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
+  /* Le due animazioni d'ingresso hanno un ritardo, e la regola qui sopra azzera
+     la durata ma non il ritardo: senza questa riga la griglia e l'alveare
+     resterebbero invisibili per mezzo secondo prima di comparire di scatto. */
+  .bg-grid,.bg-alveare{animation:none}
   /* La specificità deve pareggiare quella di .js .reveal, altrimenti con
      movimento ridotto le sezioni resterebbero a opacity:0. */
   .js .reveal{opacity:1;transform:none}
