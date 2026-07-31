@@ -1,5 +1,5 @@
 ---
-import { initialEstimate, type PricingItem } from '../lib/content.ts';
+import { initialEstimate, chiaveListino, type PricingItem } from '../lib/content.ts';
 
 interface Props {
   types: PricingItem[];
@@ -36,6 +36,7 @@ const estimate = initialEstimate(types);
                   class:list={['cfg-type', { active: i === 0 }]}
                   data-price={t.price}
                   data-weeks={t.weeks}
+                  data-k={chiaveListino(t.label)}
                 >
                   {t.label}
                 </button>
@@ -50,7 +51,12 @@ const estimate = initialEstimate(types);
             {
               addons.map((a) => (
                 <label class="cfg-addon">
-                  <input type="checkbox" data-price={a.price} data-weeks={a.weeks} />
+                  <input
+                    type="checkbox"
+                    data-price={a.price}
+                    data-weeks={a.weeks}
+                    data-k={chiaveListino(a.label)}
+                  />
                   <span>{a.label}</span>
                 </label>
               ))
@@ -77,6 +83,19 @@ const estimate = initialEstimate(types);
           <li>Supporto post-lancio</li>
         </ul>
         <a href="#contatti" class="btn btn-primary btn-block" id="cfgCta">Richiedi questo preventivo</a>
+        <!-- Il preventivo si calcolava e poi moriva qui: chi lo otteneva doveva
+             fidarsi della memoria, e dall'altra parte non si sapeva mai cosa
+             avesse scelto. Con le scelte scritte nell'indirizzo la
+             configurazione diventa una cosa che si manda — al telefono si
+             configura insieme e si spedisce il link, che riapre esattamente
+             questa combinazione.
+             Il pulsante nasce nascosto e lo mostra main.js: senza JS non
+             potrebbe copiare niente, e un pulsante che non fa nulla è peggio di
+             un pulsante che non c'è. -->
+        <button type="button" class="cfg-link" id="cfgLink" hidden>
+          Copia il link di questo preventivo
+        </button>
+        <p class="cfg-link-esito" id="cfgLinkEsito" role="status"></p>
         <p class="cfg-note">Stima orientativa, non vincolante. Il preventivo finale è gratuito.</p>
       </aside>
     </div>

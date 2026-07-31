@@ -139,6 +139,7 @@
     'Aggiungi funzioni': 'Add features', 'Multilingua': 'Multilingual', 'SEO avanzata': 'Advanced SEO',
     'Blog / CMS': 'Blog / CMS', 'Area riservata / login': 'Members area / login',
     'Copywriting': 'Copywriting', 'Stima indicativa': 'Indicative estimate',
+    'Copia il link di questo preventivo': 'Copy the link to this estimate',
     'Design su misura': 'Custom design', 'Responsive + performance': 'Responsive + performance',
     'Supporto post-lancio': 'Post-launch support', 'Richiedi questo preventivo': 'Request this quote',
     // Barra della stima su telefono.

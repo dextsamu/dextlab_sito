@@ -78,6 +78,42 @@ export interface LandingContent {
   whatsappLink: string;
 }
 
+/**
+ * Chiave stabile per una voce del listino, dall'etichetta italiana.
+ *
+ * Serve a due cose che prima si appoggiavano al testo mostrato, ed entrambe si
+ * rompevano in inglese:
+ *
+ *  1. L'aggancio fra i pulsanti dell'hero e quelli del configuratore. Il
+ *     confronto era fra il testo del pulsante e l'etichetta italiana: con il
+ *     sito in inglese il testo è tradotto, il confronto non trovava niente, e
+ *     scegliere il tipo di progetto nell'hero non faceva NULLA. Il pezzo più
+ *     convincente della pagina era morto per metà dei visitatori.
+ *  2. Il preventivo scritto nell'indirizzo (#p=...). Con le chiavi ricavate dal
+ *     testo mostrato, un link generato in italiano non si sarebbe riaperto in
+ *     inglese: le funzioni aggiunte sarebbero state ignorate in silenzio.
+ *
+ * L'etichetta arriva dal database, cioè è sempre quella italiana, e la chiave
+ * finisce in un attributo — che il dizionario non tocca, perché lavora sui nodi
+ * di testo. Così client e server guardano la stessa stringa in tutte le lingue,
+ * e il JavaScript non ha bisogno di ricalcolare niente: legge l'attributo.
+ *
+ * Gli accenti vengono sciolti e tutto ciò che non è alfanumerico cade, così
+ * «Area riservata / login» diventa «areariservatalogin»: leggibile dentro un
+ * link mandato in chat, e senza caratteri che un client di posta possa troncare.
+ */
+export function chiaveListino(label: string): string {
+  return label
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    // Intervallo di codepoint e non caratteri incollati: i diacritici combinanti
+    // scritti letteralmente sono invisibili in un editor, e chi normalizza il
+    // file rompe la regola senza lasciare traccia.
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
 /** Link WhatsApp precompilato. Ritorna stringa vuota se il numero non è impostato. */
 export function whatsappLink(rawNumber: string, message = 'Ciao Dext Lab, vorrei informazioni su un progetto'): string {
   const digits = rawNumber.replace(/[^0-9]/g, '');

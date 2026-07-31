@@ -321,6 +321,60 @@ jobs:
           PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -q -c "delete from reviews where author='Prova CI'"
           exit $fail
 
+      # Il preventivo si porta via come link (#p=tipo+funzione+funzione), e le
+      # chiavi che lo compongono le scrive il server negli attributi data-k.
+      # Prima l'aggancio fra hero e configuratore era sul TESTO dei pulsanti: con
+      # il sito in inglese le etichette sono tradotte, il confronto non trovava
+      # niente, e scegliere il tipo di progetto nell'hero non faceva nulla. Era
+      # rotto in produzione e nessun controllo lo vedeva. Questo lo vede.
+      - name: Il preventivo si può mandare, e l'hero muove il configuratore
+        run: |
+          html=$(curl -s http://127.0.0.1:4321/)
+          fail=0
+          estrai() { grep -o "$1" <<<"$html" | grep -o 'data-k="[^"]*"' | sed 's/data-k="//;s/"//' | sort; }
+          tipi=$(estrai 'class="cfg-type[^>]*data-k="[^"]*"')
+          eroe=$(estrai 'class="hero-tipo[^>]*data-k="[^"]*"')
+          extra=$(grep -o '<input[^>]*data-k="[^"]*"' <<<"$html" | grep -o 'data-k="[^"]*"' | sed 's/data-k="//;s/"//' | sort)
+
+          for coppia in "tipi:$tipi" "extra:$extra"; do
+            nome=${coppia%%:*}; lista=${coppia#*:}
+            n=$(grep -c . <<<"$lista" || true)
+            u=$(sort -u <<<"$lista" | grep -c . || true)
+            if [ "$n" = 0 ]; then echo "::error::nessuna chiave data-k fra i $nome"; fail=1
+            elif [ "$n" != "$u" ]; then echo "::error::chiavi data-k ripetute fra i $nome: due voci finirebbero nello stesso link"; fail=1
+            else echo "  ok    $n chiavi $nome, tutte diverse"; fi
+          done
+
+          # Le due liste devono coincidere: sono lo stesso listino mostrato due
+          # volte, e l'aggancio fra l'hero e il configuratore è proprio questo.
+          if [ "$tipi" = "$eroe" ]; then
+            echo "  ok    hero e configuratore condividono le stesse chiavi"
+          else
+            echo "::error::le chiavi dell'hero e del configuratore non coincidono: scegliere in cima non muoverebbe il configuratore"
+            echo "  hero:          $(tr '\n' ' ' <<<"$eroe")"
+            echo "  configuratore: $(tr '\n' ' ' <<<"$tipi")"
+            fail=1
+          fi
+
+          # E l'aggancio non deve tornare a basarsi sul testo mostrato, che è
+          # tradotto: è esattamente il difetto che era in produzione.
+          if grep -qE "textContent(\.trim\(\))? === .*dataset\.label" public/js/main.js; then
+            echo "::error::l'aggancio hero/configuratore confronta di nuovo il testo con l'etichetta: si rompe in inglese"
+            fail=1
+          else
+            echo "  ok    l'aggancio non passa dal testo mostrato"
+          fi
+
+          # Il pulsante di copia nasce nascosto: senza JS non potrebbe copiare
+          # niente, e un pulsante che non fa nulla è peggio di uno che non c'è.
+          if grep -qE '<button[^>]*id="cfgLink"[^>]*hidden' <<<"$html"; then
+            echo "  ok    il pulsante di copia nasce nascosto"
+          else
+            echo "::error::il pulsante «copia il link» non è hidden nell'HTML servito: senza JS resterebbe visibile e inerte"
+            fail=1
+          fi
+          exit $fail
+
       # About e «Perché Dext Lab» erano due sezioni che dicevano la stessa cosa, e
       # la seconda la diceva con una tabella che affermava cose su agenzie e
       # freelance senza poterle provare. Ora è una sezione sola con quattro

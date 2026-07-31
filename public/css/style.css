@@ -680,7 +680,19 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .cfg-includes{list-style:none;display:grid;gap:9px;margin-bottom:24px}
 .cfg-includes li{position:relative;padding-left:24px;font-size:.9rem;color:var(--muted)}
 .cfg-includes li::before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:700}
-.cfg-note{font-size:.78rem;color:var(--muted);margin-top:14px;text-align:center}
+/* Copia il link: secondario per forma, non per importanza. Il pulsante pieno
+   sopra porta ai contatti — è l'azione principale — e questo non deve
+   contendergli l'attenzione, ma deve restare chiaramente un pulsante. */
+.cfg-link{display:block;width:100%;margin-top:10px;padding:11px 14px;font:inherit;
+  font-size:.86rem;color:var(--muted);background:transparent;cursor:pointer;
+  border:1px solid var(--border);border-radius:12px;
+  transition:color .3s,border-color .3s}
+.cfg-link:hover{color:var(--text);border-color:var(--border-2)}
+.cfg-link:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+/* L'esito occupa la sua riga da vuoto: comparendo spingerebbe giù la nota e il
+   riquadro cambierebbe altezza sotto il dito che ha appena premuto. */
+.cfg-link-esito{min-height:1.2em;margin-top:8px;font-size:.78rem;color:var(--green);text-align:center}
+.cfg-note{font-size:.78rem;color:var(--muted);margin-top:10px;text-align:center}
 /* Il totale conta invece di saltare: il numero è a cifre tabellari perché
    durante il conteggio le cifre cambiano tutte, e senza larghezza fissa la
    riga tremerebbe. Il conteggio lo fa il JS, qui serve solo la stabilità. */
