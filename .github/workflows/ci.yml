@@ -36,6 +36,19 @@ jobs:
       - name: Controllo dei tipi
         run: npm run check
 
+      # Le <img> del sito portano gli attributi width e height per riservare lo
+      # spazio ed evitare lo scatto del layout. Quegli attributi valgono però
+      # come altezza imposta: senza height:auto nel reset, qualsiasi regola che
+      # cambi la larghezza stira l'immagine. È accaduto con il logo della
+      # sezione About, deformato del 176% per mesi senza che nulla lo segnalasse.
+      - name: Il reset delle immagini conserva le proporzioni
+        run: |
+          if ! grep -qE '^img\{[^}]*height:auto' public/css/style.css; then
+            echo "::error::manca height:auto nel reset img di public/css/style.css: le immagini con attributi width/height si deformano"
+            exit 1
+          fi
+          echo "  ok    reset img con height:auto"
+
       - name: Build
         run: npm run build
 
