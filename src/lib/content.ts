@@ -6,11 +6,12 @@
  * risponde il sito pubblico resta comunque completo e navigabile, invece di
  * mostrare sezioni vuote o una pagina d'errore.
  */
-import { rowsActive, getSettings, setting, type Settings, type PricingRow, type ReviewRow, type FaqRow } from './db.ts';
+import { rowsActive, getSettings, setting, type Settings, type PricingRow, type ReviewRow, type FaqRow, type WorkRow } from './db.ts';
 
 export type PricingItem = Pick<PricingRow, 'label' | 'price' | 'weeks'>;
 export type ReviewItem = Pick<ReviewRow, 'quote' | 'author' | 'role' | 'stars'>;
 export type FaqItem = Pick<FaqRow, 'question' | 'answer'>;
+export type WorkItem = Pick<WorkRow, 'title' | 'url' | 'summary' | 'tags'>;
 
 const FALLBACK_TYPES: PricingItem[] = [
   { label: 'Landing page', price: 490, weeks: 1 },
@@ -72,6 +73,7 @@ export interface LandingContent {
   types: PricingItem[];
   addons: PricingItem[];
   reviews: ReviewItem[];
+  works: WorkItem[];
   faqs: FaqItem[];
   contactEmail: string;
   calendly: string;
@@ -114,6 +116,33 @@ export function chiaveListino(label: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
+/**
+ * Un lavoro è mostrabile se ha un titolo, e un indirizzo http(s) valido.
+ *
+ * Il filtro sta qui e non in un controllo della CI perché i lavori arrivano dal
+ * database: un valore scritto nel pannello dopo il deploy nessuna verifica
+ * automatica lo vedrà mai. La regola deve valere al momento in cui la pagina si
+ * costruisce, cioè adesso.
+ *
+ * Lo schema si controlla per due motivi. Il primo è che una scheda di portfolio
+ * senza indirizzo apribile non è un portfolio, è un'affermazione — ed è la
+ * sezione dove tutto deve essere verificabile. Il secondo è che il valore finisce
+ * in un href: Astro sfugge il testo, ma non giudica lo schema, e un `javascript:`
+ * scritto per errore o per prova diventerebbe un link eseguibile sulla home. Con
+ * questo filtro l'unica cosa che può arrivare in pagina è un indirizzo web.
+ */
+function lavoroMostrabile(w: { title: string; url: string }): boolean {
+  if (w.title.trim() === '') return false;
+  try {
+    const u = new URL(w.url.trim());
+    return u.protocol === 'https:' || u.protocol === 'http:';
+  } catch {
+    // Indirizzo non valido: un errore di battitura nel pannello non deve
+    // pubblicare una scheda rotta, e non deve far cadere la home.
+    return false;
+  }
+}
+
 /** Link WhatsApp precompilato. Ritorna stringa vuota se il numero non è impostato. */
 export function whatsappLink(rawNumber: string, message = 'Ciao Dext Lab, vorrei informazioni su un progetto'): string {
   const digits = rawNumber.replace(/[^0-9]/g, '');
@@ -123,10 +152,11 @@ export function whatsappLink(rawNumber: string, message = 'Ciao Dext Lab, vorrei
 
 export async function getLandingContent(settings?: Settings): Promise<LandingContent> {
   const s = settings ?? (await getSettings());
-  const [types, addons, reviews, faqs] = await Promise.all([
+  const [types, addons, reviews, works, faqs] = await Promise.all([
     rowsActive<PricingRow>('pricing_types'),
     rowsActive<PricingRow>('pricing_addons'),
     rowsActive<ReviewRow>('reviews'),
+    rowsActive<WorkRow>('works'),
     rowsActive<FaqRow>('faqs'),
   ]);
 
@@ -136,6 +166,13 @@ export async function getLandingContent(settings?: Settings): Promise<LandingCon
     // Nessun ripiego, per il motivo scritto sopra: quello che c'è nel database
     // o niente.
     reviews,
+    /* Stessa regola per i lavori, e per una ragione più forte: un lavoro
+       inventato ha un indirizzo che chiunque può aprire. Si scartano anche le
+       righe senza indirizzo o senza titolo — una voce di portfolio che non porta
+       da nessuna parte non è un portfolio, è un'affermazione. Sono le bozze che
+       la 006 inserisce disattivate: se qualcuno spuntasse «active» prima di
+       compilarle, qui non passerebbero comunque. */
+    works: works.filter(lavoroMostrabile),
     faqs: faqs.length > 0 ? faqs : FALLBACK_FAQS,
     contactEmail: setting(s, 'contact_email', 'info@dextlab.it'),
     calendly: setting(s, 'calendly', 'https://calendly.com/dextlab/call'),

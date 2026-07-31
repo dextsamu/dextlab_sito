@@ -6,6 +6,9 @@
   const EN = {
     // nav
     'Servizi': 'Services', 'Caso reale': 'Real case', 'Perché me': 'Why me',
+    // nomi dell'indice sul bordo destro
+    'Inizio': 'Start', 'Il codice': 'The code', 'Tecnologie': 'Technologies',
+    'Approccio': 'Approach', 'Preventivo': 'Estimate', 'Domande': 'Questions', 'Contatti': 'Contact',
     'Recensioni': 'Reviews', 'Contattami': 'Contact me',
     // hero
     'Disponibile per nuovi progetti': 'Available for new projects',
@@ -38,6 +41,12 @@
     'Scelta dello stack, architettura, sicurezza e ottimizzazione. Ti affianco nelle decisioni tecniche che contano.':
       'Stack choice, architecture, security and optimisation. I support you on the technical decisions that matter.',
     // showcase: il codice vero al posto del mockup disegnato
+    // lavori
+    'Lavori': 'Work', 'Siti che sono': 'Sites that are', 'online adesso': 'online right now',
+    'Ogni voce porta al sito vero: si apre e si guarda. Sotto c\u2019è questo sito, il solo su cui posso mostrarti anche com\u2019è fatto dentro.':
+      'Every entry links to the real site: open it and look. Below is this site, the only one where I can also show you how it is built.',
+    'E questo sito, che è l\u2019unico di cui posso mostrarti anche l\u2019interno':
+      'And this site, the only one whose insides I can show you too',
     'Non te lo racconto': "I won't just tell you",
     'Il codice che ha fatto': 'The code behind', 'quel numero': 'that number',
     "La stima che hai visto in cima non è un'immagine: la calcola questa funzione, letta dal file vero mentre la pagina si costruisce.":

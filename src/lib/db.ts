@@ -110,7 +110,7 @@ export async function saveSettings(entries: Record<string, string>): Promise<voi
 
 // ------------------------------------------------------- contenuti pubblici --
 
-export const CONTENT_TABLES = ['pricing_types', 'pricing_addons', 'reviews', 'faqs'] as const;
+export const CONTENT_TABLES = ['pricing_types', 'pricing_addons', 'reviews', 'faqs', 'works'] as const;
 export type ContentTable = (typeof CONTENT_TABLES)[number];
 
 export interface PricingRow {
@@ -118,6 +118,19 @@ export interface PricingRow {
   label: string;
   price: number;
   weeks: number;
+  sort: number;
+  active: boolean;
+}
+export interface WorkRow {
+  id: number;
+  /** Nome del progetto o del cliente. */
+  title: string;
+  /** Indirizzo del sito: è ciò che rende la voce verificabile. */
+  url: string;
+  /** Una riga su cos'è l'attività e cosa fa il sito. */
+  summary: string;
+  /** Cosa comprendeva il lavoro, separato da virgole. */
+  tags: string;
   sort: number;
   active: boolean;
 }

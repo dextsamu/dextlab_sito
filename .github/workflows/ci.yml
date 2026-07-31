@@ -321,6 +321,81 @@ jobs:
           PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -q -c "delete from reviews where author='Prova CI'"
           exit $fail
 
+      # I lavori per clienti. La regola della sezione è che tutto ciò che vi si
+      # afferma sia verificabile: per un lavoro questo significa un indirizzo che
+      # si apre. Una voce senza link non è un portfolio, è un'affermazione — e
+      # come le recensioni non esiste un ripiego nel codice, perché un lavoro
+      # inventato ha un indirizzo che chiunque può controllare.
+      - name: I lavori portano al sito vero, o non ci sono
+        run: |
+          html=$(curl -s http://127.0.0.1:4321/)
+          fail=0
+          q() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -q -c "$1"; }
+
+          # 1) Nessun ripiego nel codice: se la tabella è vuota o spenta la
+          # sezione resta il caso studio di questo sito, con le sue sei prove.
+          if grep -qE 'FALLBACK_WORKS' src/lib/content.ts; then
+            echo "::error::è comparso un ripiego per i lavori: un lavoro inventato ha un indirizzo che si può aprire"
+            fail=1
+          else
+            echo "  ok    nessun ripiego per i lavori nel codice"
+          fi
+          # La 006 inserisce tre bozze disattivate: a database appena migrato la
+          # sezione non deve mostrare nessuna scheda.
+          n=$(grep -o 'class="lavoro"' <<<"$html" | wc -l)
+          if [ "$n" != 0 ]; then
+            echo "::error::$n schede lavoro con le sole bozze in tabella: le bozze non vanno mostrate"
+            fail=1
+          else
+            echo "  ok    con le sole bozze non si mostra nessun lavoro"
+          fi
+          grep -qF 'class="prova"' <<<"$html" \
+            && echo "  ok    il caso studio di questo sito resta al suo posto" \
+            || { echo "::error::sono sparite le prove del caso studio"; fail=1; }
+
+          # 2) Una riga senza titolo o senza indirizzo non passa, nemmeno se
+          # attiva: è il caso di chi spunta «active» su una bozza per sbaglio.
+          q "insert into works (title, url, summary, tags, sort, active) values ('', 'https://senza-titolo.example/', 'x', '', 90, true)"
+          q "insert into works (title, url, summary, tags, sort, active) values ('Senza indirizzo', '', 'x', '', 91, true)"
+          h2=$(curl -s http://127.0.0.1:4321/)
+          for spia in 'senza-titolo.example' 'Senza indirizzo'; do
+            if grep -qF "$spia" <<<"$h2"; then
+              echo "::error::una riga incompleta («$spia») è finita in pagina"
+              fail=1
+            else
+              echo "  ok    la riga incompleta «$spia» viene scartata"
+            fi
+          done
+
+          # 3) Un lavoro completo compare, con un link vero e le protezioni
+          # d'obbligo su target=_blank.
+          q "insert into works (title, url, summary, tags, sort, active) values ('Prova CI', 'https://esempio.example/', 'Riga di prova.', 'Uno, Due', 92, true)"
+          h3=$(curl -s http://127.0.0.1:4321/)
+          for atteso in 'Prova CI' 'esempio.example' 'class="lavoro"'; do
+            grep -qF "$atteso" <<<"$h3" || { echo "::error::un lavoro completo non compare: manca $atteso"; fail=1; }
+          done
+          # Ogni scheda deve essere un link http(s) con rel="noopener": senza,
+          # la pagina aperta può manipolare quella che l'ha aperta.
+          schede=$(grep -o 'class="lavoro"><a [^>]*>' <<<"$h3" || true)
+          [ -n "$schede" ] || { echo "::error::non trovo il link dentro la scheda del lavoro"; fail=1; }
+          while read -r a; do
+            [ -n "$a" ] || continue
+            grep -qE 'href="https?://' <<<"$a" || { echo "::error::una scheda non punta a un indirizzo http(s): $a"; fail=1; }
+            grep -q 'rel="noopener' <<<"$a" || { echo "::error::una scheda apre in una nuova finestra senza rel=noopener: $a"; fail=1; }
+          done <<<"$schede"
+          [ $fail = 0 ] && echo "  ok    la scheda è un link http(s) con rel=noopener"
+          # E la sezione cambia intestazione quando i lavori ci sono, altrimenti
+          # resterebbe «Un caso reale» sopra un elenco di lavori.
+          grep -qF 'Siti che sono' <<<"$h3" \
+            && echo "  ok    con i lavori la sezione si intitola diversamente" \
+            || { echo "::error::con i lavori presenti l'intestazione è rimasta quella del caso studio"; fail=1; }
+          grep -qF 'class="prova"' <<<"$h3" \
+            && echo "  ok    e il caso studio resta anche con i lavori" \
+            || { echo "::error::i lavori hanno mangiato il caso studio"; fail=1; }
+
+          q "delete from works where sort in (90, 91, 92)"
+          exit $fail
+
       # Le quattro cose che si vedono, e le tre trappole che nascondono.
       - name: Indice, cuciture, titoli e domande
         run: |

@@ -1,0 +1,18 @@
+Anteprime dei lavori nel portfolio.
+
+Il nome del file è il dominio del sito senza estensione, per esempio:
+
+    https://esempio.it/        ->  esempio.jpg
+    https://www.altro-sito.it/ ->  altro-sito.jpg
+
+Estensioni accettate, nell'ordine in cui vengono cercate:
+webp, jpg, jpeg, png, avif.
+
+Non serve registrare il file da nessuna parte: la scheda lo cerca da sé
+(src/lib/assets.ts, immagineLavoro) e se non lo trova mostra il dominio in
+grande, che è comunque l'informazione verificabile. L'indirizzo dell'immagine
+porta l'impronta del contenuto, quindi sostituendo lo screenshot nessuno vede
+quello vecchio rimasto in cache.
+
+Proporzione consigliata 16:10, larghezza 800-1200px. Il riquadro ritaglia dal
+bordo alto, così l'intestazione del sito resta visibile.

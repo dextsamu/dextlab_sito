@@ -113,7 +113,7 @@ Opzionali:
   confronto fra umani confermati e bot.
 - **Prezzi** — tipi di progetto e add-on del configuratore.
 - **Lead** — messaggi ricevuti, cambio stato, eliminazione, export CSV.
-- **Contenuti** — recensioni e FAQ.
+- **Contenuti** — lavori del portfolio, recensioni e FAQ.
 - **Backup** — esecuzione, elenco, download, eliminazione.
 - **Impostazioni** — manutenzione, contatti, SMTP, Telegram.
 
@@ -190,9 +190,15 @@ Se PostgreSQL è irraggiungibile il sito pubblico **resta online**: prezzi e FAQ
 ricadono su contenuti predefiniti, gli errori vengono loggati e la pagina
 risponde comunque 200. Il pannello admin invece richiede il database.
 
-Le **recensioni** sono l'unica eccezione e non hanno un ripiego: se il database
-non ne restituisce, la sezione non viene resa affatto e la voce corrispondente
-scompare dal menu. Per un listino un valore di riferimento plausibile è un
+**Recensioni** e **lavori** sono le eccezioni e non hanno un ripiego: se il
+database non ne restituisce, la sezione non viene resa affatto e la voce
+corrispondente scompare dal menu (per i lavori la sezione torna a essere il caso
+studio di questo sito). Per un listino un valore di riferimento plausibile è un
 ripiego onesto; una recensione è un'affermazione su una persona che esiste, e
 inventarla sarebbe l'unico modo in cui questo sito potrebbe dire una cosa falsa
-senza accorgersene. Vedi il commento in `src/lib/content.ts`.
+senza accorgersene. Per un lavoro la ragione è più forte ancora: ha un indirizzo
+che chiunque può aprire. Vedi il commento in `src/lib/content.ts`.
+
+Una voce dei lavori compare solo con un titolo e un indirizzo `http`/`https`
+valido: il controllo è nel codice e non solo in CI, perché i lavori si scrivono
+dal pannello dopo il deploy e nessuna verifica automatica li vedrebbe mai.

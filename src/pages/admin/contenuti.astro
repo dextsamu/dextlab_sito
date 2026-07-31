@@ -22,6 +22,15 @@ const reviewFields: FieldSpec[] = [
   { name: 'active', type: 'check', placeholder: '' },
 ];
 
+const workFields: FieldSpec[] = [
+  { name: 'title', type: 'text', placeholder: 'Nome del progetto o del cliente' },
+  { name: 'url', type: 'text', placeholder: 'https://…' },
+  { name: 'summary', type: 'textarea', placeholder: "Una riga: cos'è e cosa fa il sito" },
+  { name: 'tags', type: 'text', placeholder: 'Cosa comprendeva, separato da virgole' },
+  { name: 'sort', type: 'number', placeholder: 'ordine' },
+  { name: 'active', type: 'check', placeholder: '' },
+];
+
 const faqFields: FieldSpec[] = [
   { name: 'question', type: 'text', placeholder: 'Domanda' },
   { name: 'answer', type: 'textarea', placeholder: 'Risposta' },
@@ -29,8 +38,9 @@ const faqFields: FieldSpec[] = [
   { name: 'active', type: 'check', placeholder: '' },
 ];
 
-const [reviews, faqs, leads] = await Promise.all([
+const [reviews, works, faqs, leads] = await Promise.all([
   contentRows('reviews'),
+  contentRows('works'),
   contentRows('faqs'),
   leadStats(),
 ]);
@@ -45,6 +55,23 @@ const [reviews, faqs, leads] = await Promise.all([
     <h3>+ Nuova recensione</h3>
     <CrudRow table="reviews" fields={reviewFields} row={null} csrf={csrf} />
     <p class="hint">Le stelle sono limitate fra 1 e 5.</p>
+  </section>
+
+  <section class="block">
+    <h2>Lavori</h2>
+    {works.map((row) => <CrudRow table="works" fields={workFields} row={row} csrf={csrf} />)}
+    <h3>+ Nuovo lavoro</h3>
+    <CrudRow table="works" fields={workFields} row={null} csrf={csrf} />
+    <p class="hint">
+      Servono almeno il nome e l'indirizzo: una voce senza uno dei due non viene mostrata, anche se
+      è spuntata come attiva. L'indirizzo è la parte che rende il lavoro verificabile, ed è cliccabile
+      dalla scheda. In «cosa comprendeva» le virgole separano le etichette.
+    </p>
+    <p class="hint">
+      Per l'anteprima: metti l'immagine in <code>public/assets/lavori/</code> con il nome del dominio
+      senza estensione — per <code>https://esempio.it/</code> il file è <code>esempio.jpg</code>
+      (vanno bene anche webp, png, avif). Se non c'è, la scheda mostra il dominio in grande.
+    </p>
   </section>
 
   <section class="block">
