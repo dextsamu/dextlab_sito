@@ -5,7 +5,7 @@
   // dizionario: testo italiano -> inglese
   const EN = {
     // nav
-    'Servizi': 'Services', 'Portfolio': 'Portfolio', 'Perché me': 'Why me',
+    'Servizi': 'Services', 'Caso reale': 'Real case', 'Perché me': 'Why me',
     'Recensioni': 'Reviews', 'Contattami': 'Contact me',
     // hero
     'Disponibile per nuovi progetti': 'Available for new projects',
@@ -40,18 +40,29 @@
       'Not just words. Here are the kinds of experiences I build — animated, responsive, tailor-made.',
     'veloci, responsive, fatti per convertire': 'fast, responsive, built to convert',
     'gestionali e dashboard in tempo reale': 'management tools and real-time dashboards',
-    // portfolio
-    'Lavori': 'Work', 'Progetti': 'Selected', 'selezionati': 'projects',
-    'Una selezione di prodotti digitali realizzati. Ogni progetto parte da zero, su misura.':
-      'A selection of digital products built. Every project starts from scratch, tailor-made.',
-    'Sito Web': 'Website', 'E-commerce artigianale': 'Artisan e-commerce',
-    'Vetrina e shop online con catalogo dinamico e checkout sicuro.':
-      'Showcase and online shop with dynamic catalogue and secure checkout.',
-    'Gestionale prenotazioni': 'Booking management',
-    'Dashboard per gestire appuntamenti, clienti e pagamenti in tempo reale.':
-      'Dashboard to manage appointments, clients and payments in real time.',
-    'I progetti mostrati sono esempi rappresentativi. Vuoi vedere casi reali?':
-      'The projects shown are representative examples. Want to see real cases?',
+    // il caso reale: questo sito
+    'Un caso reale': 'A real case', 'Il sito che stai': 'The site you are', 'guardando': 'looking at',
+    'Nessuna piattaforma, nessun tema comprato. Tutto quello che segue lo puoi verificare adesso, da questa pagina.':
+      'No platform, no bought theme. Everything below you can verify right now, from this page.',
+    'rendering': 'rendering',
+    'Astro 7 lato server a ogni richiesta, non una pagina statica rigenerata a mano.':
+      'Astro 7 server-side on every request, not a static page rebuilt by hand.',
+    'contenuti': 'content',
+    'Prezzi, recensioni e FAQ stanno su PostgreSQL e si cambiano dal pannello, senza toccare il codice.':
+      'Prices, reviews and FAQs live in PostgreSQL and are edited from the admin panel, without touching code.',
+    'deploy': 'deploy',
+    'Da un push alla produzione in due minuti: immagine costruita, pubblicata e messa in servizio da sola.':
+      'From a push to production in two minutes: image built, published and rolled out on its own.',
+    'controlli': 'checks',
+    'Verifiche automatiche prima di ogni pubblicazione: se una fallisce, il deploy non parte.':
+      'Automated checks before every release: if one fails, the deploy does not run.',
+    'caratteri': 'fonts',
+    'Serviti da questo dominio: la pagina non fa nessuna richiesta verso altri host.':
+      'Served from this domain: the page makes no request to any other host.',
+    'senza JS': 'without JS',
+    'Con JavaScript disattivato la pagina resta leggibile per intero, sezioni comprese.':
+      'With JavaScript off the page stays fully readable, sections included.',
+    'Vuoi vedere come lavoro su un progetto tuo?': 'Want to see how I work on a project of yours?',
     'Scrivimi': 'Write to me',
     // processo
     'Come lavoro': 'How I work', 'Un processo': 'A transparent', 'trasparente': 'process',

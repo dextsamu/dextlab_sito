@@ -407,24 +407,6 @@
     document.addEventListener('visibilitychange', () => (document.hidden ? ferma() : avvia()));
   }
 
-  /* 3D tilt on portfolio cards */
-  const fine = window.matchMedia('(pointer:fine)').matches;
-  if (fine && !menoMoto.matches) {
-    document.querySelectorAll('.pcard').forEach((card) => {
-      card.addEventListener('pointermove', (e) => {
-        const r = card.getBoundingClientRect();
-        const px = (e.clientX - r.left) / r.width - 0.5;
-        const py = (e.clientY - r.top) / r.height - 0.5;
-        card.style.setProperty('--rx', px * 7 + 'deg');
-        card.style.setProperty('--ry', -py * 7 + 'deg');
-      });
-      card.addEventListener('pointerleave', () => {
-        card.style.setProperty('--rx', '0deg');
-        card.style.setProperty('--ry', '0deg');
-      });
-    });
-  }
-
   /* preventivo configurator */
   const cfgTypes = document.getElementById('cfgTypes');
   if (cfgTypes) {
