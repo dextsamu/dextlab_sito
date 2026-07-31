@@ -19,9 +19,14 @@ interface Props {
 
 const { types } = Astro.props;
 
-// Stessa formula del configuratore in fondo alla pagina, e dello stesso
-// initialEstimate: la stima servita dal server combacia con quella che il JS
-// ricalcola, quindi non c'è nessuno scatto al primo rendering.
+// Qui NON si mostra il prezzo, per scelta. Nella prima schermata una cifra
+// tratta al posto tuo prima che il visitatore sappia cosa sta comprando: ancora
+// il discorso su un numero, e lo fa nel punto in cui non c'è ancora nessun
+// motivo per accettarlo. Il prezzo resta nel configuratore, dove ha accanto le
+// funzioni che lo compongono.
+// Quello che resta è il tempo, che è l'unico numero che in questa posizione
+// gioca a favore: chi cerca qualcuno di veloce lo legge come una promessa, non
+// come una richiesta.
 const stima = initialEstimate(types);
 
 // Posizioni degli esagoni flottanti: erano attributi style inline ripetuti,
@@ -76,16 +81,13 @@ const hexes = [
         }
       </div>
       <div class="hero-stima">
-        <span class="hero-stima-lab">Stima indicativa</span>
-        <b>
-          <span id="heroMin">{stima.min}</span> – <span id="heroMax">{stima.max}</span>
-        </b>
-        <span class="hero-stima-t">Tempi: <strong id="heroTime">{stima.weeks}</strong></span>
+        <span class="hero-stima-lab">Pronto in</span>
+        <b id="heroTime">{stima.weeks}</b>
       </div>
     </div>
 
     <div class="hero-actions reveal">
-      <a href="#preventivo" class="btn btn-primary">Aggiungi le funzioni</a>
+      <a href="#preventivo" class="btn btn-primary">Calcola il preventivo</a>
       <a href="#servizi" class="btn btn-ghost">Scopri i servizi</a>
     </div>
   </div>

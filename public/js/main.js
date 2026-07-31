@@ -161,6 +161,53 @@
     })
   );
 
+  /* il segnale arriva prima di te
+     -----------------------------
+     Al clic su una voce del menu, la sezione di destinazione si annuncia quando
+     lo scorrimento è finito. Il momento giusto lo dà l'evento scrollend dove
+     esiste; dove non esiste si ripiega su un ritardo fisso, che è impreciso ma
+     non sbagliato — lo scorrimento morbido del browser dura più o meno quello.
+
+     L'attesa è UNA sola per tutta la pagina, e ogni clic annulla quella
+     precedente. Con un ascoltatore per clic, due clic ravvicinati si pestavano i
+     piedi: l'attesa del primo scattava durante il secondo e annunciava la
+     sezione sbagliata, oppure consumava l'evento e il secondo non si annunciava
+     affatto. Verificato: succedeva.
+
+     Non parte con movimento ridotto attivo: è un'animazione, e chi ha chiesto di
+     non vederne non deve vederla nemmeno quando è utile. */
+  let attesaArrivo = null;
+  const scordaAttesa = () => {
+    if (!attesaArrivo) return;
+    window.removeEventListener('scrollend', attesaArrivo.alFine);
+    clearTimeout(attesaArrivo.rete);
+    attesaArrivo = null;
+  };
+  const annuncia = (sezione) => {
+    scordaAttesa();
+    if (!sezione || menoMoto.matches) return;
+    sezione.classList.remove('arrivo');
+    // Leggere offsetWidth forza il ricalcolo: senza, un secondo clic ravvicinato
+    // sulla stessa voce non farebbe ripartire l'animazione.
+    void sezione.offsetWidth;
+    sezione.classList.add('arrivo');
+    clearTimeout(sezione._pulizia);
+    sezione._pulizia = setTimeout(() => sezione.classList.remove('arrivo'), 1300);
+  };
+  document.querySelectorAll('.nav-links a[href^="#"], .footer-links a[href^="#"]').forEach((a) => {
+    a.addEventListener('click', () => {
+      const sezione = document.querySelector(a.getAttribute('href'));
+      if (!sezione || menoMoto.matches) return;
+      scordaAttesa();
+      const alFine = () => annuncia(sezione);
+      // La rete di sicurezza serve quando il salto è così breve che non parte
+      // nessuno scorrimento: scrollend non arriverebbe mai.
+      const rete = setTimeout(alFine, 'onscrollend' in window ? 1200 : 620);
+      attesaArrivo = { alFine, rete };
+      if ('onscrollend' in window) window.addEventListener('scrollend', alFine, { once: true });
+    });
+  });
+
   /* reveal on scroll */
   const reveals = document.querySelectorAll('.reveal');
   if ('IntersectionObserver' in window) {
@@ -445,8 +492,6 @@
     // qui si tiene in sincrono. Se l'hero non ci fosse — pagina di manutenzione,
     // markup cambiato — restano null e non succede niente.
     const eroeTipi = document.getElementById('heroTipi');
-    const eroeMin = document.getElementById('heroMin');
-    const eroeMax = document.getElementById('heroMax');
     const eroeTime = document.getElementById('heroTime');
 
     const elMin = document.getElementById('cfgMin');
@@ -546,13 +591,10 @@
       }
       mostrati = { min, max, weeks };
       if (elStickyVal) elStickyVal.textContent = `${fmt(min)} – ${fmt(max)}`;
-      // La stima nell'hero è la stessa, non una seconda copia calcolata a parte:
-      // una formula duplicata è una formula che prima o poi divergerà.
-      if (eroeMin) eroeMin.textContent = fmt(min);
-      if (eroeMax) eroeMax.textContent = fmt(max);
-      // Anche il pallino evidenziato lassù, non solo i numeri: scegliendo qui
-      // in fondo, l'hero mostrava la cifra giusta con l'opzione sbagliata
-      // accesa.
+      // Nell'hero si rispecchiano il tempo e il pallino selezionato, non il
+      // prezzo: quello resta qui, dove accanto ci sono le funzioni che lo
+      // compongono. Il pallino serve perché scegliendo qui in fondo l'hero
+      // mostrava il tempo giusto con l'opzione sbagliata accesa.
       if (eroeTipi) {
         eroeTipi.querySelectorAll('.hero-tipo').forEach((b) =>
           b.classList.toggle('active', b.dataset.label === label.trim())

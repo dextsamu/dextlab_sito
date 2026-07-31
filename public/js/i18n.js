@@ -20,7 +20,7 @@
     // accanto («circa 1 settimana») lo riscrive il JS, che ha già la sua forma
     // inglese: qui serve solo la parola.
     'Tempi:': 'Timeline:',
-    'Aggiungi le funzioni': 'Add the features',
+    'Pronto in': 'Ready in', 'Calcola il preventivo': 'Get your estimate',
     // servizi
     'Cosa faccio': 'What I do', 'Servizi': 'Services', 'end-to-end': 'end-to-end',
     'Dalla prima riga di codice al deploy in produzione. Un unico interlocutore per tutto lo stack.':
