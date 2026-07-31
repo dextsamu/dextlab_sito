@@ -256,7 +256,7 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 }
 .hero-tipo:hover{color:var(--text);border-color:var(--border-2)}
 .hero-tipo.active{background:var(--grad);border-color:transparent;color:#04121a;font-weight:600}
-.hero-stima{display:grid;gap:3px;justify-items:center}
+.hero-stima{display:grid;gap:1px;justify-items:center}
 .hero-stima-lab{
   font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
   font-family:'Space Grotesk',sans-serif;font-weight:600;
@@ -266,8 +266,8 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.15;
   background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
 }
-.hero-stima-t{font-size:.86rem;color:var(--muted)}
-.hero-stima-t strong{color:var(--text);font-weight:600}
+/* Il tempo al posto del prezzo, e nel formato del prezzo: è il numero che porta
+   il peso della schermata. Vedi il commento in Hero.astro per il perché. */
 
 .hero-scroll{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);width:26px;height:42px;border:2px solid var(--border-2);border-radius:14px}
 .hero-scroll span{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:4px;height:8px;border-radius:2px;background:var(--cyan);animation:scrolldot 1.8s infinite}
@@ -351,8 +351,38 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 /* Peso 680: sta fra i gradini 600 e 700 e prima non era chiedibile. I titoli
    diventano più decisi senza diventare grassetti. */
 .section-head h2{
+  position:relative;
   font-size:clamp(2.15rem,4.4vw,3.3rem);margin-bottom:16px;
   font-variation-settings:'wght' 680;letter-spacing:-.028em;
+}
+
+/* Il segnale che arriva prima di te.
+   Con dodici sezioni, un salto dal menu ti scarica altrove senza dire niente:
+   ti ritrovi in un punto della pagina e devi capire da solo che è quello che
+   avevi chiesto. Qui la destinazione si annuncia — il filetto dell'occhiello si
+   allunga e una linea corre sotto il titolo — e lo fa quando lo scorrimento è
+   arrivato, non quando è partito. È la pista di circuito del logo usata per
+   dire «ti ho portato qui».
+   Costa una classe aggiunta per un secondo, solo al clic: a riposo non esiste. */
+.section.arrivo .eyebrow::before{animation:segnaleFiletto .85s var(--ease)}
+@keyframes segnaleFiletto{
+  0%{width:26px}
+  40%{width:74px}
+  100%{width:26px}
+}
+.section.arrivo .section-head h2::after{
+  content:"";position:absolute;bottom:-9px;height:2px;width:0;
+  background:var(--grad);border-radius:2px;
+  animation:segnaleSotto 1.05s var(--ease) forwards;
+}
+/* Le teste centrate crescono dal centro, quelle aperte da sinistra: la linea
+   deve partire da dove parte il testo, o sembra scollata dal titolo. */
+.section-head:not(.aperta) h2::after{left:50%;transform:translateX(-50%)}
+.section-head.aperta h2::after{left:0}
+@keyframes segnaleSotto{
+  0%{width:0;opacity:1}
+  55%{width:100%;opacity:1}
+  100%{width:100%;opacity:0}
 }
 .section-lead{color:var(--muted);font-size:1.1rem}
 
