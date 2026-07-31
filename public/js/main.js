@@ -78,6 +78,24 @@
     titolo.style.setProperty('--w', Math.round(PESO_PIENO - q * (PESO_PIENO - PESO_MAGRO)));
   };
 
+  /* la linea del processo avanza mentre scendi
+     ------------------------------------------
+     Quattro tappe, quattro scatti: la barra si ferma su una tappa prima di
+     passare alla successiva, come un passo che si completa. Guidata dalla
+     posizione della sezione nella finestra, non da un timer: è il visitatore
+     che avanza, non un'animazione che gira per conto suo. */
+  const passi = document.querySelector('.steps');
+  const tappe = passi ? [...passi.querySelectorAll('.step')] : [];
+  const muoviProcesso = () => {
+    const r = passi.getBoundingClientRect();
+    const alto = window.innerHeight;
+    // 0 quando la sezione entra dal basso, 1 quando esce dall'alto.
+    const q = Math.max(0, Math.min(0.999, (alto - r.top) / (alto + r.height)));
+    const quale = Math.floor(q * tappe.length);
+    passi.style.setProperty('--avanzamento', (quale + 1) * (100 / tappe.length) + '%');
+    tappe.forEach((t, i) => t.classList.toggle('viva', i <= quale));
+  };
+
   /* nav scroll state + scroll progress bar */
   const nav = document.getElementById('nav');
   const progress = document.getElementById('scrollProgress');
@@ -97,6 +115,7 @@
       requestAnimationFrame(() => {
         attesaScroll = false;
         if (esagoni.length) muoviAlveare();
+        if (tappe.length) muoviProcesso();
         // Il peso del titolo si ferma dopo la prima schermata: oltre, il titolo
         // non è più in vista e riscrivere la variabile costerebbe un ridisegno
         // di testo per niente.

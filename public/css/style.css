@@ -477,12 +477,44 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .mock.in .bw-line,.mock.in .bw-btn,.mock.in .bw-grid span,.mock.in .chart span{animation-play-state:running}
 
 /* ---------- steps ---------- */
-.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:24px}
-.step{position:relative;padding:30px 26px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border);transition:transform .4s var(--ease)}
-.step:hover{transform:translateY(-6px)}
-.step-n{font-family:'Space Grotesk',sans-serif;font-size:2.6rem;font-weight:700;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;opacity:.9}
-.step h3{font-size:1.2rem;margin:10px 0 8px}
-.step p{color:var(--muted);font-size:.93rem}
+/* I quattro passi erano quattro riquadri affiancati, tutti uguali e tutti
+   accesi: un elenco, non un processo. Ora sono tappe su una linea che avanza
+   mentre scendi, e quella che ti riguarda è l'unica accesa. La stessa
+   informazione con una forma che la racconta.
+   La linea la disegna un ::before sul contenitore, così le tappe restano celle
+   di griglia e su telefono si impilano senza portarsi dietro geometrie. */
+.steps{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:22px;padding-top:34px}
+.steps::before{
+  content:"";position:absolute;top:6px;left:0;right:0;height:2px;border-radius:2px;
+  background:rgba(255,255,255,.08);
+}
+.steps::after{
+  content:"";position:absolute;top:6px;left:0;height:2px;border-radius:2px;
+  width:var(--avanzamento,25%);background:var(--grad);
+  transition:width .55s var(--ease);
+}
+.step{
+  position:relative;padding:20px 20px 22px;border-radius:var(--radius);
+  background:var(--surface);border:1px solid var(--border);
+  transition:border-color .45s,background .45s,opacity .45s;
+  opacity:.5;
+}
+/* Il pallino sulla linea, sopra ogni tappa. */
+.step::before{
+  content:"";position:absolute;top:-34px;left:20px;width:10px;height:10px;border-radius:50%;
+  background:var(--bg-2);border:2px solid rgba(255,255,255,.14);
+  transition:border-color .45s,background .45s,box-shadow .45s;
+}
+.step.viva{opacity:1;border-color:var(--border-2);background:var(--surface-2)}
+.step.viva::before{border-color:var(--cyan);background:var(--cyan);box-shadow:0 0 12px 2px rgba(84,201,200,.45)}
+.step-n{font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:700;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;opacity:.9}
+.step h3{font-size:1.12rem;margin:6px 0 8px}
+.step p{color:var(--muted);font-size:.9rem}
+@media (prefers-reduced-motion:reduce){
+  /* Senza movimento la linea non ha senso: tutte le tappe accese, come prima. */
+  .step{opacity:1}
+  .steps::after{width:100%}
+}
 
 /* ---------- about ---------- */
 .about-inner{display:grid;grid-template-columns:1fr 1.2fr;gap:64px;align-items:center}
@@ -823,6 +855,19 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .js .about-text.reveal{transform:translateX(32px)}
 .js .config.reveal{transform:translateY(-26px)}
 
+/* C · l'ingresso dell'hero è una sequenza, non un blocco.
+   Trentotto comparse identiche non fanno colpo; il primo secondo e mezzo sì, se
+   le cose arrivano nell'ordine in cui si leggono. Sono solo ritardi sulla
+   transizione che c'era già: nessuna animazione nuova, nessun costo in più.
+   Vale solo per l'hero, che è l'unico blocco visibile all'ingresso — sulle
+   sezioni sotto lo scaglionamento lo fa già l'osservatore. */
+.js .hero .reveal{transition-delay:var(--ordine,0s)}
+.js .hero-badge{--ordine:.05s}
+.js .hero-title{--ordine:.16s}
+.js .hero-sub{--ordine:.30s}
+.js .hero-conf{--ordine:.44s}
+.js .hero-actions{--ordine:.58s}
+
 .js .reveal.in{opacity:1;transform:none}
 
 /* ---------- responsive ---------- */
@@ -838,6 +883,12 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   .contact-inner{grid-template-columns:1fr;gap:40px}
 }
 @media (max-width:720px){
+  /* Quattro tappe in una colonna: la linea orizzontale non ha più senso e i
+     pallini nemmeno. Tutte accese, come erano prima. */
+  .steps{grid-template-columns:1fr;padding-top:0;gap:16px}
+  .steps::before,.steps::after,.step::before{display:none}
+  .step{opacity:1}
+
   .nav-toggle{display:flex}
   .nav-links{
     position:fixed;top:74px;right:0;flex-direction:column;align-items:flex-start;gap:0;
@@ -881,4 +932,8 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   /* La specificità deve pareggiare quella di .js .reveal, altrimenti con
      movimento ridotto le sezioni resterebbero a opacity:0. */
   .js .reveal{opacity:1;transform:none}
+  /* La regola qui sopra azzera la durata ma non il ritardo: senza questa riga i
+     blocchi dell'hero comparirebbero comunque a scaglioni fino a mezzo secondo,
+     che è movimento. */
+  .js .hero .reveal{transition-delay:0s}
 }
