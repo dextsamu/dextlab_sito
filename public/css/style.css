@@ -212,7 +212,13 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   background:var(--surface);border:1px solid var(--border);
   transition:transform .4s var(--ease),border-color .4s,background .4s;
   overflow:hidden;
+  /* Colonna flessibile per allineare i tag in fondo a tutte le card: la
+     Consulenza IT non ha una riga di prezzo — si vende a giornata — e senza
+     questo restava con un vuoto in fondo mentre le altre due arrivavano
+     al bordo. */
+  display:flex;flex-direction:column;
 }
+.card-tags{margin-top:auto}
 .card::before{
   content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;
   background:var(--grad);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
@@ -238,6 +244,12 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .card p{color:var(--muted);font-size:.96rem;margin-bottom:18px}
 .card-tags{list-style:none;display:flex;flex-wrap:wrap;gap:8px}
 .card-tags li{font-size:.78rem;color:var(--cyan);padding:4px 11px;border-radius:999px;background:rgba(84,201,200,.08);border:1px solid var(--border-2)}
+/* Prezzo di partenza nella card. Cifre tabellari perché le tre card stanno
+   affiancate: senza, i numeri di larghezza diversa non si allineano fra loro. */
+.card-price{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:18px;padding-top:15px;border-top:1px solid var(--border)}
+.card-price b{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.3rem;letter-spacing:-.01em;font-variant-numeric:tabular-nums;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.card-price b i{font-style:normal;font-size:.7rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;display:block;color:var(--muted);-webkit-text-fill-color:var(--muted);margin-bottom:2px}
+.card-price em{font-style:normal;font-size:.82rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
 
 /* ---------- showcase mockups ---------- */
 .mocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:28px}
@@ -396,7 +408,37 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .cfg-includes li{position:relative;padding-left:24px;font-size:.9rem;color:var(--muted)}
 .cfg-includes li::before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:700}
 .cfg-note{font-size:.78rem;color:var(--muted);margin-top:14px;text-align:center}
+/* Il totale conta invece di saltare: il numero è a cifre tabellari perché
+   durante il conteggio le cifre cambiano tutte, e senza larghezza fissa la
+   riga tremerebbe. Il conteggio lo fa il JS, qui serve solo la stabilità. */
+.cfg-price span{font-variant-numeric:tabular-nums}
+/* Variazione dell'ultima scelta. Occupa sempre la sua riga anche da vuota,
+   altrimenti comparendo spingerebbe giù il resto del riquadro. */
+.cfg-delta{min-height:1.35em;margin:-4px 0 10px;font-size:.84rem;font-family:'Space Grotesk',sans-serif;color:var(--green);opacity:0;transition:opacity .25s var(--ease);font-variant-numeric:tabular-nums}
+.cfg-delta.on{opacity:1}
+.cfg-delta.giu{color:var(--muted)}
 @media (max-width:780px){.config{grid-template-columns:1fr}.config-result{position:static}}
+
+/* Barra della stima su telefono: appare solo quando il configuratore è a
+   schermo, così non copre il resto della pagina. */
+.cfg-sticky{
+  position:fixed;left:12px;right:12px;bottom:12px;z-index:60;display:none;
+  align-items:center;gap:12px;padding:11px 14px;border-radius:14px;
+  background:rgba(11,17,32,.92);border:1px solid var(--border-2);
+  backdrop-filter:blur(10px);
+  transform:translateY(140%);transition:transform .35s var(--ease);
+}
+.cfg-sticky.on{transform:none}
+.cfg-sticky-label{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.cfg-sticky-val{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.05rem;font-variant-numeric:tabular-nums;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.cfg-sticky-cta{margin-left:auto;font-size:.82rem;font-weight:600;padding:9px 15px;border-radius:10px;background:var(--grad);color:#04121a;min-height:38px;display:grid;place-items:center}
+@media (max-width:780px){.cfg-sticky{display:flex}}
+@media (prefers-reduced-motion:reduce){.cfg-sticky{transition:none}}
+
+/* Bersagli di tocco. I link inseriti in un paragrafo erano alti quanto la riga
+   — 16px per "Privacy Policy" nel banner cookie, 19 per "Scrivimi" — sotto il
+   minimo di 24px. Il padding allarga l'area sensibile lasciando ferma la riga. */
+.cookie p a,.portfolio-note a{display:inline-block;padding:4px 0;min-height:24px;box-sizing:content-box}
 
 /* ---------- faq ---------- */
 .faq{max-width:780px;margin:0 auto;display:grid;gap:14px}
@@ -553,7 +595,7 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .footer-logo{height:30px;width:auto}
 .footer-copy{color:var(--muted);font-size:.88rem}
 .footer-links{display:flex;gap:24px}
-.footer-links a{color:var(--muted);font-size:.9rem;transition:color .25s}
+.footer-links a{color:var(--muted);font-size:.9rem;transition:color .25s;display:inline-flex;align-items:center;min-height:24px}
 .footer-links a:hover{color:var(--text)}
 
 /* ---------- reveal animation ---------- */

@@ -205,7 +205,45 @@
     const elMax = document.getElementById('cfgMax');
     const elTime = document.getElementById('cfgTime');
     const elCta = document.getElementById('cfgCta');
-    const fmt = (n) => '€' + n.toLocaleString('it-IT');
+    const elDelta = document.getElementById('cfgDelta');
+    const elSticky = document.getElementById('cfgSticky');
+    const elStickyVal = document.getElementById('cfgStickyVal');
+    // Stesso raggruppamento di src/lib/content.ts, e per lo stesso motivo: non
+    // dipendere dai dati locale di ICU, che sul server possono mancare e far
+    // uscire "4500" dove qui usciva "4.500".
+    const fmt = (n) => '€' + String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+    const menoMoto = matchMedia('(prefers-reduced-motion: reduce)');
+
+    /**
+     * Porta un numero da un valore all'altro invece di sostituirlo di scatto.
+     *
+     * Serve a confermare che la scelta è stata registrata: prima il totale
+     * cambiava senza alcun segnale, e su un riquadro con dieci opzioni non era
+     * evidente quale avesse prodotto quale cifra. Con movimento ridotto attivo
+     * scrive subito il valore finale, senza animazione.
+     */
+    const conta = (el, da, a, durata = 260) => {
+      if (menoMoto.matches || da === a) {
+        el.textContent = fmt(a);
+        return;
+      }
+      if (el._anim) cancelAnimationFrame(el._anim);
+      const t0 = performance.now();
+      const passo = (ora) => {
+        const q = Math.min(1, (ora - t0) / durata);
+        // Uscita morbida: parte rapido e si assesta, come il resto del sito.
+        const e = 1 - Math.pow(1 - q, 3);
+        el.textContent = fmt(Math.round((da + (a - da) * e) / 10) * 10);
+        if (q < 1) el._anim = requestAnimationFrame(passo);
+        else el.textContent = fmt(a);
+      };
+      el._anim = requestAnimationFrame(passo);
+    };
+
+    /** Valori attualmente mostrati, per sapere da dove far partire il conteggio. */
+    let mostrati = null;
+    let timerDelta = null;
 
     const compute = () => {
       const active = cfgTypes.querySelector('.cfg-type.active');
@@ -220,16 +258,48 @@
           extras.push(a.parentElement.querySelector('span').textContent);
         }
       });
-      elMin.textContent = fmt(Math.round((price * 0.9) / 10) * 10);
-      elMax.textContent = fmt(Math.round((price * 1.3) / 10) * 10);
+      const min = Math.round((price * 0.9) / 10) * 10;
+      const max = Math.round((price * 1.3) / 10) * 10;
+
+      if (mostrati === null) {
+        // Primo calcolo: i valori sono già nell'HTML resi dal server, niente da animare.
+        elMin.textContent = fmt(min);
+        elMax.textContent = fmt(max);
+      } else {
+        conta(elMin, mostrati.min, min);
+        conta(elMax, mostrati.max, max);
+
+        // Quanto è costata l'ultima scelta. Il totale da solo non lo dice.
+        const dPrezzo = min - mostrati.min;
+        const dSett = weeks - mostrati.weeks;
+        if (elDelta && (dPrezzo || dSett)) {
+          const segno = (n) => (n > 0 ? '+' : '−') + Math.abs(n).toLocaleString('it-IT');
+          const en2 = document.documentElement.lang === 'en';
+          const pezzi = [];
+          if (dPrezzo) pezzi.push(segno(dPrezzo) + ' €');
+          if (dSett) pezzi.push(segno(dSett) + (en2 ? ' wk' : ' sett.'));
+          elDelta.textContent = pezzi.join(' · ');
+          elDelta.classList.toggle('giu', dPrezzo < 0);
+          elDelta.classList.add('on');
+          clearTimeout(timerDelta);
+          timerDelta = setTimeout(() => elDelta.classList.remove('on'), 2600);
+        }
+      }
+      mostrati = { min, max, weeks };
+      if (elStickyVal) elStickyVal.textContent = `${fmt(min)} – ${fmt(max)}`;
+
       const en = document.documentElement.lang === 'en';
       const wTxt = en
         ? weeks <= 1 ? 'about 1 week' : weeks <= 6 ? `about ${weeks} weeks` : `${weeks}+ weeks`
         : weeks <= 1 ? 'circa 1 settimana' : weeks <= 6 ? `circa ${weeks} settimane` : `${weeks}+ settimane`;
       elTime.textContent = wTxt;
+      // I valori nel messaggio vengono dal calcolo, non da textContent: durante
+      // il conteggio quello contiene cifre intermedie, e un clic sul pulsante a
+      // metà animazione avrebbe precompilato il form con una stima inesistente.
+      const stima = `${fmt(min)}–${fmt(max)}`;
       const msg = en
-        ? `Hi, I'd like a quote for: ${label}${extras.length ? ' + ' + extras.join(', ') : ''} (estimate ${elMin.textContent}–${elMax.textContent}).`
-        : `Ciao, vorrei un preventivo per: ${label}${extras.length ? ' + ' + extras.join(', ') : ''} (stima ${elMin.textContent}–${elMax.textContent}).`;
+        ? `Hi, I'd like a quote for: ${label}${extras.length ? ' + ' + extras.join(', ') : ''} (estimate ${stima}).`
+        : `Ciao, vorrei un preventivo per: ${label}${extras.length ? ' + ' + extras.join(', ') : ''} (stima ${stima}).`;
       elCta.dataset.msg = msg;
     };
 
@@ -255,6 +325,19 @@
     });
 
     compute();
+
+    // La barra della stima su telefono segue la visibilità del configuratore.
+    // Il CSS la mostra solo sotto 780px, quindi qui non serve controllare la
+    // larghezza: su desktop resta display:none e l'osservatore è innocuo.
+    if (elSticky && 'IntersectionObserver' in window) {
+      const sezione = document.getElementById('preventivo');
+      if (sezione) {
+        new IntersectionObserver(
+          (voci) => voci.forEach((v) => elSticky.classList.toggle('on', v.isIntersecting)),
+          { threshold: 0.12 }
+        ).observe(sezione);
+      }
+    }
   }
 
   /* widget risposte rapide */
