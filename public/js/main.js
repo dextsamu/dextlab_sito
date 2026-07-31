@@ -2,6 +2,17 @@
 (function () {
   'use strict';
 
+  /* Spegne il cane da guardia acceso dallo script inline nel <head>: da qui in
+     poi c'è qualcuno che sa scoprire le sezioni .reveal. Prima riga del file,
+     perché deve valere anche se qualcosa più sotto solleva un'eccezione. */
+  document.documentElement.dataset.js = 'on';
+
+  /* Una sola interrogazione per tutto il file, e si conserva l'oggetto invece
+     del booleano: .matches va letto al momento dell'uso, così se il visitatore
+     cambia l'impostazione a pagina aperta le animazioni successive la
+     rispettano senza bisogno di ricaricare. */
+  const menoMoto = window.matchMedia('(prefers-reduced-motion: reduce)');
+
   /* intro loader dismiss */
   const loader = document.getElementById('loader');
   if (loader) {
@@ -75,6 +86,9 @@
   const animateCount = (el) => {
     const target = +el.dataset.count;
     const dur = 1400;
+    // Lo zero di partenza lo mette qui il JS, un frame prima di iniziare a
+    // salire: nell'HTML c'è il valore vero, così vale anche senza JS.
+    el.textContent = '0';
     const start = performance.now();
     const step = (now) => {
       const p = Math.min((now - start) / dur, 1);
@@ -84,7 +98,9 @@
     };
     requestAnimationFrame(step);
   };
-  if ('IntersectionObserver' in window) {
+  // Con movimento ridotto non si azzera e non si anima: la cifra servita dal
+  // server è già quella giusta, e una cifra che sale è movimento.
+  if ('IntersectionObserver' in window && !menoMoto.matches) {
     const co = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
@@ -101,13 +117,14 @@
 
   /* KPI count-up inside dashboard mockup */
   const kpis = document.querySelectorAll('.kpi-n');
-  if ('IntersectionObserver' in window && kpis.length) {
+  if ('IntersectionObserver' in window && kpis.length && !menoMoto.matches) {
     const ko = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
           if (!e.isIntersecting) return;
           const el = e.target;
           const target = +el.dataset.to;
+          el.textContent = '0';
           const start = performance.now();
           const tick = (now) => {
             const p = Math.min((now - start) / 1300, 1);
@@ -191,7 +208,7 @@
      - disegno fermo quando la scheda non è visibile;
      - niente del tutto con movimento ridotto attivo. */
   const tele = document.getElementById('bgTraces');
-  if (tele && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (tele && !menoMoto.matches) {
     const ctx = tele.getContext('2d');
     const PASSO = 54; // combacia con background-size di .bg-grid
     const TINTE = ['84,201,200', '139,216,158', '63,169,214'];
@@ -357,8 +374,7 @@
 
   /* 3D tilt on portfolio cards */
   const fine = window.matchMedia('(pointer:fine)').matches;
-  const reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
-  if (fine && !reduce) {
+  if (fine && !menoMoto.matches) {
     document.querySelectorAll('.pcard').forEach((card) => {
       card.addEventListener('pointermove', (e) => {
         const r = card.getBoundingClientRect();
@@ -393,8 +409,6 @@
     // dipendere dai dati locale di ICU, che sul server possono mancare e far
     // uscire "4500" dove qui usciva "4.500".
     const fmt = (n) => '€' + String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
-    const menoMoto = matchMedia('(prefers-reduced-motion: reduce)');
 
     /**
      * Porta un numero da un valore all'altro invece di sostituirlo di scatto.

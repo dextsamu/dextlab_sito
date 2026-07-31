@@ -47,7 +47,13 @@ const stats = [
       {
         stats.map((s) => (
           <div class="stat">
-            <span class="stat-num" data-count={s.count}>0</span>
+            {/*
+              Il numero definitivo è già nell'HTML, non uno zero che solo il JS
+              sa risolvere: senza JS queste tre cifre dicevano 0% 0/7 0★, cioè
+              il contrario di quello che vogliono dire. È il JS a riportarle a
+              zero un istante prima di farle salire.
+            */}
+            <span class="stat-num" data-count={s.count}>{s.count}</span>
             <span class="stat-suf">{s.suffix}</span>
             <p>{s.label}</p>
           </div>

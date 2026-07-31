@@ -2,6 +2,21 @@
    Dext Lab — stylesheet
    Palette: blu #3FA9D6 → cyan #54C9C8 → verde #8BD89E
 ============================================================ */
+
+/* I due caratteri sono serviti da qui e non da fonts.googleapis.com. Il motivo
+   non è la velocità: un <link rel=stylesheet> verso un terzo host blocca
+   l'esecuzione di ogni <script> che lo segue nel documento, e su questa pagina
+   quegli script sono i18n.js e main.js. Con Google lento o irraggiungibile la
+   pagina restava senza traduzione, senza configuratore e — finché .reveal
+   dipendeva dal JS — senza contenuto. In più il collegamento diretto manda
+   l'indirizzo IP del visitatore a Google prima di qualsiasi consenso.
+   I file sono i sottoinsiemi latin e latin-ext che serviva Google: sono
+   caratteri variabili, un solo file copre tutti i pesi dell'asse. */
+@font-face{font-family:'Inter';font-style:normal;font-weight:400 600;font-display:swap;src:url(/fonts/inter-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Inter';font-style:normal;font-weight:400 600;font-display:swap;src:url(/fonts/inter-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Space Grotesk';font-style:normal;font-weight:400 700;font-display:swap;src:url(/fonts/space-grotesk-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Space Grotesk';font-style:normal;font-weight:400 700;font-display:swap;src:url(/fonts/space-grotesk-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+
 :root{
   --blue:#3fa9d6;
   --cyan:#54c9c8;
@@ -23,7 +38,14 @@
 }
 
 *{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth}
+/* overflow-x va qui e non solo su body, che da solo non basta: su telefono la
+   pagina si trascinava di lato fino a 42px, mostrando fondo vuoto. La causa è
+   .about-ring, un quadrato di 340px che gira: il cerchio disegnato non si
+   muove, ma la sua area di ingombro cresce fino a 481px (340·√2) e torna a
+   340 due volte per giro, quindi il difetto compariva e spariva da solo.
+   clip invece di hidden perché hidden farebbe di <html> un contenitore di
+   scorrimento, con conseguenze su position:sticky e sui salti agli ancoraggi. */
+html{scroll-behavior:smooth;overflow-x:clip}
 body{
   font-family:'Inter',system-ui,sans-serif;
   background:var(--bg);
@@ -650,8 +672,13 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .footer-links a:hover{color:var(--text)}
 
 /* ---------- reveal animation ---------- */
-.reveal{opacity:0;transform:translateY(30px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
-.reveal.in{opacity:1;transform:none}
+/* Il punto di partenza nascosto vale solo se c'è qualcuno che poi lo scopre.
+   La classe .js la mette uno script inline nel <head>, che la ritira dopo tre
+   secondi se main.js non si è fatto vivo: JS disattivato, file non servito o
+   errore a metà lasciano queste undici sezioni visibili, invece di una pagina
+   vuota sotto l'hero. */
+.js .reveal{opacity:0;transform:translateY(30px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+.js .reveal.in{opacity:1;transform:none}
 
 /* ---------- responsive ---------- */
 @media (max-width:880px){
@@ -684,5 +711,7 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
-  .reveal{opacity:1;transform:none}
+  /* La specificità deve pareggiare quella di .js .reveal, altrimenti con
+     movimento ridotto le sezioni resterebbero a opacity:0. */
+  .js .reveal{opacity:1;transform:none}
 }
