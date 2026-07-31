@@ -269,10 +269,11 @@ jobs:
             echo "  ok    $needle x$got"
           done
 
-      # Le cifre dell'hero e i KPI del mockup salgono da zero all'ingresso nella
-      # vista. Il valore d'arrivo deve stare nell'HTML servito: quando erano uno
-      # zero risolto solo dal JS, un visitatore senza JS leggeva "0% codice su
-      # misura, 0/7 supporto", cioè il contrario di quello che c'è scritto.
+      # Le cifre che salgono da zero all'ingresso nella vista devono avere il
+      # valore d'arrivo già nell'HTML servito: quando erano uno zero risolto solo
+      # dal JS, un visitatore senza JS leggeva "0" al posto del numero. Restano i
+      # due KPI del mockup: le tre cifre dell'hero sono state sostituite dalla
+      # prima domanda del configuratore.
       - name: Le cifre animate sono già nell'HTML servito
         run: |
           html=$(curl -s http://127.0.0.1:4321/)
@@ -290,8 +291,8 @@ jobs:
               fail=1
             fi
           done <<<"$(grep -oE '(data-count|data-to)="[0-9]+">[0-9]*<' <<<"$html")"
-          if [ "$n" != "5" ]; then
-            echo "::error::cifre animate trovate: $n, attese 5"
+          if [ "$n" != "2" ]; then
+            echo "::error::cifre animate trovate: $n, attese 2"
             fail=1
           fi
           exit $fail

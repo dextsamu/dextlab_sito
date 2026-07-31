@@ -1,4 +1,29 @@
 ---
+/**
+ * Prima schermata.
+ *
+ * Al posto delle tre cifre che c'erano — 100% codice su misura, 24/7 supporto,
+ * 5★ qualità — c'è la prima domanda del configuratore. Il motivo non è grafico:
+ * il configuratore è la cosa più convincente della pagina e stava alla
+ * dodicesima schermata, mentre lo spazio più prezioso lo occupavano tre numeri
+ * non verificabili, di cui uno — il supporto ventiquattr'ore — non era vero.
+ *
+ * Così il visitatore ottiene un numero suo nei primi secondi, e poi scorre per
+ * capire chi glielo ha dato: è l'ordine giusto.
+ */
+import { initialEstimate, type PricingItem } from '../lib/content.ts';
+
+interface Props {
+  types: PricingItem[];
+}
+
+const { types } = Astro.props;
+
+// Stessa formula del configuratore in fondo alla pagina, e dello stesso
+// initialEstimate: la stima servita dal server combacia con quella che il JS
+// ricalcola, quindi non c'è nessuno scatto al primo rendering.
+const stima = initialEstimate(types);
+
 // Posizioni degli esagoni flottanti: erano attributi style inline ripetuti,
 // qui diventano dati così il markup resta leggibile.
 const hexes = [
@@ -8,12 +33,6 @@ const hexes = [
   { x: '78%', y: '68%', s: '60px', d: '2.2s', dur: '12s' },
   { x: '50%', y: '12%', s: '30px', d: '3s', dur: '10s' },
   { x: '92%', y: '48%', s: '36px', d: '.4s', dur: '9.5s' },
-];
-
-const stats = [
-  { count: 100, suffix: '%', label: 'Codice su misura' },
-  { count: 24, suffix: '/7', label: 'Supporto diretto' },
-  { count: 5, suffix: '★', label: 'Qualità garantita' },
 ];
 ---
 
@@ -35,30 +54,39 @@ const stats = [
       <span class="grad rotator" id="rotator" aria-live="polite">prodotti digitali</span><br />
       che funzionano.
     </h1>
+    {/*
+      Il sommario era di tre righe e generico — «costruiti con le migliori
+      tecnologie, design accattivante, risultati concreti» — e spingeva la stima
+      sotto la piega, cioè annullava il motivo per cui la stima sta qui. Una riga
+      sola, e il resto lo dice il riquadro.
+    */}
     <p class="hero-sub reveal">
-      Siti web, web app ed <strong>e-commerce</strong> costruiti con le migliori tecnologie. Design
-      accattivante, performance reali e risultati concreti.
+      Siti web, web app ed <strong>e-commerce</strong> su misura. Senza template, senza agenzie.
     </p>
-    <div class="hero-actions reveal">
-      <a href="#contatti" class="btn btn-primary">Iniziamo un progetto</a>
-      <a href="#servizi" class="btn btn-ghost">Scopri i servizi</a>
+
+    <div class="hero-conf reveal">
+      <p class="hero-conf-q">Che tipo di progetto ti serve?</p>
+      <div class="hero-tipi" id="heroTipi">
+        {
+          types.map((t, i) => (
+            <button type="button" class:list={['hero-tipo', { active: i === 0 }]} data-label={t.label}>
+              {t.label}
+            </button>
+          ))
+        }
+      </div>
+      <div class="hero-stima">
+        <span class="hero-stima-lab">Stima indicativa</span>
+        <b>
+          <span id="heroMin">{stima.min}</span> – <span id="heroMax">{stima.max}</span>
+        </b>
+        <span class="hero-stima-t">Tempi: <strong id="heroTime">{stima.weeks}</strong></span>
+      </div>
     </div>
-    <div class="hero-stats reveal">
-      {
-        stats.map((s) => (
-          <div class="stat">
-            {/*
-              Il numero definitivo è già nell'HTML, non uno zero che solo il JS
-              sa risolvere: senza JS queste tre cifre dicevano 0% 0/7 0★, cioè
-              il contrario di quello che vogliono dire. È il JS a riportarle a
-              zero un istante prima di farle salire.
-            */}
-            <span class="stat-num" data-count={s.count}>{s.count}</span>
-            <span class="stat-suf">{s.suffix}</span>
-            <p>{s.label}</p>
-          </div>
-        ))
-      }
+
+    <div class="hero-actions reveal">
+      <a href="#preventivo" class="btn btn-primary">Aggiungi le funzioni</a>
+      <a href="#servizi" class="btn btn-ghost">Scopri i servizi</a>
     </div>
   </div>
   <div class="hero-scroll" aria-hidden="true"><span></span></div>

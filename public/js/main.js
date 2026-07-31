@@ -150,40 +150,6 @@
     reveals.forEach((el) => el.classList.add('in'));
   }
 
-  /* count-up stats */
-  const counters = document.querySelectorAll('.stat-num');
-  const animateCount = (el) => {
-    const target = +el.dataset.count;
-    const dur = 1400;
-    // Lo zero di partenza lo mette qui il JS, un frame prima di iniziare a
-    // salire: nell'HTML c'è il valore vero, così vale anche senza JS.
-    el.textContent = '0';
-    const start = performance.now();
-    const step = (now) => {
-      const p = Math.min((now - start) / dur, 1);
-      const eased = 1 - Math.pow(1 - p, 3);
-      el.textContent = Math.round(target * eased);
-      if (p < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  };
-  // Con movimento ridotto non si azzera e non si anima: la cifra servita dal
-  // server è già quella giusta, e una cifra che sale è movimento.
-  if ('IntersectionObserver' in window && !menoMoto.matches) {
-    const co = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            animateCount(e.target);
-            co.unobserve(e.target);
-          }
-        });
-      },
-      { threshold: 0.6 }
-    );
-    counters.forEach((el) => co.observe(el));
-  }
-
   /* KPI count-up inside dashboard mockup */
   const kpis = document.querySelectorAll('.kpi-n');
   if ('IntersectionObserver' in window && kpis.length && !menoMoto.matches) {
@@ -463,6 +429,14 @@
   const cfgTypes = document.getElementById('cfgTypes');
   if (cfgTypes) {
     const addons = document.querySelectorAll('#cfgAddons input');
+    // Elementi dell'hero: la prima domanda del configuratore sta lassù, e da
+    // qui si tiene in sincrono. Se l'hero non ci fosse — pagina di manutenzione,
+    // markup cambiato — restano null e non succede niente.
+    const eroeTipi = document.getElementById('heroTipi');
+    const eroeMin = document.getElementById('heroMin');
+    const eroeMax = document.getElementById('heroMax');
+    const eroeTime = document.getElementById('heroTime');
+
     const elMin = document.getElementById('cfgMin');
     const elMax = document.getElementById('cfgMax');
     const elTime = document.getElementById('cfgTime');
@@ -560,12 +534,25 @@
       }
       mostrati = { min, max, weeks };
       if (elStickyVal) elStickyVal.textContent = `${fmt(min)} – ${fmt(max)}`;
+      // La stima nell'hero è la stessa, non una seconda copia calcolata a parte:
+      // una formula duplicata è una formula che prima o poi divergerà.
+      if (eroeMin) eroeMin.textContent = fmt(min);
+      if (eroeMax) eroeMax.textContent = fmt(max);
+      // Anche il pallino evidenziato lassù, non solo i numeri: scegliendo qui
+      // in fondo, l'hero mostrava la cifra giusta con l'opzione sbagliata
+      // accesa.
+      if (eroeTipi) {
+        eroeTipi.querySelectorAll('.hero-tipo').forEach((b) =>
+          b.classList.toggle('active', b.dataset.label === label.trim())
+        );
+      }
 
       const en = document.documentElement.lang === 'en';
       const wTxt = en
         ? weeks <= 1 ? 'about 1 week' : weeks <= 6 ? `about ${weeks} weeks` : `${weeks}+ weeks`
         : weeks <= 1 ? 'circa 1 settimana' : weeks <= 6 ? `circa ${weeks} settimane` : `${weeks}+ settimane`;
       elTime.textContent = wTxt;
+      if (eroeTime) eroeTime.textContent = wTxt;
       // I valori nel messaggio vengono dal calcolo, non da textContent: durante
       // il conteggio quello contiene cifre intermedie, e un clic sul pulsante a
       // metà animazione avrebbe precompilato il form con una stima inesistente.
@@ -624,6 +611,24 @@
         if (i >= testo.length) clearInterval(elEcoVis._t);
       }, 20);
     });
+
+    /* I bottoni dell'hero non calcolano niente: premono il bottone corrispondente
+       del configuratore e lasciano fare a compute(). Così scegliere in cima è
+       identico a scegliere in fondo, e quando il visitatore arriva al
+       configuratore la sua scelta è già selezionata. L'accoppiamento è
+       sull'etichetta perché è ciò che entrambe le liste mostrano, e viene dallo
+       stesso listino nel database. */
+    if (eroeTipi) {
+      const tipiCfg = [...cfgTypes.querySelectorAll('.cfg-type')];
+      eroeTipi.querySelectorAll('.hero-tipo').forEach((b) => {
+        b.addEventListener('click', () => {
+          eroeTipi.querySelectorAll('.hero-tipo').forEach((x) => x.classList.remove('active'));
+          b.classList.add('active');
+          const gemello = tipiCfg.find((t) => t.textContent.trim() === b.dataset.label);
+          if (gemello) gemello.click();
+        });
+      });
+    }
 
     compute();
 

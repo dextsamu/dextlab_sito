@@ -216,7 +216,7 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
 
 /* ---------- hero ---------- */
-.hero{position:relative;min-height:100vh;display:flex;align-items:center;padding:120px 0 80px}
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;padding:104px 0 70px}
 .hero-inner{display:flex;flex-direction:column;align-items:center;text-align:center;max-width:880px}
 .hero-badge{
   display:inline-flex;align-items:center;gap:9px;
@@ -229,15 +229,46 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
    variabile e da quando lo serviamo noi si può chiedere un valore a metà. Il JS
    muove --w mentre esci dall'hero (vedi main.js); il valore di riposo è 600, lo
    stesso di tutti gli altri titoli, quindi senza JS non cambia niente. */
-.hero-title{font-size:clamp(2.4rem,6vw,4.4rem);margin-bottom:24px;font-variation-settings:'wght' var(--w,600)}
+.hero-title{font-size:clamp(2.2rem,5.2vw,3.9rem);margin-bottom:18px;font-variation-settings:'wght' var(--w,600)}
 .hero-title .grad{display:inline-block}
-.hero-sub{font-size:clamp(1.05rem,2vw,1.3rem);color:var(--muted);max-width:640px;margin-bottom:38px}
+.hero-sub{font-size:clamp(1rem,1.7vw,1.18rem);color:var(--muted);max-width:600px;margin-bottom:26px}
 .hero-sub strong{color:var(--text);font-weight:600}
-.hero-actions{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:64px}
-.hero-stats{display:flex;gap:48px;flex-wrap:wrap;justify-content:center}
-.stat{text-align:center}
-.stat-num,.stat-suf{font-family:'Space Grotesk',sans-serif;font-size:2.4rem;font-weight:700;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.stat p{font-size:.85rem;color:var(--muted);margin-top:4px}
+.hero-actions{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+
+/* La prima domanda del configuratore, nell'hero. Il riquadro ha un fondo
+   appena più chiaro perché è l'unica cosa cliccabile della schermata insieme ai
+   due bottoni: deve leggersi come uno strumento, non come del testo. */
+.hero-conf{
+  width:100%;max-width:600px;margin:0 0 24px;padding:20px 24px 22px;
+  border-radius:var(--radius);background:rgba(255,255,255,.03);
+  border:1px solid var(--border);
+  background-image:linear-gradient(90deg,transparent,rgba(84,201,200,.5),transparent);
+  background-repeat:no-repeat;background-size:100% 1px;background-position:top center;
+  display:grid;gap:13px;justify-items:center;
+}
+.hero-conf-q{font-family:'Space Grotesk',sans-serif;font-size:.96rem;font-weight:600;color:var(--text)}
+.hero-tipi{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
+.hero-tipo{
+  font-size:.88rem;padding:9px 15px;border-radius:999px;cursor:pointer;
+  font-family:'Space Grotesk',sans-serif;font-weight:500;
+  background:var(--surface-2);border:1px solid var(--border);color:var(--muted);
+  transition:color .25s,border-color .25s,background .25s;
+}
+.hero-tipo:hover{color:var(--text);border-color:var(--border-2)}
+.hero-tipo.active{background:var(--grad);border-color:transparent;color:#04121a;font-weight:600}
+.hero-stima{display:grid;gap:3px;justify-items:center}
+.hero-stima-lab{
+  font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+  font-family:'Space Grotesk',sans-serif;font-weight:600;
+}
+.hero-stima b{
+  font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:clamp(1.7rem,4vw,2.3rem);
+  letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.15;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero-stima-t{font-size:.86rem;color:var(--muted)}
+.hero-stima-t strong{color:var(--text);font-weight:600}
+
 .hero-scroll{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);width:26px;height:42px;border:2px solid var(--border-2);border-radius:14px}
 .hero-scroll span{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:4px;height:8px;border-radius:2px;background:var(--cyan);animation:scrolldot 1.8s infinite}
 @keyframes scrolldot{0%{opacity:0;top:8px}40%{opacity:1}80%{opacity:0;top:22px}100%{opacity:0}}
@@ -821,8 +852,7 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   .nav-links.open{transform:translateX(0)}
   .nav-links a{width:100%;padding:16px 0;font-size:1.1rem;border-bottom:1px solid var(--border)}
   .nav-cta{margin-top:16px;text-align:center}
-  .hero-stats{gap:30px}
-  .stat-num,.stat-suf{font-size:2rem}
+  .hero-conf{padding:20px 18px 22px}
   .section{padding:80px 0}
 }
 @media (max-width:680px){

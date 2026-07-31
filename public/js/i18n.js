@@ -11,10 +11,16 @@
     'Disponibile per nuovi progetti': 'Available for new projects',
     'Trasformo idee in': 'I turn ideas into', 'che funzionano.': 'that work.',
     'Siti web, web app ed': 'Websites, web apps and', 'e-commerce': 'e-commerce',
-    'costruiti con le migliori tecnologie. Design accattivante, performance reali e risultati concreti.':
-      'built with the best technologies. Captivating design, real performance and concrete results.',
+    'su misura. Senza template, senza agenzie.': 'made to measure. No templates, no agencies.',
     'Iniziamo un progetto': "Let's start a project", 'Scopri i servizi': 'Explore services',
-    'Codice su misura': 'Custom code', 'Supporto diretto': 'Direct support', 'Qualità garantita': 'Guaranteed quality',
+    // La prima domanda del configuratore sta nell'hero: le tre cifre non
+    // verificabili che c'erano prima non ci sono più.
+    'Che tipo di progetto ti serve?': 'What kind of project do you need?',
+    // Etichetta statica, presente sia nell'hero sia nel configuratore. Il valore
+    // accanto («circa 1 settimana») lo riscrive il JS, che ha già la sua forma
+    // inglese: qui serve solo la parola.
+    'Tempi:': 'Timeline:',
+    'Aggiungi le funzioni': 'Add the features',
     // servizi
     'Cosa faccio': 'What I do', 'Servizi': 'Services', 'end-to-end': 'end-to-end',
     'Dalla prima riga di codice al deploy in produzione. Un unico interlocutore per tutto lo stack.':
