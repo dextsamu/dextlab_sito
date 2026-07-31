@@ -90,11 +90,11 @@
     'Interlocutore unico': 'Single contact', 'Più passaggi': 'Multiple steps', 'Sempre tu & io': 'Always you & me',
     // recensioni
     'Cosa dicono i': 'What', 'clienti': 'clients say',
-    '"Sito pronto in pochi giorni, esattamente come lo immaginavo. Comunicazione chiara e zero stress."':
-      '"Site ready in a few days, exactly as I imagined. Clear communication and zero stress."',
+    'Sito pronto in pochi giorni, esattamente come lo immaginavo. Comunicazione chiara e zero stress.':
+      'Site ready in a few days, exactly as I imagined. Clear communication and zero stress.',
     'Titolare e-commerce': 'E-commerce owner',
-    '"Ha capito subito cosa serviva alla mia attività. Il gestionale ci fa risparmiare ore ogni settimana."':
-      '"He immediately understood what my business needed. The tool saves us hours every week."',
+    'Ha capito subito cosa serviva alla mia attività. Il gestionale ci fa risparmiare ore ogni settimana.':
+      'He immediately understood what my business needed. The tool saves us hours every week.',
     'Studio professionale': 'Professional firm',
     // configuratore
     'Preventivo istantaneo': 'Instant quote', 'Configura il tuo': 'Configure your', 'progetto': 'project',

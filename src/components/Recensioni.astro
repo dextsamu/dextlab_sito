@@ -25,7 +25,10 @@ function initial(author: string): string {
         reviews.map((rv) => (
           <figure class="review reveal">
             <div class="stars">{'★'.repeat(Math.max(1, Math.min(5, rv.stars)))}</div>
-            <blockquote>&ldquo;{rv.quote}&rdquo;</blockquote>
+            <!-- Le virgolette sono in CSS e non qui: infilate nel nodo di testo
+                 rendevano la citazione un'altra stringa rispetto a quella nel
+                 database, e il dizionario inglese non la trovava mai. -->
+            <blockquote>{rv.quote}</blockquote>
             <figcaption>
               <span class="rv-avatar">{initial(rv.author)}</span>
               <span>

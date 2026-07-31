@@ -41,8 +41,10 @@ const chartBars = ['42%', '66%', '38%', '80%', '55%', '96%', '70%'];
           </div>
           <div class="win-main">
             <div class="win-stats">
-              <div class="kpi"><span class="kpi-n" data-to="92">0</span><i></i></div>
-              <div class="kpi"><span class="kpi-n" data-to="48">0</span><i></i></div>
+              {/* Come le cifre dell'hero: il valore d'arrivo sta nell'HTML, lo
+                  zero lo mette il JS appena prima di animare. */}
+              <div class="kpi"><span class="kpi-n" data-to="92">92</span><i></i></div>
+              <div class="kpi"><span class="kpi-n" data-to="48">48</span><i></i></div>
             </div>
             <div class="chart">
               {chartBars.map((h) => <span style={`--h:${h}`}></span>)}

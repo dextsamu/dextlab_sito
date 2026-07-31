@@ -32,6 +32,31 @@ const ogImage = new URL('/assets/logo-v.png', base + '/').href;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    {/*
+      Interruttore che rende .reveal a prova di JS mancante (vedi style.css).
+      Sta qui, prima del foglio di stile, perché altrimenti ci sarebbe un istante
+      in cui le sezioni sono visibili e poi svaniscono.
+
+      Il timer è la parte che conta. Aggiungere la classe basta contro il JS
+      disattivato, ma non contro il caso più probabile: JS attivo e main.js che
+      non arriva mai a girare — file non servito, errore di sintassi, rete che
+      cade a metà. In quello scenario nessuno aggiunge .in e le undici sezioni
+      dopo l'hero resterebbero invisibili per sempre. Se dopo tre secondi
+      main.js non si è dichiarato presente, si torna al contenuto visibile.
+
+      Nota per un'eventuale Content-Security-Policy: questo è l'unico script
+      inline delle pagine pubbliche, quindi va coperto con un hash o un nonce.
+    */}
+    <script is:inline>
+      (function () {
+        var h = document.documentElement;
+        h.classList.add('js');
+        setTimeout(function () {
+          if (h.dataset.js !== 'on') h.classList.remove('js');
+        }, 3000);
+      })();
+    </script>
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="theme-color" content="#070b16" />
@@ -54,11 +79,22 @@ const ogImage = new URL('/assets/logo-v.png', base + '/').href;
     {/* is:inline esplicito: è un blocco di dati JSON-LD, non uno script da elaborare. */}
     {structuredData && <script type="application/ld+json" is:inline set:html={structuredData} />}
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    {/*
+      I caratteri sono serviti da questo host (vedi @font-face in style.css).
+      Il preload riguarda solo i due sottoinsiemi latin, gli unici che servono a
+      un testo italiano: i latin-ext restano una rete di sicurezza e vengono
+      scaricati solo se compare un carattere che li richiede.
+      crossorigin è obbligatorio anche se l'origine è la stessa, perché le
+      richieste di font partono sempre in modalità CORS: senza l'attributo il
+      browser scarica il file due volte.
+    */}
+    <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="/fonts/space-grotesk-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
     <link rel="stylesheet" href="/css/style.css" />
     <slot name="head" />

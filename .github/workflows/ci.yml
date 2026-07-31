@@ -49,6 +49,110 @@ jobs:
           fi
           echo "  ok    reset img con height:auto"
 
+          # .about-ring è un quadrato di 340px che gira: il cerchio disegnato non
+          # si sposta, ma la sua area di ingombro arriva a 481px e trascinava la
+          # pagina di lato su telefono, in modo intermittente perché legato
+          # all'angolo. overflow-x su body non basta, deve stare su html.
+          if ! grep -qE '^html\{[^}]*overflow-x:clip' public/css/style.css; then
+            echo "::error::manca overflow-x:clip su html: gli elementi che ruotano trascinano la pagina di lato su telefono"
+            exit 1
+          fi
+          echo "  ok    html con overflow-x:clip"
+
+      # Un <link rel="stylesheet"> verso un altro host blocca l'esecuzione di
+      # ogni <script> che lo segue nel documento. Con i caratteri presi da
+      # Google, una loro lentezza o un blocco di rete fermava i18n.js e main.js:
+      # niente traduzione, niente configuratore, e nessuna sezione scoperta.
+      - name: I caratteri sono serviti dal sito, non da Google
+        run: |
+          fail=0
+          if grep -rqE 'fonts\.(googleapis|gstatic)\.com' src/; then
+            echo "::error::un collegamento a Google Fonts nei template blocca l'esecuzione degli script che lo seguono"
+            fail=1
+          else
+            echo "  ok    nessun riferimento a Google Fonts nei template"
+          fi
+          for f in inter-latin inter-latin-ext space-grotesk-latin space-grotesk-latin-ext; do
+            if [ -s "public/fonts/$f.woff2" ]; then
+              echo "  ok    public/fonts/$f.woff2"
+            else
+              echo "::error::manca public/fonts/$f.woff2, dichiarato da un @font-face di style.css"
+              fail=1
+            fi
+          done
+          esterni=$(grep -oE 'url\((https?:)?//[^)]*\)' public/css/style.css || true)
+          if [ -n "$esterni" ]; then
+            echo "::error::il foglio di stile carica risorse da fuori: $esterni"
+            fail=1
+          fi
+          exit $fail
+
+      # Le sezioni .reveal partono invisibili e le scopre main.js. Se main.js non
+      # arriva a girare, undici sezioni restano invisibili per sempre e la home
+      # si riduce all'hero su fondo vuoto. Il paracadute è la classe .js
+      # sull'<html>, che un timer ritira se main.js non si dichiara presente.
+      - name: Il contenuto resta visibile senza JS
+        run: |
+          fail=0
+          if grep -qE '^\.reveal\{[^}]*opacity:0' public/css/style.css; then
+            echo "::error::.reveal parte nascosto senza condizione: se il JS non gira la pagina resta vuota"
+            fail=1
+          else
+            echo "  ok    .reveal nascosto solo sotto .js"
+          fi
+          presente() {
+            if grep -qF "$2" "$1"; then echo "  ok    $3"
+            else echo "::error::$3 — non trovato in $1"; fail=1; fi
+          }
+          presente public/css/style.css '.js .reveal{' 'la regola nascosta è condizionata a .js'
+          presente src/layouts/BaseLayout.astro "dataset.js !== 'on'" 'timer di sicurezza nel <head>'
+          presente public/js/main.js "dataset.js = 'on'" 'main.js si dichiara presente'
+          exit $fail
+
+      # Due trappole silenziose nelle animazioni del fondo e delle comparse.
+      - name: Le animazioni non si annullano fra loro
+        run: |
+          fail=0
+          riga() { grep -n "$1" public/css/style.css | head -1 | cut -d: -f1; }
+
+          # 1) Le regole per tipo di blocco hanno la stessa specificità di
+          # .js .reveal.in, quindi se finiscono DOPO vincono loro e i blocchi
+          # restano spostati anche una volta entrati: si vedrebbero card piccole
+          # e l'About sfalsato, per sempre.
+          fine=$(riga '^\.js \.reveal\.in{')
+          if [ -z "$fine" ]; then
+            echo "::error::non trovo la regola .js .reveal.in"
+            fail=1
+          else
+            for r in '^\.js \.marquee\.reveal{' '^\.js \.about-visual\.reveal{' '^\.js \.about-text\.reveal{' '^\.js \.config\.reveal{'; do
+              n=$(riga "$r")
+              if [ -z "$n" ]; then
+                echo "::error::manca la regola $r"
+                fail=1
+              elif [ "$n" -ge "$fine" ]; then
+                echo "::error::$r è alla riga $n, dopo .js .reveal.in (riga $fine): l'arrivo non annullerebbe la partenza"
+                fail=1
+              else
+                echo "  ok    $r precede .reveal.in"
+              fi
+            done
+          fi
+
+          # 2) L'accensione degli esagoni deve muovere solo l'opacità: la
+          # posizione la scrive il JS mentre scorri, e due animazioni sulla
+          # stessa proprietà si sovrascriverebbero a vicenda.
+          kf=$(sed -n '/@keyframes esaTurno/,/}$/p' public/css/style.css)
+          if [ -z "$kf" ]; then
+            echo "::error::non trovo @keyframes esaTurno"
+            fail=1
+          elif grep -q 'transform' <<<"$kf"; then
+            echo "::error::@keyframes esaTurno muove anche transform: entrerebbe in conflitto con la profondità scritta dal JS"
+            fail=1
+          else
+            echo "  ok    esaTurno muove solo l'opacità"
+          fi
+          exit $fail
+
       - name: Build
         run: npm run build
 
@@ -141,6 +245,10 @@ jobs:
           check /sitemap.xml 200
           check /robots.txt  200
           check /api/health  200
+          # I caratteri sono nostri: se non fossero serviti, il sito ripiegherebbe
+          # sui font di sistema senza che nulla lo segnali.
+          check /fonts/inter-latin.woff2          200
+          check /fonts/space-grotesk-latin.woff2  200
           check /admin       200
           # Il pannello non deve essere raggiungibile senza sessione.
           check /admin/lead  303
@@ -151,7 +259,7 @@ jobs:
       - name: I contenuti arrivano dal database
         run: |
           html=$(curl -s http://127.0.0.1:4321/)
-          for pair in "cfg-type:4" "cfg-addon:5" "review reveal:2" "faq-item reveal:3"; do
+          for pair in "cfg-type:4" "cfg-addon:5" "review reveal:2" "faq-item reveal:3" "esa\":21"; do
             needle=${pair%:*}; want=${pair#*:}
             got=$(grep -o "class=\"$needle" <<<"$html" | wc -l)
             if [ "$got" != "$want" ]; then
@@ -160,6 +268,33 @@ jobs:
             fi
             echo "  ok    $needle x$got"
           done
+
+      # Le cifre dell'hero e i KPI del mockup salgono da zero all'ingresso nella
+      # vista. Il valore d'arrivo deve stare nell'HTML servito: quando erano uno
+      # zero risolto solo dal JS, un visitatore senza JS leggeva "0% codice su
+      # misura, 0/7 supporto", cioè il contrario di quello che c'è scritto.
+      - name: Le cifre animate sono già nell'HTML servito
+        run: |
+          html=$(curl -s http://127.0.0.1:4321/)
+          fail=0
+          n=0
+          while read -r coppia; do
+            [ -n "$coppia" ] || continue
+            n=$((n + 1))
+            atteso=${coppia#*\"}; atteso=${atteso%%\"*}
+            reso=${coppia##*>}; reso=${reso%<}
+            if [ "$atteso" = "$reso" ]; then
+              echo "  ok    cifra $atteso servita dal server"
+            else
+              echo "::error::servito \"$reso\" al posto di $atteso: senza JS è quello che si legge"
+              fail=1
+            fi
+          done <<<"$(grep -oE '(data-count|data-to)="[0-9]+">[0-9]*<' <<<"$html")"
+          if [ "$n" != "5" ]; then
+            echo "::error::cifre animate trovate: $n, attese 5"
+            fail=1
+          fi
+          exit $fail
 
       - name: La pagina pubblica non nomina l'AI
         run: |

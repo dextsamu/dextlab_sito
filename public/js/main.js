@@ -2,6 +2,17 @@
 (function () {
   'use strict';
 
+  /* Spegne il cane da guardia acceso dallo script inline nel <head>: da qui in
+     poi c'è qualcuno che sa scoprire le sezioni .reveal. Prima riga del file,
+     perché deve valere anche se qualcosa più sotto solleva un'eccezione. */
+  document.documentElement.dataset.js = 'on';
+
+  /* Una sola interrogazione per tutto il file, e si conserva l'oggetto invece
+     del booleano: .matches va letto al momento dell'uso, così se il visitatore
+     cambia l'impostazione a pagina aperta le animazioni successive la
+     rispettano senza bisogno di ricaricare. */
+  const menoMoto = window.matchMedia('(prefers-reduced-motion: reduce)');
+
   /* intro loader dismiss */
   const loader = document.getElementById('loader');
   if (loader) {
@@ -22,18 +33,65 @@
     });
   }
 
+  /* alveare: profondità sullo scorrimento
+     ---------------------------------------
+     Gli esagoni salgono mentre scendi, ognuno a una velocità sua, e rientrano
+     dal basso quando escono dall'alto: lo strato è fixed, quindi ventuno
+     bastano per tutta la pagina invece di doverne mettere uno ogni schermata.
+
+     Il resto (l'accensione a turno) è un'animazione CSS che muove solo
+     l'opacità: qui si tocca solo transform, così le due non si sovrappongono
+     sulla stessa proprietà. */
+  const esagoni = [...document.querySelectorAll('#bgAlveare .esa')].map((e) => ({
+    e,
+    prof: Number(e.dataset.prof) || 0.5,
+    passo: Number(e.dataset.passo) || 0,
+  }));
+  // Il ciclo è più alto della finestra di 300px, così il salto da sotto a sopra
+  // avviene fuori dallo schermo e non si vede mai un esagono teletrasportarsi.
+  let ciclo = window.innerHeight + 300;
+  const muoviAlveare = () => {
+    const y = window.scrollY;
+    for (const s of esagoni) {
+      // Modulo positivo: in JS (-5 % 3) fa -2, e un esagono con offset negativo
+      // se ne andrebbe invece di rientrare dal basso.
+      const g = (((s.passo * ciclo - y * s.prof * 0.24) % ciclo) + ciclo) % ciclo;
+      s.e.style.transform = 'translate3d(0,' + (g - 150).toFixed(1) + 'px,0)';
+    }
+  };
+
   /* nav scroll state + scroll progress bar */
   const nav = document.getElementById('nav');
   const progress = document.getElementById('scrollProgress');
+  let attesaScroll = false;
   const onScroll = () => {
     nav.classList.toggle('scrolled', window.scrollY > 30);
     if (progress) {
       const h = document.documentElement.scrollHeight - window.innerHeight;
       progress.style.width = (h > 0 ? (window.scrollY / h) * 100 : 0) + '%';
     }
+    // L'alveare si aggiorna al fotogramma successivo e non a ogni evento di
+    // scroll: gli eventi arrivano più spesso dei fotogrammi, e ventuno scritture
+    // di stile ripetute per niente sono il modo classico di rendere legnoso lo
+    // scorrimento.
+    if (esagoni.length && !menoMoto.matches && !attesaScroll) {
+      attesaScroll = true;
+      requestAnimationFrame(() => {
+        attesaScroll = false;
+        muoviAlveare();
+      });
+    }
   };
   onScroll();
   window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener(
+    'resize',
+    () => {
+      ciclo = window.innerHeight + 300;
+      if (!menoMoto.matches) muoviAlveare();
+    },
+    { passive: true }
+  );
 
   /* mobile menu */
   const toggle = document.getElementById('navToggle');
@@ -75,6 +133,9 @@
   const animateCount = (el) => {
     const target = +el.dataset.count;
     const dur = 1400;
+    // Lo zero di partenza lo mette qui il JS, un frame prima di iniziare a
+    // salire: nell'HTML c'è il valore vero, così vale anche senza JS.
+    el.textContent = '0';
     const start = performance.now();
     const step = (now) => {
       const p = Math.min((now - start) / dur, 1);
@@ -84,7 +145,9 @@
     };
     requestAnimationFrame(step);
   };
-  if ('IntersectionObserver' in window) {
+  // Con movimento ridotto non si azzera e non si anima: la cifra servita dal
+  // server è già quella giusta, e una cifra che sale è movimento.
+  if ('IntersectionObserver' in window && !menoMoto.matches) {
     const co = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
@@ -101,13 +164,14 @@
 
   /* KPI count-up inside dashboard mockup */
   const kpis = document.querySelectorAll('.kpi-n');
-  if ('IntersectionObserver' in window && kpis.length) {
+  if ('IntersectionObserver' in window && kpis.length && !menoMoto.matches) {
     const ko = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
           if (!e.isIntersecting) return;
           const el = e.target;
           const target = +el.dataset.to;
+          el.textContent = '0';
           const start = performance.now();
           const tick = (now) => {
             const p = Math.min((now - start) / 1300, 1);
@@ -191,7 +255,7 @@
      - disegno fermo quando la scheda non è visibile;
      - niente del tutto con movimento ridotto attivo. */
   const tele = document.getElementById('bgTraces');
-  if (tele && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (tele && !menoMoto.matches) {
     const ctx = tele.getContext('2d');
     const PASSO = 54; // combacia con background-size di .bg-grid
     const TINTE = ['84,201,200', '139,216,158', '63,169,214'];
@@ -201,37 +265,54 @@
     let raf = null;
     let ultimo = 0;
 
+    /**
+     * Una traccia è un agente che cammina sulla griglia e agli incroci può
+     * svoltare, come chi instrada le piste su un circuito stampato. Prima
+     * correvano soltanto in linea retta.
+     *
+     * La coda è una breve storia di punti e non un velo steso sul fondo:
+     * velare vorrebbe dire riempire il canvas a ogni fotogramma, e sotto c'è
+     * la griglia, che verrebbe coperta.
+     *
+     * I punti si campionano ogni PASSO_SCIA pixel percorsi, non a ogni
+     * fotogramma: un agente avanza meno di un pixel per fotogramma, quindi
+     * dodici punti presi a tempo coprivano sei pixel in tutto e la scia non si
+     * vedeva. Campionati nello spazio coprono una novantina di pixel.
+     */
+    const CODA = 14;
+    const PASSO_SCIA = 7;
+    const DIREZIONI = [
+      [1, 0],
+      [0, 1],
+      [-1, 0],
+      [0, -1],
+    ];
+
     const nuova = (dentro) => {
-      const oriz = Math.random() < 0.5;
-      // Una traccia orizzontale corre lungo X e siede su una linea Y, quindi la
-      // dimensione da cui pescare la linea è quella perpendicolare alla marcia.
-      const perpendicolare = oriz ? H : W;
+      const x0 = Math.round((Math.random() * W) / PASSO) * PASSO + 0.5;
+      const y0 = Math.round((Math.random() * (dentro ? H : PASSO * 2)) / PASSO) * PASSO + 0.5;
       return {
-        oriz,
-        // Ancorata a una linea della griglia: fuori da quelle si vedrebbe che
-        // le tracce e la griglia non c'entrano niente l'una con l'altra.
-        linea: Math.round((Math.random() * perpendicolare) / PASSO) * PASSO + 0.5,
-        pos: dentro ? Math.random() * (oriz ? W : H) : -140,
-        vel: 24 + Math.random() * 38,
-        coda: 70 + Math.random() * 110,
+        x: x0,
+        y: y0,
+        dir: (Math.random() * 4) | 0,
+        vel: 22 + Math.random() * 34,
+        // Distanza dall'ultimo incrocio: arrivata a PASSO si decide se girare.
+        percorso: 0,
         tinta: TINTE[(Math.random() * TINTE.length) | 0],
-        alpha: 0.14 + Math.random() * 0.2,
-        verso: Math.random() < 0.5 ? 1 : -1,
+        alpha: 0.16 + Math.random() * 0.2,
+        scia: [{ x: x0, y: y0 }],
+        // Vita in secondi: senza, un agente che gira in tondo resterebbe per
+        // sempre nello stesso angolo e la distribuzione si sbilancerebbe.
+        vita: 14 + Math.random() * 22,
       };
     };
 
-    /**
-     * Attenuazione verso il centro dello schermo, dove sta il testo.
-     *
-     * Sostituisce la maschera CSS che avevo messo prima: quella andava
-     * riapplicata a ogni frame su tutto il livello, questa è una
-     * moltiplicazione per traccia. Al centro le tracce quasi scompaiono, ai
-     * bordi restano piene.
-     */
     const attenua = (t) => {
-      const centro = (t.oriz ? H : W) / 2;
-      const d = Math.abs(t.linea - centro) / centro; // 0 al centro, 1 al bordo
-      return Math.min(1, 0.12 + d * 1.5);
+      // Distanza dal centro dello schermo, dove sta il testo: 0 al centro,
+      // 1 ai bordi. Sostituisce la maschera CSS, che costava più del disegno.
+      const dx = Math.abs(t.x - W / 2) / (W / 2);
+      const dy = Math.abs(t.y - H / 2) / (H / 2);
+      return Math.min(1, 0.12 + Math.max(dx, dy) * 1.5);
     };
 
     const dimensiona = () => {
@@ -250,7 +331,7 @@
       tele.style.width = W + 'px';
       tele.style.height = H + 'px';
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const quante = Math.max(3, Math.min(16, Math.round((W * H) / 95000)));
+      const quante = Math.max(3, Math.min(14, Math.round((W * H) / 110000)));
       tracce = Array.from({ length: quante }, () => nuova(true));
     };
 
@@ -258,37 +339,62 @@
       const dt = ultimo ? Math.min(0.05, (ora - ultimo) / 1000) : 0;
       ultimo = ora;
       ctx.clearRect(0, 0, W, H);
+      ctx.lineWidth = 1;
+
       for (let i = 0; i < tracce.length; i++) {
         const t = tracce[i];
-        t.pos += t.vel * dt;
-        const estensione = t.oriz ? W : H;
-        if (t.pos - t.coda > estensione) {
+        t.vita -= dt;
+        const [dx, dy] = DIREZIONI[t.dir];
+        const passo = t.vel * dt;
+        t.x += dx * passo;
+        t.y += dy * passo;
+        t.percorso += passo;
+
+        if (t.percorso >= PASSO) {
+          t.percorso = 0;
+          // Riallineo all'incrocio prima di girare: senza, la svolta cadrebbe
+          // fuori dalla griglia e si vedrebbe che le due cose non c'entrano.
+          t.x = Math.round((t.x - 0.5) / PASSO) * PASSO + 0.5;
+          t.y = Math.round((t.y - 0.5) / PASSO) * PASSO + 0.5;
+          if (Math.random() < 0.42) t.dir = (t.dir + (Math.random() < 0.5 ? 1 : 3)) % 4;
+        }
+
+        // Un punto ogni PASSO_SCIA pixel percorsi, non uno per fotogramma.
+        const u = t.scia[t.scia.length - 1];
+        if (Math.abs(t.x - u.x) + Math.abs(t.y - u.y) >= PASSO_SCIA) {
+          t.scia.push({ x: t.x, y: t.y });
+          if (t.scia.length > CODA) t.scia.shift();
+        }
+
+        const fuori = t.x < -PASSO || t.x > W + PASSO || t.y < -PASSO || t.y > H + PASSO;
+        if (fuori || t.vita <= 0) {
           tracce[i] = nuova(false);
           continue;
         }
-        const testa = t.verso === 1 ? t.pos : estensione - t.pos;
-        const fine = testa - t.coda * t.verso;
-        const x1 = t.oriz ? fine : t.linea;
-        const y1 = t.oriz ? t.linea : fine;
-        const x2 = t.oriz ? testa : t.linea;
-        const y2 = t.oriz ? t.linea : testa;
+
         const a = t.alpha * attenua(t);
-        const g = ctx.createLinearGradient(x1, y1, x2, y2);
+        // Un solo tracciato per agente con un gradiente dalla coda alla testa.
+        // Disegnare i segmenti uno per uno con il proprio colore costava, e
+        // misurato faceva scendere gli fps da 36 a 25: quattordici agenti per
+        // quattordici segmenti sono duecento tracciati invece di quattordici.
+        // Sulle svolte il gradiente segue la corda e non il percorso, che a
+        // questa trasparenza non si distingue.
+        const coda = t.scia[0];
+        const g = ctx.createLinearGradient(coda.x, coda.y, t.x, t.y);
         g.addColorStop(0, `rgba(${t.tinta},0)`);
         g.addColorStop(1, `rgba(${t.tinta},${a})`);
         ctx.strokeStyle = g;
-        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
+        ctx.moveTo(coda.x, coda.y);
+        for (let k = 1; k < t.scia.length; k++) ctx.lineTo(t.scia[k].x, t.scia[k].y);
+        ctx.lineTo(t.x, t.y);
         ctx.stroke();
-        // Punto di testa: dà la direzione, che la sola coda non renderebbe.
-        ctx.fillStyle = `rgba(${t.tinta},${Math.min(0.75, a * 2.6)})`;
-        ctx.fillRect(x2 - 1, y2 - 1, 2, 2);
+        // Punto di testa: dà la direzione, che la sola scia non renderebbe.
+        ctx.fillStyle = `rgba(${t.tinta},${Math.min(0.7, a * 2.4)})`;
+        ctx.fillRect(t.x - 1, t.y - 1, 2, 2);
       }
       raf = requestAnimationFrame(disegna);
     };
-
     const avvia = () => {
       if (raf === null) {
         ultimo = 0;
@@ -315,8 +421,7 @@
 
   /* 3D tilt on portfolio cards */
   const fine = window.matchMedia('(pointer:fine)').matches;
-  const reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
-  if (fine && !reduce) {
+  if (fine && !menoMoto.matches) {
     document.querySelectorAll('.pcard').forEach((card) => {
       card.addEventListener('pointermove', (e) => {
         const r = card.getBoundingClientRect();
@@ -351,8 +456,6 @@
     // dipendere dai dati locale di ICU, che sul server possono mancare e far
     // uscire "4500" dove qui usciva "4.500".
     const fmt = (n) => '€' + String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
-    const menoMoto = matchMedia('(prefers-reduced-motion: reduce)');
 
     /**
      * Porta un numero da un valore all'altro invece di sostituirlo di scatto.
