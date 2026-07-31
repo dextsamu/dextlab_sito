@@ -1,37 +1,70 @@
 ---
-// Tre mockup animati, ognuno con struttura propria: il CSS li anima tramite
-// classi specifiche, quindi il markup resta esplicito.
+/**
+ * Qui c'erano due finestre di browser disegnate con dei div: una finta home con
+ * dei rettangoli grigi al posto del testo, e una finta dashboard con due numeri
+ * che salivano e un grafico a barre inventato. Era l'unico posto del sito che
+ * mostrava qualcosa che non esiste.
+ *
+ * Al posto della prima c'è il codice vero che ha calcolato la stima nell'hero,
+ * letto dal file con ?raw: viene inlineato in fase di build, quindi non può
+ * invecchiare. Se qualcuno cambia la formula, cambia anche quello che si legge
+ * qui — che è l'unico modo perché una promessa del genere resti vera.
+ *
+ * La dashboard resta: è l'unica delle due che illustra un tipo di prodotto
+ * (gestionali, gente che guarda dei numeri) invece di illustrare questo sito.
+ */
+import sorgente from '../lib/content.ts?raw';
+
 const chartBars = ['42%', '66%', '38%', '80%', '55%', '96%', '70%'];
+
+/**
+ * Estrae initialEstimate dal sorgente vero. Se i marcatori non si trovano —
+ * funzione rinominata, firma cambiata — non si mostra un ripiego inventato: si
+ * salta il riquadro, perché un codice sbagliato sotto la scritta «questo è il
+ * codice vero» è peggio di nessun codice.
+ */
+function estrai(nome: string): string[] | null {
+  const apertura = sorgente.indexOf(`export function ${nome}`);
+  if (apertura === -1) return null;
+  const chiusura = sorgente.indexOf('\n}', apertura);
+  if (chiusura === -1) return null;
+  return sorgente.slice(apertura, chiusura + 2).split('\n');
+}
+
+const righe = estrai('initialEstimate');
+// La riga del calcolo è quella da guardare: è dove nasce il numero.
+const daEvidenziare = (r: string) => r.includes('price *');
 ---
 
 <section class="section" id="showcase">
   <div class="container">
-    <div class="section-head reveal">
-      <span class="eyebrow">Anteprima dal vivo</span>
-      <h2>Interfacce che <span class="grad">prendono vita</span></h2>
+    <div class="section-head aperta reveal">
+      <span class="eyebrow">Non te lo racconto</span>
+      <h2>Il codice che ha fatto <span class="grad">quel numero</span></h2>
       <p class="section-lead">
-        Non solo parole. Ecco il tipo di esperienze che costruisco — animate, reattive, su misura.
+        La stima che hai visto in cima non è un'immagine: la calcola questa funzione, letta dal file
+        vero mentre la pagina si costruisce.
       </p>
     </div>
 
     <div class="mocks">
-      <figure class="mock reveal">
-        <div class="browser">
-          <div class="browser-bar">
-            <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-            <div class="browser-url">dextlab.it</div>
-          </div>
-          <div class="browser-body">
-            <div class="bw-hero">
-              <div class="bw-line w60"></div>
-              <div class="bw-line w90"></div>
-              <div class="bw-btn"></div>
+      {
+        righe && (
+          <figure class="mock reveal">
+            <div class="codice">
+              <div class="codice-bar">
+                <span class="codice-file">src/lib/content.ts</span>
+              </div>
+              <pre class="codice-corpo"><code>{righe.map((r) => (
+                <span class:list={['codice-riga', { spicca: daEvidenziare(r) }]}>{r || ' '}</span>
+              ))}</code></pre>
             </div>
-            <div class="bw-grid"><span></span><span></span><span></span></div>
-          </div>
-        </div>
-        <figcaption><strong>Siti Web</strong>veloci, responsive, fatti per convertire</figcaption>
-      </figure>
+            <figcaption>
+              <strong>Codice, non mockup</strong>se cambia la formula, cambia questo riquadro
+            </figcaption>
+          </figure>
+        )
+      }
 
       <figure class="mock reveal">
         <div class="window">
@@ -41,8 +74,8 @@ const chartBars = ['42%', '66%', '38%', '80%', '55%', '96%', '70%'];
           </div>
           <div class="win-main">
             <div class="win-stats">
-              {/* Come le cifre dell'hero: il valore d'arrivo sta nell'HTML, lo
-                  zero lo mette il JS appena prima di animare. */}
+              {/* Il valore d'arrivo sta nell'HTML, lo zero lo mette il JS appena
+                  prima di animare: senza JS si leggono i numeri, non degli zeri. */}
               <div class="kpi"><span class="kpi-n" data-to="92">92</span><i></i></div>
               <div class="kpi"><span class="kpi-n" data-to="48">48</span><i></i></div>
             </div>

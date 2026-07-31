@@ -1,18 +1,62 @@
 ---
-// L'anno viene riempito da public/js/main.js per non fissare una data nel
-// markup renderizzato lato server.
+/**
+ * In fondo alla pagina c'erano un logo, una riga di copyright e cinque link. È
+ * lo spazio di chi è arrivato fino qui, cioè di chi è già interessato, e non
+ * gli si diceva niente.
+ *
+ * Il pannello di stato è un vanto che solo uno sviluppatore può permettersi,
+ * perché richiede che i numeri siano veri: sono presi dal processo che sta
+ * servendo questa pagina, non scritti a mano. Vedi src/lib/stato.ts per le due
+ * cose che ho deciso di NON metterci, e perché.
+ *
+ * L'anno viene riempito da public/js/main.js per non fissare una data nel
+ * markup renderizzato lato server.
+ */
+import { inLineaDa, versione } from '../lib/stato.ts';
+
+const su = inLineaDa();
+const ver = versione();
 ---
 
 <footer class="footer">
-  <div class="container footer-inner">
-    <img src="/assets/logo-h.png" alt="Dext Lab" class="footer-logo" width="400" height="156" loading="lazy" />
-    <p class="footer-copy">© <span id="year"></span> Dext Lab — Tecnologia e design su misura.</p>
-    <nav class="footer-links">
-      <a href="#servizi">Servizi</a>
-      <a href="#portfolio">Caso reale</a>
-      <a href="#contatti">Contatti</a>
-      <a href="/privacy">Privacy</a>
-      <a href="/termini">Termini</a>
-    </nav>
+  <div class="container">
+    <div class="stato" aria-label="Stato del servizio">
+      <span class="stato-v"><i class="stato-punto"></i> in linea</span>
+      <span class="stato-s" aria-hidden="true"></span>
+      <span>da <b>{su}</b></span>
+      <span class="stato-s" aria-hidden="true"></span>
+      <span>rendering <b>lato server</b></span>
+      {
+        ver && (
+          <>
+            <span class="stato-s" aria-hidden="true" />
+            <span>
+              versione <b>{ver}</b>
+            </span>
+          </>
+        )
+      }
+      <span class="stato-s" aria-hidden="true"></span>
+      <span>risposta <b id="statoMs">—</b></span>
+    </div>
+
+    <div class="footer-inner">
+      <img
+        src="/assets/logo-h.png"
+        alt="Dext Lab"
+        class="footer-logo"
+        width="400"
+        height="156"
+        loading="lazy"
+      />
+      <p class="footer-copy">© <span id="year"></span> Dext Lab — Tecnologia e design su misura.</p>
+      <nav class="footer-links">
+        <a href="#servizi">Servizi</a>
+        <a href="#portfolio">Caso reale</a>
+        <a href="#contatti">Contatti</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/termini">Termini</a>
+      </nav>
+    </div>
   </div>
 </footer>

@@ -37,6 +37,10 @@ services:
       # Un solo proxy fidato davanti (Traefik): serve a risalire all'IP reale
       # del visitatore per rate limit e statistiche.
       TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
+      # Versione in servizio, mostrata nel pannello di stato del footer. È lo
+      # stesso tag dell'immagine qui sopra: se manca, il footer non mostra la
+      # voce invece di inventarne una.
+      APP_VERSION: ${IMAGE_TAG:-}
     networks:
       - proxy
     volumes:

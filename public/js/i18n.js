@@ -34,11 +34,13 @@
     'Consulenza IT': 'IT Consulting',
     'Scelta dello stack, architettura, sicurezza e ottimizzazione. Ti affianco nelle decisioni tecniche che contano.':
       'Stack choice, architecture, security and optimisation. I support you on the technical decisions that matter.',
-    // showcase
-    'Anteprima dal vivo': 'Live preview', 'Interfacce che': 'Interfaces that', 'prendono vita': 'come to life',
-    'Non solo parole. Ecco il tipo di esperienze che costruisco — animate, reattive, su misura.':
-      'Not just words. Here are the kinds of experiences I build — animated, responsive, tailor-made.',
-    'veloci, responsive, fatti per convertire': 'fast, responsive, built to convert',
+    // showcase: il codice vero al posto del mockup disegnato
+    'Non te lo racconto': "I won't just tell you",
+    'Il codice che ha fatto': 'The code behind', 'quel numero': 'that number',
+    "La stima che hai visto in cima non è un'immagine: la calcola questa funzione, letta dal file vero mentre la pagina si costruisce.":
+      'The estimate you saw at the top is not an image: this function computes it, read from the real file while the page is built.',
+    'Codice, non mockup': 'Code, not a mockup',
+    'se cambia la formula, cambia questo riquadro': 'if the formula changes, this box changes',
     'gestionali e dashboard in tempo reale': 'management tools and real-time dashboards',
     // il caso reale: questo sito
     'Un caso reale': 'A real case', 'Il sito che stai': 'The site you are', 'guardando': 'looking at',
@@ -64,6 +66,13 @@
       'With JavaScript off the page stays fully readable, sections included.',
     'Vuoi vedere come lavoro su un progetto tuo?': 'Want to see how I work on a project of yours?',
     'Scrivimi': 'Write to me',
+    // pannello di stato nel footer
+    'in linea': 'online', 'da': 'up for', 'pochi secondi': 'a few seconds',
+    'rendering': 'rendering', 'lato server': 'server-side', 'risposta': 'response',
+    'versione': 'version',
+    // Le durate le compone il server in italiano ('3 ore', '2 giorni'): sono
+    // dinamiche, quindi qui non possono stare come chiavi. Restano in italiano
+    // anche in inglese, ed è una lacuna che segnalo invece di nascondere.
     // processo
     'Come lavoro': 'How I work', 'Un processo': 'A transparent', 'trasparente': 'process',
     'Niente sorprese. Ogni fase è condivisa, misurabile e orientata al risultato.':

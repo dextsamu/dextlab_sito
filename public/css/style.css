@@ -429,6 +429,40 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
    affiancate: senza, i numeri di larghezza diversa non si allineano fra loro. */
 
 /* ---------- showcase mockups ---------- */
+/* Riquadro del codice vero. Niente colorazione della sintassi: servirebbe una
+   libreria per fare bella figura su venti righe, e una riga evidenziata dice
+   già dove guardare. */
+.codice{
+  border-radius:var(--radius);overflow:hidden;background:#060a13;
+  border:1px solid var(--border);
+}
+.codice-bar{
+  display:flex;align-items:center;gap:9px;padding:11px 16px;
+  background:rgba(255,255,255,.03);border-bottom:1px solid var(--border);
+}
+.codice-file{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.74rem;color:var(--muted);
+}
+.codice-corpo{
+  margin:0;padding:16px 0;overflow-x:auto;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.76rem;line-height:1.7;color:#c6d4e4;
+}
+.codice-riga{display:block;padding:0 18px;white-space:pre;tab-size:2}
+/* La barra di scorrimento predefinita è chiara e su una superficie quasi nera
+   diventa la cosa più luminosa del riquadro. Qui è l'unico posto del sito dove
+   serve scorrere di lato, quindi la regola resta locale. */
+.codice-corpo{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.16) transparent}
+.codice-corpo::-webkit-scrollbar{height:8px}
+.codice-corpo::-webkit-scrollbar-track{background:transparent}
+.codice-corpo::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:8px}
+.codice-corpo::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.26)}
+.codice-riga.spicca{
+  background:rgba(84,201,200,.1);
+  box-shadow:inset 3px 0 0 var(--cyan);
+}
+
 .mocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:28px}
 .mock{display:flex;flex-direction:column;gap:18px}
 .mock figcaption{font-size:.95rem;color:var(--muted);line-height:1.5}
@@ -824,6 +858,23 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 /* ---------- footer ---------- */
 .footer{padding:48px 0;border-top:1px solid var(--border);background:var(--bg-2)}
 .footer-inner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px}
+
+/* Pannello di stato: numeri veri, presi dal processo che serve la pagina. Il
+   monospazio non è un vezzo — dice «questi sono dati, non slogan». */
+.stato{
+  display:flex;flex-wrap:wrap;align-items:center;gap:9px 22px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.76rem;color:var(--muted);
+  padding-bottom:26px;margin-bottom:30px;border-bottom:1px solid var(--border);
+}
+.stato b{color:var(--text);font-weight:400}
+.stato-v{display:inline-flex;align-items:center;gap:8px;color:var(--green)}
+.stato-punto{
+  width:7px;height:7px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 0 0 rgba(139,216,158,.6);animation:pulse 2s infinite;
+}
+@media (prefers-reduced-motion:reduce){.stato-punto{animation:none}}
+.stato-s{width:1px;height:12px;background:var(--border)}
 .footer-logo{height:30px;width:auto}
 .footer-copy{color:var(--muted);font-size:.88rem}
 .footer-links{display:flex;gap:24px}

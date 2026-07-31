@@ -96,6 +96,17 @@
     tappe.forEach((t, i) => t.classList.toggle('viva', i <= quale));
   };
 
+  /* Tempo di risposta nel pannello del footer: quello vero di questa richiesta,
+     letto dalle misure di navigazione del browser. Se il browser non le espone
+     — o il valore è zero, come da file:// — la voce dice che qui non si misura,
+     invece di mostrare uno zero che sembrerebbe finto. */
+  const statoMs = document.getElementById('statoMs');
+  if (statoMs) {
+    const nav0 = performance.getEntriesByType('navigation')[0];
+    const ms = nav0 ? Math.round(nav0.responseStart - nav0.requestStart) : 0;
+    statoMs.textContent = ms > 0 ? ms + ' ms' : 'non misurata';
+  }
+
   /* nav scroll state + scroll progress bar */
   const nav = document.getElementById('nav');
   const progress = document.getElementById('scrollProgress');
