@@ -178,6 +178,141 @@
     document.getElementById('cookieReject').addEventListener('click', () => close('reject'));
   }
 
+  /* sfondo: tracce di segnale sulle linee della griglia
+     ---------------------------------------------------
+     Le tracce nascono sulle stesse linee di .bg-grid (passo 54px) e scorrono
+     con una coda che sfuma, come un segnale su un circuito stampato: è il
+     motivo del logo, non un effetto preso a caso.
+
+     Scelte fatte per non pagarla in prestazioni, perché questo gira su ogni
+     pagina e per sempre:
+     - canvas invece di quindici nodi animati nel DOM;
+     - densità proporzionale all'area, quindi su telefono sono un terzo;
+     - disegno fermo quando la scheda non è visibile;
+     - niente del tutto con movimento ridotto attivo. */
+  const tele = document.getElementById('bgTraces');
+  if (tele && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const ctx = tele.getContext('2d');
+    const PASSO = 54; // combacia con background-size di .bg-grid
+    const TINTE = ['84,201,200', '139,216,158', '63,169,214'];
+    let W = 0;
+    let H = 0;
+    let tracce = [];
+    let raf = null;
+    let ultimo = 0;
+
+    const nuova = (dentro) => {
+      const oriz = Math.random() < 0.5;
+      // Una traccia orizzontale corre lungo X e siede su una linea Y, quindi la
+      // dimensione da cui pescare la linea è quella perpendicolare alla marcia.
+      const perpendicolare = oriz ? H : W;
+      return {
+        oriz,
+        // Ancorata a una linea della griglia: fuori da quelle si vedrebbe che
+        // le tracce e la griglia non c'entrano niente l'una con l'altra.
+        linea: Math.round((Math.random() * perpendicolare) / PASSO) * PASSO + 0.5,
+        pos: dentro ? Math.random() * (oriz ? W : H) : -140,
+        vel: 24 + Math.random() * 38,
+        coda: 70 + Math.random() * 110,
+        tinta: TINTE[(Math.random() * TINTE.length) | 0],
+        alpha: 0.14 + Math.random() * 0.2,
+        verso: Math.random() < 0.5 ? 1 : -1,
+      };
+    };
+
+    /**
+     * Attenuazione verso il centro dello schermo, dove sta il testo.
+     *
+     * Sostituisce la maschera CSS che avevo messo prima: quella andava
+     * riapplicata a ogni frame su tutto il livello, questa è una
+     * moltiplicazione per traccia. Al centro le tracce quasi scompaiono, ai
+     * bordi restano piene.
+     */
+    const attenua = (t) => {
+      const centro = (t.oriz ? H : W) / 2;
+      const d = Math.abs(t.linea - centro) / centro; // 0 al centro, 1 al bordo
+      return Math.min(1, 0.12 + d * 1.5);
+    };
+
+    const dimensiona = () => {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      // Il rapporto pixel è limitato a 2: oltre non si distingue una linea da
+      // 1px e il costo di riempimento cresce col quadrato.
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      tele.width = Math.round(W * dpr);
+      tele.height = Math.round(H * dpr);
+      // La dimensione CSS va imposta qui e non nel foglio di stile: <canvas> è
+      // un elemento sostituito, quindi né inset:0 né width:100% lo portano
+      // affatto alla misura del viewport — con dpr 2 il riquadro veniva più
+      // grande dello schermo e le tracce uscivano fuori scala. Dandola in pixel
+      // dalla stessa variabile con cui disegno, i due non possono divergere.
+      tele.style.width = W + 'px';
+      tele.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const quante = Math.max(3, Math.min(16, Math.round((W * H) / 95000)));
+      tracce = Array.from({ length: quante }, () => nuova(true));
+    };
+
+    const disegna = (ora) => {
+      const dt = ultimo ? Math.min(0.05, (ora - ultimo) / 1000) : 0;
+      ultimo = ora;
+      ctx.clearRect(0, 0, W, H);
+      for (let i = 0; i < tracce.length; i++) {
+        const t = tracce[i];
+        t.pos += t.vel * dt;
+        const estensione = t.oriz ? W : H;
+        if (t.pos - t.coda > estensione) {
+          tracce[i] = nuova(false);
+          continue;
+        }
+        const testa = t.verso === 1 ? t.pos : estensione - t.pos;
+        const fine = testa - t.coda * t.verso;
+        const x1 = t.oriz ? fine : t.linea;
+        const y1 = t.oriz ? t.linea : fine;
+        const x2 = t.oriz ? testa : t.linea;
+        const y2 = t.oriz ? t.linea : testa;
+        const a = t.alpha * attenua(t);
+        const g = ctx.createLinearGradient(x1, y1, x2, y2);
+        g.addColorStop(0, `rgba(${t.tinta},0)`);
+        g.addColorStop(1, `rgba(${t.tinta},${a})`);
+        ctx.strokeStyle = g;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        // Punto di testa: dà la direzione, che la sola coda non renderebbe.
+        ctx.fillStyle = `rgba(${t.tinta},${Math.min(0.75, a * 2.6)})`;
+        ctx.fillRect(x2 - 1, y2 - 1, 2, 2);
+      }
+      raf = requestAnimationFrame(disegna);
+    };
+
+    const avvia = () => {
+      if (raf === null) {
+        ultimo = 0;
+        raf = requestAnimationFrame(disegna);
+      }
+    };
+    const ferma = () => {
+      if (raf !== null) {
+        cancelAnimationFrame(raf);
+        raf = null;
+      }
+    };
+
+    dimensiona();
+    avvia();
+
+    let attesa = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(attesa);
+      attesa = setTimeout(dimensiona, 180);
+    });
+    document.addEventListener('visibilitychange', () => (document.hidden ? ferma() : avvia()));
+  }
+
   /* 3D tilt on portfolio cards */
   const fine = window.matchMedia('(pointer:fine)').matches;
   const reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
@@ -208,6 +343,10 @@
     const elDelta = document.getElementById('cfgDelta');
     const elSticky = document.getElementById('cfgSticky');
     const elStickyVal = document.getElementById('cfgStickyVal');
+    const elBar = document.getElementById('cfgBar');
+    const elEco = document.getElementById('cfgEcho');
+    const elEcoVis = document.getElementById('cfgEchoVis');
+    const elEcoSr = document.getElementById('cfgEchoSr');
     // Stesso raggruppamento di src/lib/content.ts, e per lo stesso motivo: non
     // dipendere dai dati locale di ICU, che sul server possono mancare e far
     // uscire "4500" dove qui usciva "4.500".
@@ -269,6 +408,15 @@
         conta(elMin, mostrati.min, min);
         conta(elMax, mostrati.max, max);
 
+        if (elBar && !menoMoto.matches) {
+          // Rimuovere la classe e leggere offsetWidth forza il riavvio
+          // dell'animazione: senza, un secondo cambio ravvicinato non la
+          // farebbe ripartire perché la classe è già presente.
+          elBar.classList.remove('run');
+          void elBar.offsetWidth;
+          elBar.classList.add('run');
+        }
+
         // Quanto è costata l'ultima scelta. Il totale da solo non lo dice.
         const dPrezzo = min - mostrati.min;
         const dSett = weeks - mostrati.weeks;
@@ -322,6 +470,34 @@
         if (subj) subj.value = 'Richiesta preventivo (configuratore)';
         msgField.dispatchEvent(new Event('input', { bubbles: true }));
       }
+      // Il pulsante riempiva il form e portava ai contatti senza dire niente:
+      // chi non se ne accorgeva lo cliccava due volte. Ora conferma, e lo fa
+      // accanto al form invece che accanto al pulsante, perché è là che si
+      // arriva.
+      if (!elEco || !elEcoVis) return;
+      const en = document.documentElement.lang === 'en';
+      const testo = en
+        ? `> quote of ${fmt(mostrati.min)}–${fmt(mostrati.max)} copied into the form below`
+        : `> preventivo di ${fmt(mostrati.min)}–${fmt(mostrati.max)} copiato nel form qui sotto`;
+      elEco.hidden = false;
+      if (elEcoSr) elEcoSr.textContent = testo; // annunciato una volta, intero
+      if (menoMoto.matches) {
+        elEcoVis.textContent = testo;
+        return;
+      }
+      clearInterval(elEcoVis._t);
+      elEcoVis.textContent = '';
+      const cursore = document.createElement('span');
+      cursore.className = 'cursore';
+      elEcoVis.appendChild(cursore);
+      let i = 0;
+      elEcoVis._t = setInterval(() => {
+        i += 1;
+        cursore.remove();
+        elEcoVis.textContent = testo.slice(0, i);
+        elEcoVis.appendChild(cursore);
+        if (i >= testo.length) clearInterval(elEcoVis._t);
+      }, 20);
     });
 
     compute();

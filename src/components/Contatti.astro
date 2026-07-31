@@ -38,6 +38,15 @@ const { contactEmail, calendly } = Astro.props;
       </div>
     </div>
 
+    <!-- Conferma dell'arrivo dal configuratore. Sta qui e non accanto al
+         pulsante del preventivo perché quel pulsante porta a questa sezione:
+         una conferma lasciata là sarebbe scorsa via prima di essere letta.
+         La riga visibile si scrive a macchina ed è aria-hidden; il testo per
+         gli screen reader viene annunciato una volta sola, intero. -->
+    <p class="cfg-echo" id="cfgEcho" hidden>
+      <span id="cfgEchoVis" aria-hidden="true"></span>
+      <span class="solo-sr" id="cfgEchoSr" role="status" aria-live="polite"></span>
+    </p>
     <form class="contact-form reveal" id="contactForm" action="/api/contact" method="POST" novalidate>
       <div class="field">
         <input type="text" id="name" name="name" required placeholder=" " />

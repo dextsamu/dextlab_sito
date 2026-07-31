@@ -64,6 +64,8 @@ const estimate = initialEstimate(types);
         <div class="cfg-price">
           <span id="cfgMin">{estimate.min}</span> – <span id="cfgMax">{estimate.max}</span>
         </div>
+        <!-- Filetto che si riempie a ogni ricalcolo, come un passo di build. -->
+        <div class="cfg-bar" id="cfgBar" aria-hidden="true"><i></i></div>
         <!-- Riempito dal JS a ogni cambio e svuotato dopo qualche secondo: dice
              quanto è costata l'ultima scelta, che il solo totale non mostra.
              aria-live perché la variazione è l'informazione, non la decorazione. -->

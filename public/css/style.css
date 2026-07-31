@@ -105,6 +105,31 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 @keyframes float1{to{transform:translate(120px,80px) scale(1.15)}}
 @keyframes float2{to{transform:translate(-100px,120px) scale(1.1)}}
 
+/* ---------- sfondo tech: tracce sulla griglia + passata di scansione ----------
+   Stanno fra la griglia (-3) e i contenuti, alla stessa quota degli aloni (-2).
+   Nessuno dei due intercetta il puntatore. */
+.bg-traces{
+  /* La misura la impone il JS in pixel, non questo foglio: <canvas> è un
+     elemento sostituito, e su questi né inset:0 né width:100% lo portano alla
+     dimensione del viewport — resta quella intrinseca degli attributi. Con
+     dpr 2 il riquadro risultava più grande dello schermo e le tracce uscivano
+     fuori scala; su desktop a dpr 1 combaciava per caso. Vedi dimensiona()
+     in public/js/main.js. */
+  position:fixed;top:0;left:0;z-index:-2;pointer-events:none;
+  /* Niente mask-image qui, di proposito: una maschera su un livello a schermo
+     intero il cui contenuto cambia a ogni frame va riapplicata a ogni frame, e
+     misurata costava più del disegno stesso (fps da 36 a 27 in rendering
+     software). L'attenuazione verso il centro è calcolata dentro il disegno,
+     dove è una moltiplicazione per traccia e non costa niente. */
+}
+.bg-scan{
+  position:fixed;top:0;left:0;right:0;height:40vh;z-index:-2;pointer-events:none;
+  background:linear-gradient(to bottom,transparent,rgba(84,201,200,.05) 46%,rgba(139,216,158,.03) 62%,transparent);
+  animation:scanDown 17s linear infinite;
+}
+@keyframes scanDown{from{transform:translateY(-45vh)}to{transform:translateY(145vh)}}
+@media (prefers-reduced-motion:reduce){.bg-scan{display:none}}
+
 /* ---------- nav ---------- */
 .nav{
   position:fixed;top:0;left:0;right:0;z-index:100;
@@ -412,6 +437,27 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
    durante il conteggio le cifre cambiano tutte, e senza larghezza fissa la
    riga tremerebbe. Il conteggio lo fa il JS, qui serve solo la stabilità. */
 .cfg-price span{font-variant-numeric:tabular-nums}
+/* Utility per testo destinato solo agli screen reader: la riga di conferma si
+   scrive a macchina, e far annunciare una lettera alla volta sarebbe inudibile. */
+.solo-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+
+/* Filetto di ricalcolo sotto il totale: si riempie e svanisce a ogni cambio. */
+.cfg-bar{height:2px;border-radius:2px;background:var(--surface-2);overflow:hidden;margin:0 0 10px}
+.cfg-bar i{display:block;height:100%;width:0;background:var(--grad)}
+.cfg-bar.run i{animation:cfgBarRun .42s var(--ease) forwards}
+@keyframes cfgBarRun{from{width:0;opacity:1}70%{width:100%;opacity:1}to{width:100%;opacity:0}}
+@media (prefers-reduced-motion:reduce){.cfg-bar{display:none}}
+
+/* Conferma dell'arrivo dal configuratore, sopra il form. */
+.cfg-echo{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.86rem;color:var(--green);margin:0 0 16px;min-height:1.4em;
+  border-left:2px solid var(--border-2);padding-left:12px;
+}
+.cfg-echo .cursore{display:inline-block;width:7px;height:1em;background:var(--green);vertical-align:-2px;animation:cfgCursore 1s steps(2) infinite}
+@keyframes cfgCursore{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.cfg-echo .cursore{display:none}}
+
 /* Variazione dell'ultima scelta. Occupa sempre la sua riga anche da vuota,
    altrimenti comparendo spingerebbe giù il resto del riquadro. */
 .cfg-delta{min-height:1.35em;margin:-4px 0 10px;font-size:.84rem;font-family:'Space Grotesk',sans-serif;color:var(--green);opacity:0;transition:opacity .25s var(--ease);font-variant-numeric:tabular-nums}
