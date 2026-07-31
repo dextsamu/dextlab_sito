@@ -64,6 +64,12 @@ const estimate = initialEstimate(types);
         <div class="cfg-price">
           <span id="cfgMin">{estimate.min}</span> – <span id="cfgMax">{estimate.max}</span>
         </div>
+        <!-- Filetto che si riempie a ogni ricalcolo, come un passo di build. -->
+        <div class="cfg-bar" id="cfgBar" aria-hidden="true"><i></i></div>
+        <!-- Riempito dal JS a ogni cambio e svuotato dopo qualche secondo: dice
+             quanto è costata l'ultima scelta, che il solo totale non mostra.
+             aria-live perché la variazione è l'informazione, non la decorazione. -->
+        <p class="cfg-delta" id="cfgDelta" aria-live="polite"></p>
         <p class="cfg-time">Tempi: <strong id="cfgTime">{estimate.weeks}</strong></p>
         <ul class="cfg-includes">
           <li>Design su misura</li>
@@ -74,5 +80,14 @@ const estimate = initialEstimate(types);
         <p class="cfg-note">Stima orientativa, non vincolante. Il preventivo finale è gratuito.</p>
       </aside>
     </div>
+  </div>
+
+  <!-- Su telefono il riquadro della stima finisce sotto le opzioni: scegliendo
+       si perde di vista il totale. Questa barra compare solo quando il
+       configuratore è a schermo, e solo su viewport stretti (vedi CSS). -->
+  <div class="cfg-sticky" id="cfgSticky" aria-hidden="true">
+    <span class="cfg-sticky-label">Stima</span>
+    <span class="cfg-sticky-val" id="cfgStickyVal">{estimate.min} – {estimate.max}</span>
+    <a href="#contatti" class="cfg-sticky-cta">Richiedi</a>
   </div>
 </section>

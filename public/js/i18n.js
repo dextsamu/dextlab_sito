@@ -25,6 +25,9 @@
     'Web App': 'Web Apps',
     'Applicazioni web complete: gestionali, dashboard, piattaforme SaaS. Autenticazione, database e logica di business sicura.':
       'Complete web applications: management tools, dashboards, SaaS platforms. Auth, database and secure business logic.',
+    // Prezzo nelle card: le parole stanno in nodi separati dai numeri, così le
+    // chiavi restano valide anche quando il listino cambia dal pannello.
+    'a partire da': 'starting from', 'settimane': 'weeks',
     'Consulenza IT': 'IT Consulting',
     'Scelta dello stack, architettura, sicurezza e ottimizzazione. Ti affianco nelle decisioni tecniche che contano.':
       'Stack choice, architecture, security and optimisation. I support you on the technical decisions that matter.',
@@ -104,6 +107,8 @@
     'Copywriting': 'Copywriting', 'Stima indicativa': 'Indicative estimate',
     'Design su misura': 'Custom design', 'Responsive + performance': 'Responsive + performance',
     'Supporto post-lancio': 'Post-launch support', 'Richiedi questo preventivo': 'Request this quote',
+    // Barra della stima su telefono.
+    'Stima': 'Estimate', 'Richiedi': 'Request',
     'Stima orientativa, non vincolante. Il preventivo finale è gratuito.':
       'Indicative, non-binding estimate. The final quote is free.',
     // faq

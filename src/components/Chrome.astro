@@ -14,3 +14,14 @@
 <div class="bg-aurora" aria-hidden="true"></div>
 <div class="bg-glow glow-1" aria-hidden="true"></div>
 <div class="bg-glow glow-2" aria-hidden="true"></div>
+
+<!-- Tracce che scorrono sulle linee della griglia, come segnali su un circuito
+     stampato: è lo stesso motivo del logo, un esagono con le piste. Sta su
+     canvas e non in CSS perché servono elementi che nascono e muoiono, e con
+     un DOM di quindici nodi animati costerebbe di più. Il disegno si ferma
+     quando la scheda non è visibile e non parte affatto con movimento ridotto. -->
+<canvas class="bg-traces" id="bgTraces" aria-hidden="true"></canvas>
+
+<!-- Passata di scansione: una fascia larga che scende molto lentamente. È solo
+     una trasformazione, quindi la compone la GPU senza ridisegnare nulla. -->
+<div class="bg-scan" aria-hidden="true"></div>

@@ -105,6 +105,31 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 @keyframes float1{to{transform:translate(120px,80px) scale(1.15)}}
 @keyframes float2{to{transform:translate(-100px,120px) scale(1.1)}}
 
+/* ---------- sfondo tech: tracce sulla griglia + passata di scansione ----------
+   Stanno fra la griglia (-3) e i contenuti, alla stessa quota degli aloni (-2).
+   Nessuno dei due intercetta il puntatore. */
+.bg-traces{
+  /* La misura la impone il JS in pixel, non questo foglio: <canvas> è un
+     elemento sostituito, e su questi né inset:0 né width:100% lo portano alla
+     dimensione del viewport — resta quella intrinseca degli attributi. Con
+     dpr 2 il riquadro risultava più grande dello schermo e le tracce uscivano
+     fuori scala; su desktop a dpr 1 combaciava per caso. Vedi dimensiona()
+     in public/js/main.js. */
+  position:fixed;top:0;left:0;z-index:-2;pointer-events:none;
+  /* Niente mask-image qui, di proposito: una maschera su un livello a schermo
+     intero il cui contenuto cambia a ogni frame va riapplicata a ogni frame, e
+     misurata costava più del disegno stesso (fps da 36 a 27 in rendering
+     software). L'attenuazione verso il centro è calcolata dentro il disegno,
+     dove è una moltiplicazione per traccia e non costa niente. */
+}
+.bg-scan{
+  position:fixed;top:0;left:0;right:0;height:40vh;z-index:-2;pointer-events:none;
+  background:linear-gradient(to bottom,transparent,rgba(84,201,200,.05) 46%,rgba(139,216,158,.03) 62%,transparent);
+  animation:scanDown 17s linear infinite;
+}
+@keyframes scanDown{from{transform:translateY(-45vh)}to{transform:translateY(145vh)}}
+@media (prefers-reduced-motion:reduce){.bg-scan{display:none}}
+
 /* ---------- nav ---------- */
 .nav{
   position:fixed;top:0;left:0;right:0;z-index:100;
@@ -212,7 +237,13 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   background:var(--surface);border:1px solid var(--border);
   transition:transform .4s var(--ease),border-color .4s,background .4s;
   overflow:hidden;
+  /* Colonna flessibile per allineare i tag in fondo a tutte le card: la
+     Consulenza IT non ha una riga di prezzo — si vende a giornata — e senza
+     questo restava con un vuoto in fondo mentre le altre due arrivavano
+     al bordo. */
+  display:flex;flex-direction:column;
 }
+.card-tags{margin-top:auto}
 .card::before{
   content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;
   background:var(--grad);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
@@ -238,6 +269,12 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .card p{color:var(--muted);font-size:.96rem;margin-bottom:18px}
 .card-tags{list-style:none;display:flex;flex-wrap:wrap;gap:8px}
 .card-tags li{font-size:.78rem;color:var(--cyan);padding:4px 11px;border-radius:999px;background:rgba(84,201,200,.08);border:1px solid var(--border-2)}
+/* Prezzo di partenza nella card. Cifre tabellari perché le tre card stanno
+   affiancate: senza, i numeri di larghezza diversa non si allineano fra loro. */
+.card-price{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:18px;padding-top:15px;border-top:1px solid var(--border)}
+.card-price b{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.3rem;letter-spacing:-.01em;font-variant-numeric:tabular-nums;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.card-price b i{font-style:normal;font-size:.7rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;display:block;color:var(--muted);-webkit-text-fill-color:var(--muted);margin-bottom:2px}
+.card-price em{font-style:normal;font-size:.82rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
 
 /* ---------- showcase mockups ---------- */
 .mocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:28px}
@@ -396,7 +433,58 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .cfg-includes li{position:relative;padding-left:24px;font-size:.9rem;color:var(--muted)}
 .cfg-includes li::before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:700}
 .cfg-note{font-size:.78rem;color:var(--muted);margin-top:14px;text-align:center}
+/* Il totale conta invece di saltare: il numero è a cifre tabellari perché
+   durante il conteggio le cifre cambiano tutte, e senza larghezza fissa la
+   riga tremerebbe. Il conteggio lo fa il JS, qui serve solo la stabilità. */
+.cfg-price span{font-variant-numeric:tabular-nums}
+/* Utility per testo destinato solo agli screen reader: la riga di conferma si
+   scrive a macchina, e far annunciare una lettera alla volta sarebbe inudibile. */
+.solo-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+
+/* Filetto di ricalcolo sotto il totale: si riempie e svanisce a ogni cambio. */
+.cfg-bar{height:2px;border-radius:2px;background:var(--surface-2);overflow:hidden;margin:0 0 10px}
+.cfg-bar i{display:block;height:100%;width:0;background:var(--grad)}
+.cfg-bar.run i{animation:cfgBarRun .42s var(--ease) forwards}
+@keyframes cfgBarRun{from{width:0;opacity:1}70%{width:100%;opacity:1}to{width:100%;opacity:0}}
+@media (prefers-reduced-motion:reduce){.cfg-bar{display:none}}
+
+/* Conferma dell'arrivo dal configuratore, sopra il form. */
+.cfg-echo{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.86rem;color:var(--green);margin:0 0 16px;min-height:1.4em;
+  border-left:2px solid var(--border-2);padding-left:12px;
+}
+.cfg-echo .cursore{display:inline-block;width:7px;height:1em;background:var(--green);vertical-align:-2px;animation:cfgCursore 1s steps(2) infinite}
+@keyframes cfgCursore{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.cfg-echo .cursore{display:none}}
+
+/* Variazione dell'ultima scelta. Occupa sempre la sua riga anche da vuota,
+   altrimenti comparendo spingerebbe giù il resto del riquadro. */
+.cfg-delta{min-height:1.35em;margin:-4px 0 10px;font-size:.84rem;font-family:'Space Grotesk',sans-serif;color:var(--green);opacity:0;transition:opacity .25s var(--ease);font-variant-numeric:tabular-nums}
+.cfg-delta.on{opacity:1}
+.cfg-delta.giu{color:var(--muted)}
 @media (max-width:780px){.config{grid-template-columns:1fr}.config-result{position:static}}
+
+/* Barra della stima su telefono: appare solo quando il configuratore è a
+   schermo, così non copre il resto della pagina. */
+.cfg-sticky{
+  position:fixed;left:12px;right:12px;bottom:12px;z-index:60;display:none;
+  align-items:center;gap:12px;padding:11px 14px;border-radius:14px;
+  background:rgba(11,17,32,.92);border:1px solid var(--border-2);
+  backdrop-filter:blur(10px);
+  transform:translateY(140%);transition:transform .35s var(--ease);
+}
+.cfg-sticky.on{transform:none}
+.cfg-sticky-label{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.cfg-sticky-val{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.05rem;font-variant-numeric:tabular-nums;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.cfg-sticky-cta{margin-left:auto;font-size:.82rem;font-weight:600;padding:9px 15px;border-radius:10px;background:var(--grad);color:#04121a;min-height:38px;display:grid;place-items:center}
+@media (max-width:780px){.cfg-sticky{display:flex}}
+@media (prefers-reduced-motion:reduce){.cfg-sticky{transition:none}}
+
+/* Bersagli di tocco. I link inseriti in un paragrafo erano alti quanto la riga
+   — 16px per "Privacy Policy" nel banner cookie, 19 per "Scrivimi" — sotto il
+   minimo di 24px. Il padding allarga l'area sensibile lasciando ferma la riga. */
+.cookie p a,.portfolio-note a{display:inline-block;padding:4px 0;min-height:24px;box-sizing:content-box}
 
 /* ---------- faq ---------- */
 .faq{max-width:780px;margin:0 auto;display:grid;gap:14px}
@@ -553,7 +641,7 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .footer-logo{height:30px;width:auto}
 .footer-copy{color:var(--muted);font-size:.88rem}
 .footer-links{display:flex;gap:24px}
-.footer-links a{color:var(--muted);font-size:.9rem;transition:color .25s}
+.footer-links a{color:var(--muted);font-size:.9rem;transition:color .25s;display:inline-flex;align-items:center;min-height:24px}
 .footer-links a:hover{color:var(--text)}
 
 /* ---------- reveal animation ---------- */

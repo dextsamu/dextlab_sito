@@ -102,9 +102,22 @@ export async function getLandingContent(settings?: Settings): Promise<LandingCon
   };
 }
 
-/** Prezzo formattato come fa main.js: '€' + toLocaleString('it-IT'). */
+/**
+ * Migliaia separate dal punto, senza passare da toLocaleString.
+ *
+ * Non è pignoleria: `(4500).toLocaleString('it-IT')` dipende dai dati locale di
+ * ICU, e un Node compilato con small-icu li ignora restituendo "4500" invece di
+ * "4.500". Il browser ha ICU completo e scrive "4.500", quindi lo stesso numero
+ * usciva formattato in due modi — dal server e dal JavaScript — sulla stessa
+ * pagina. Con un raggruppamento fatto a mano il risultato è identico sempre.
+ */
+export function groupThousands(n: number): string {
+  return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+/** Prezzo formattato come fa main.js: '€' + migliaia separate. */
 export function formatPrice(n: number): string {
-  return '€' + n.toLocaleString('it-IT');
+  return '€' + groupThousands(n);
 }
 
 /** Testo dei tempi con la stessa soglia usata da main.js. */
@@ -130,5 +143,39 @@ export function initialEstimate(types: PricingItem[]): { min: string; max: strin
     min: formatPrice(Math.round((price * 0.9) / 10) * 10),
     max: formatPrice(Math.round((price * 1.3) / 10) * 10),
     weeks: formatWeeks(weeks),
+  };
+}
+
+export interface ServicePrice {
+  /** Prezzo di partenza già formattato, es. "490 €". */
+  from: string;
+  /** Solo la parte numerica dei tempi, es. "1–2": la parola resta traducibile. */
+  weeks: string;
+}
+
+/**
+ * Prezzo di partenza e tempi per una card di servizio, ricavati dal listino
+ * del configuratore.
+ *
+ * Le card dei servizi e il configuratore vendono le stesse cose con nomi
+ * diversi ("Siti Web" copre sia la landing sia il sito vetrina), quindi il
+ * collegamento è una lista esplicita di etichette invece di un accostamento
+ * automatico. Se nessuna combacia — perché le hai rinominate dal pannello —
+ * restituisce null e la card non mostra alcun prezzo: meglio nessun numero
+ * che un numero sbagliato.
+ *
+ * Il prezzo non va scritto a mano nel componente: verrebbe da sé a divergere
+ * dal listino, come già successo con la stima iniziale del configuratore.
+ */
+export function servicePrice(types: PricingItem[], labels: string[]): ServicePrice | null {
+  const trovati = types.filter((t) => labels.includes(t.label));
+  if (trovati.length === 0) return null;
+
+  const min = Math.min(...trovati.map((t) => t.weeks));
+  const max = Math.max(...trovati.map((t) => t.weeks));
+  return {
+    from: `${groupThousands(Math.min(...trovati.map((t) => t.price)))} €`,
+    // Il trattino è una lineetta media, non un meno: è un intervallo.
+    weeks: min === max ? String(min) : `${min}–${max}`,
   };
 }
