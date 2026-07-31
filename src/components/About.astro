@@ -1,39 +1,105 @@
 ---
-const punti = [
-  'Consegne rapide senza rinunciare alla cura del dettaglio',
-  'Design curato e su misura, mai copia-incolla',
-  'Interlocutore unico, comunicazione diretta, tempi rispettati',
-  "Costi trasparenti, sotto il prezzo di un'agenzia",
+/**
+ * L'approccio, e gli impegni.
+ *
+ * Questa sezione è la fusione di due che dicevano la stessa cosa. C'era About —
+ * due paragrafi più quattro punti: consegne rapide, design su misura,
+ * interlocutore unico, costi trasparenti — e c'era «Perché Dext Lab», una
+ * tabella di cinque righe: tempi, costi, design su misura, tecnologia,
+ * interlocutore unico. Sono lo stesso elenco scritto due volte, a due schermate
+ * di distanza, in una pagina che ne ha quattordici. Chi scorre lo legge due
+ * volte, e la seconda gli costa credibilità invece di aggiungergliene.
+ *
+ * La tabella non è stata solo assorbita: è stata buttata. Le sue colonne
+ * dicevano cose su altre persone — «Agenzia: tempi lunghi, costi alti»,
+ * «Freelance classico: spesso template» — e nessuna di quelle celle è
+ * verificabile, né da chi le scrive né da chi le legge. Chi ha avuto una buona
+ * esperienza con un'agenzia riconosce la riga falsa al primo colpo d'occhio, e
+ * da quel momento legge il resto con sospetto: una tabella che serviva a
+ * costruire fiducia la spendeva.
+ *
+ * Al suo posto quattro impegni. Sono più forti proprio perché non parlano di
+ * nessun altro: si possono verificare, perché si possono rispettare o no.
+ * Ognuno viene da una promessa che il sito fa già altrove — le prime due dalle
+ * FAQ, la terza dalla sezione contatti, la quarta era una riga della tabella.
+ * Non ce n'è nessuno di nuovo, e questo è deliberato: un impegno che il sito non
+ * aveva mai preso non posso prenderlo io al posto suo.
+ *
+ * Per la stessa ragione qui NON c'è «il codice è tuo», che sarebbe il quinto
+ * impegno naturale e quello che uno sviluppatore promette più volentieri: non è
+ * scritto da nessuna parte in questo sito, non so se è la sua politica, e
+ * inventare una garanzia contrattuale è peggio che inventare una recensione.
+ */
+const impegni = [
+  {
+    titolo: 'Prezzo fisso, prima di iniziare',
+    testo:
+      'Il preventivo è chiaro e concordato prima della prima riga di codice. Se il lavoro cresce, si decide insieme.',
+  },
+  {
+    titolo: 'La data la dico prima, e la rispetto',
+    testo: 'Non una stima da rivedere in corsa: una data, detta all’inizio e mantenuta.',
+  },
+  {
+    titolo: 'Risposta entro 24 ore',
+    testo: 'A ogni messaggio, anche solo per dirti quando riesco a guardarlo davvero.',
+  },
+  {
+    titolo: 'Un solo interlocutore',
+    testo:
+      'Chi ti risponde è chi scrive il codice. Nessun passaggio di mano, nessun preventivo tradotto.',
+  },
 ];
 ---
 
-<section class="section" id="about">
-  <div class="container about-inner">
-    <div class="about-visual reveal">
-      <img
-        src="/assets/logo-v.png"
-        alt="Dext Lab"
-        class="about-logo"
-        width="883"
-        height="1027"
-        loading="lazy"
-      />
-      <div class="about-ring" aria-hidden="true"></div>
+{/*
+  Fondo pieno e non .section-alt: la sezione precedente (Stack) è alt, e due
+  gradienti alt di fila facevano due gobbe scure attaccate. Con la fusione la
+  sequenza dei fondi è cambiata e va riletta, non ereditata.
+*/}
+<section class="section" id="perche">
+  <div class="container">
+    <div class="about-inner">
+      <div class="about-visual reveal">
+        <img
+          src="/assets/logo-v.png"
+          alt="Dext Lab"
+          class="about-logo"
+          width="883"
+          height="1027"
+          loading="lazy"
+        />
+        <div class="about-ring" aria-hidden="true"></div>
+      </div>
+      <div class="about-text reveal">
+        <span class="eyebrow">L'approccio</span>
+        <h2>Tecnologia al servizio della <span class="grad">tua idea</span></h2>
+        <p>
+          <strong>Dext Lab</strong> nasce da un metodo diverso: unisco le migliori tecnologie
+          moderne a un modo di lavorare snello, senza passaggi inutili, per costruire prodotti
+          digitali su misura, più in fretta e a un costo accessibile.
+        </p>
+        <p>
+          Niente template riciclati né agenzie con dieci passaggi e tempi infiniti. Tu mi racconti
+          l'obiettivo, io lo traduco in un prodotto curato nel design e pronto a funzionare.
+        </p>
+      </div>
     </div>
-    <div class="about-text reveal">
-      <span class="eyebrow">L'approccio</span>
-      <h2>Tecnologia al servizio della <span class="grad">tua idea</span></h2>
-      <p>
-        <strong>Dext Lab</strong> nasce da un metodo diverso: unisco le migliori tecnologie moderne
-        a un modo di lavorare snello, senza passaggi inutili, per costruire prodotti digitali su
-        misura, più in fretta e a un costo accessibile.
-      </p>
-      <p>
-        Niente template riciclati né agenzie con dieci passaggi e tempi infiniti. Tu mi racconti
-        l'obiettivo, io lo traduco in un prodotto curato nel design e pronto a funzionare.
-      </p>
-      <ul class="about-list">
-        {punti.map((p) => <li>{p}</li>)}
+
+    <div class="impegni reveal">
+      <p class="impegni-cap">Quattro cose che ti prometto per iscritto</p>
+      <ul>
+        {
+          impegni.map((i, n) => (
+            <li>
+              <span class="impegni-n" aria-hidden="true">
+                {String(n + 1).padStart(2, '0')}
+              </span>
+              <b>{i.titolo}</b>
+              <span class="impegni-t">{i.testo}</span>
+            </li>
+          ))
+        }
       </ul>
     </div>
   </div>

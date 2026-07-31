@@ -321,6 +321,58 @@ jobs:
           PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -q -c "delete from reviews where author='Prova CI'"
           exit $fail
 
+      # About e «Perché Dext Lab» erano due sezioni che dicevano la stessa cosa, e
+      # la seconda la diceva con una tabella che affermava cose su agenzie e
+      # freelance senza poterle provare. Ora è una sezione sola con quattro
+      # impegni verificabili. Le tre trappole che questo controllo copre: la
+      # tabella che torna, la sezione che si sdoppia di nuovo, e il numero scritto
+      # nella frase che non corrisponde più agli impegni elencati.
+      - name: Una sola sezione dice perché scegliermi
+        run: |
+          html=$(curl -s http://127.0.0.1:4321/)
+          fail=0
+          for morto in 'class="compare' 'class="about-list' 'id="about"' 'Freelance classico'; do
+            if grep -qF "$morto" <<<"$html"; then
+              echo "::error::è tornato $morto: la sezione doppia era stata fusa"
+              fail=1
+            else
+              echo "  ok    niente $morto"
+            fi
+          done
+          for vivo in 'id="perche"' 'class="about-visual' 'class="about-text' 'class="impegni'; do
+            grep -qF "$vivo" <<<"$html" || { echo "::error::manca $vivo nella sezione fusa"; fail=1; }
+          done
+          # Il numero nella frase e gli impegni elencati devono coincidere: la
+          # frase dice «Quattro cose», e se un giorno se ne aggiunge un quinto
+          # senza toccarla la pagina si contraddice da sola.
+          n=$(grep -o 'class="impegni-n"' <<<"$html" | wc -l)
+          parola=$(sed -n 's/.*class="impegni-cap">\([A-Za-z]*\) .*/\1/p' <<<"$html" | head -1)
+          case "$parola" in
+            Due)     atteso=2 ;;
+            Tre)     atteso=3 ;;
+            Quattro) atteso=4 ;;
+            Cinque)  atteso=5 ;;
+            Sei)     atteso=6 ;;
+            *)       echo "::error::non riconosco il numero scritto nella frase degli impegni: «$parola»"; fail=1; atteso=$n ;;
+          esac
+          if [ "$n" = "$atteso" ]; then echo "  ok    la frase dice «$parola» e gli impegni sono $n"
+          else echo "::error::la frase dice «$parola» ($atteso) ma gli impegni elencati sono $n"; fail=1; fi
+          # E le schede dei servizi devono riempire la griglia: con quattro schede
+          # su tre colonne restava un buco, che è il motivo per cui la griglia è
+          # passata a due colonne.
+          schede=$(grep -o 'class="card reveal' <<<"$html" | wc -l)
+          colonne=$(grep -c 'grid-template-columns:repeat(2,1fr)' public/css/style.css)
+          if [ "$colonne" -lt 1 ]; then
+            echo "::error::la griglia delle schede non è più a due colonne: con $schede schede si riapre il buco"
+            fail=1
+          elif [ $((schede % 2)) != 0 ]; then
+            echo "::error::$schede schede su due colonne lasciano un buco nell'ultima riga"
+            fail=1
+          else
+            echo "  ok    $schede schede, due colonne, nessun buco"
+          fi
+          exit $fail
+
       # Lo stack dichiara solo ciò che il progetto conferma. Ogni voce del primo
       # elenco ha una prova in un file del repository: se la prova cade, la voce
       # deve cadere con lei — altrimenti la sezione ricomincia a essere un elenco

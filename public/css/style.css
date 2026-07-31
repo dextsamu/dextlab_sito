@@ -404,7 +404,12 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .section-head.aperta .section-lead{grid-column:2;grid-row:2;align-self:end;padding-bottom:6px}
 
 /* ---------- cards ---------- */
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:24px}
+/* Da tre schede a quattro (è arrivato l'E-commerce). Con auto-fit e minmax 250px
+   ne entravano quattro in fila da 282px l'una: leggibili ma strette, con
+   paragrafi di sei righe. Due per due dà a ognuna il doppio dello spazio e la
+   quarta non sembra aggiunta all'ultimo momento. Sotto i 900px si impila. */
+.cards{display:grid;grid-template-columns:1fr;gap:24px}
+@media(min-width:900px){.cards{grid-template-columns:repeat(2,1fr)}}
 .card{
   position:relative;padding:34px 28px;border-radius:var(--radius);
   /* Colore d'accento per card, preso dai tre del gradiente: --acc lo imposta il
@@ -594,9 +599,25 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .about-text h2{font-size:clamp(1.8rem,3.5vw,2.6rem);margin:14px 0 20px}
 .about-text p{color:var(--muted);margin-bottom:16px}
 .about-text strong{color:var(--text)}
-.about-list{list-style:none;margin-top:24px;display:grid;gap:12px}
-.about-list li{position:relative;padding-left:30px;color:var(--text)}
-.about-list li::before{content:"";position:absolute;left:0;top:9px;width:16px;height:16px;border-radius:5px;background:var(--grad)}
+/* .about-list non c'è più: erano i quattro punti che ripetevano la tabella di
+   confronto. Al loro posto gli impegni qui sotto, che stanno a tutta larghezza
+   perché sono la parte che si può verificare. */
+
+/* ---------- impegni ---------- */
+/* Numerati perché sono un elenco chiuso e contato — «quattro cose» nella riga
+   sopra — non per decorazione: se domani diventano cinque, la riga cambia e i
+   numeri restano veri. */
+.impegni{margin-top:74px;padding-top:34px;border-top:1px solid var(--border)}
+.impegni-cap{font-family:'Space Grotesk',sans-serif;font-size:1.05rem;color:var(--text);
+  font-variation-settings:'wght' 560;margin:0 0 26px}
+.impegni ul{list-style:none;margin:0;padding:0;display:grid;gap:28px 34px;
+  grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.impegni li{display:grid;gap:6px;align-content:start}
+.impegni-n{font-family:'Space Grotesk',sans-serif;font-size:.78rem;letter-spacing:.14em;
+  color:var(--cyan);font-variation-settings:'wght' 500}
+.impegni li b{font-family:'Space Grotesk',sans-serif;font-size:1.02rem;color:var(--text);
+  font-variation-settings:'wght' 600;line-height:1.3}
+.impegni-t{color:var(--muted);font-size:.92rem;line-height:1.55}
 
 /* ---------- contact ---------- */
 .section-contact{padding-bottom:130px}
@@ -623,32 +644,6 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .form-status{font-size:.92rem;text-align:center;min-height:1.2em}
 .form-status.ok{color:var(--green)}
 .form-status.err{color:#ff8a8a}
-
-/* ---------- compare table ---------- */
-.compare{
-  border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;
-  background:var(--surface);
-}
-.compare-row{
-  display:grid;grid-template-columns:1.4fr 1fr 1fr 1.1fr;
-  border-bottom:1px solid var(--border);
-}
-.compare-row:last-child{border-bottom:0}
-.compare-feat,.compare-col{padding:18px 20px;font-size:.95rem;display:flex;align-items:center}
-.compare-feat{color:var(--text);font-weight:500}
-.compare-col{color:var(--muted);justify-content:center;text-align:center;border-left:1px solid var(--border)}
-.compare-head{background:var(--surface-2)}
-.compare-head .compare-col,.compare-head .compare-feat{font-family:'Space Grotesk',sans-serif;font-weight:600;color:var(--text)}
-.compare-me{
-  background:linear-gradient(180deg,rgba(84,201,200,.1),rgba(139,216,158,.04));
-  position:relative;
-}
-.compare-head .compare-me{color:#04121a;background:var(--grad)}
-.compare .v{color:var(--green);font-weight:600}
-.compare .x{color:#ff8a8a}
-.compare .mid{color:#e6c86a}
-.compare .v::before{content:"✓ "}
-.compare .x::before{content:"✕ "}
 
 /* ---------- configuratore ---------- */
 .config{display:grid;grid-template-columns:1.5fr 1fr;gap:28px;align-items:start}
@@ -1019,12 +1014,6 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   .chat-launch svg{width:24px;height:24px}
   .wa-float::before{animation:none}
 
-  .compare-row{grid-template-columns:1fr;}
-  .compare-head{display:none}
-  .compare-feat{font-family:'Space Grotesk',sans-serif;font-weight:600;background:var(--surface-2);border-bottom:1px solid var(--border)}
-  .compare-col{justify-content:space-between;border-left:0;border-bottom:1px solid var(--border)}
-  .compare-col::before{content:attr(data-label);color:var(--muted);font-size:.85rem}
-  .compare-row:not(.compare-head) .compare-col:last-child{border-bottom:0}
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}

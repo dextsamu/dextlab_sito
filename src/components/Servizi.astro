@@ -1,5 +1,5 @@
 ---
-// Tre card con icona SVG propria: restano scritte per esteso perché non
+// Quattro card con icona SVG propria: restano scritte per esteso perché non
 // sono varianti di un unico modello, e un ciclo costringerebbe a scegliere
 // l'icona in base al titolo.
 //
@@ -53,7 +53,34 @@
         <ul class="card-tags"><li>React</li><li>API</li><li>Database</li><li>Cloud</li></ul>
       </article>
 
+      {/*
+        L'E-commerce era il buco più visibile della sezione: sta nel titolo
+        dell'hero in grassetto, sta nel listino del configuratore a 2.500 € — è
+        il progetto più costoso in vendita — e nessuna delle tre schede lo
+        nominava. Chi arrivava cercando un negozio online non trovava la riga
+        che dice «sì, lo faccio», e il prezzo più alto del listino non aveva una
+        descrizione da nessuna parte.
+        L'accento è il terzo del gradiente, quello che prima era della
+        Consulenza: i colori restano tre, non ne entra uno nuovo per una scheda.
+      */}
       <article class="card reveal" style="--acc:139,216,158">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M3 6h18l-1.6 9.2a2 2 0 0 1-2 1.8H7.6a2 2 0 0 1-2-1.8L4 6" />
+            <path d="M3 6 2 3" />
+            <circle cx="9" cy="20" r="1.3" />
+            <circle cx="17" cy="20" r="1.3" />
+          </svg>
+        </div>
+        <h3>E-commerce</h3>
+        <p>
+          Negozi online con pagamenti, catalogo e gestione degli ordini. Dalla vetrina al primo
+          incasso, pronti per vendere davvero.
+        </p>
+        <ul class="card-tags"><li>Pagamenti</li><li>Catalogo</li><li>Ordini</li><li>SEO</li></ul>
+      </article>
+
+      <article class="card reveal" style="--acc:63,169,214">
         <div class="card-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
             <path d="M12 2 2 7l10 5 10-5-10-5Z" />

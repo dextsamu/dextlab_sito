@@ -13,7 +13,6 @@ import Portfolio from './Portfolio.astro';
 import Processo from './Processo.astro';
 import Stack from './Stack.astro';
 import About from './About.astro';
-import Perche from './Perche.astro';
 import Recensioni from './Recensioni.astro';
 import Configuratore from './Configuratore.astro';
 import Faq from './Faq.astro';
@@ -74,8 +73,10 @@ const structuredData = JSON.stringify({
   <Portfolio />
   <Processo />
   <Stack />
+  {/* Perche.astro non esiste più: le sue righe erano le stesse di About dette
+      un'altra volta, e la tabella di confronto parlava di terzi senza prove.
+      Vedi il commento in About.astro. */}
   <About />
-  <Perche />
   {content.reviews.length > 0 && <Recensioni reviews={content.reviews} />}
   <Configuratore types={content.types} addons={content.addons} />
   <Faq faqs={content.faqs} />

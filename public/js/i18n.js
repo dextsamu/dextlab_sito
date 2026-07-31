@@ -31,6 +31,9 @@
     'Web App': 'Web Apps',
     'Applicazioni web complete: gestionali, dashboard, piattaforme SaaS. Autenticazione, database e logica di business sicura.':
       'Complete web applications: management tools, dashboards, SaaS platforms. Auth, database and secure business logic.',
+    'Negozi online con pagamenti, catalogo e gestione degli ordini. Dalla vetrina al primo incasso, pronti per vendere davvero.':
+      'Online stores with payments, catalogue and order management. From the storefront to the first sale, ready to actually sell.',
+    'Pagamenti': 'Payments', 'Catalogo': 'Catalogue', 'Ordini': 'Orders',
     'Consulenza IT': 'IT Consulting',
     'Scelta dello stack, architettura, sicurezza e ottimizzazione. Ti affianco nelle decisioni tecniche che contano.':
       'Stack choice, architecture, security and optimisation. I support you on the technical decisions that matter.',
@@ -85,11 +88,17 @@
       'Clean code with the best technologies. Constant updates, zero black box.',
     'Deploy & Supporto': 'Deploy & Support', 'Vado live, monitoro e resto al tuo fianco anche dopo il lancio.':
       'I go live, monitor and stay by your side even after launch.',
-    // stack
-    'Tecnologie & strumenti': 'Technologies & tools', 'Lo stack': 'The modern', 'moderno': 'stack',
-    'che uso': 'I use',
-    'Strumenti attuali per costruire prodotti veloci, sicuri e scalabili.':
-      'Current tools to build fast, secure and scalable products.',
+    // stack — non più un nastro di dieci nomi: sopra quello che gira davvero,
+    // letto dai file del progetto, sotto le competenze.
+    'Tecnologie': 'Technologies', 'Quello che gira': 'What is running', 'qui sotto': 'under the hood',
+    'Non un elenco di competenze: le tecnologie che stanno servendo questa pagina adesso. La lista è letta dai file del progetto mentre la pagina si costruisce, quindi non può invecchiare.':
+      'Not a list of skills: the technologies serving this page right now. The list is read from the project files as the page is built, so it cannot go stale.',
+    'rendering lato server': 'server-side rendering',
+    'tipi controllati in CI': 'types checked in CI',
+    'il processo che risponde': 'the process answering you',
+    'contenuti e preventivi': 'content and estimates',
+    'immagine nuova a ogni commit': 'a new image on every commit',
+    'E lavoro anche con': 'I also work with',
     // about
     "L'approccio": 'The approach',
     'Tecnologia al servizio della': 'Technology serving', 'tua idea': 'your idea',
@@ -97,28 +106,30 @@
       'is born from a different method: I combine the best modern technologies with a lean way of working, with no pointless steps, to build tailor-made digital products, faster and at an accessible cost.',
     "Niente template riciclati né agenzie con dieci passaggi e tempi infiniti. Tu mi racconti l'obiettivo, io lo traduco in un prodotto curato nel design e pronto a funzionare.":
       'No recycled templates or agencies with ten steps and endless timelines. You tell me the goal, I turn it into a product crafted in design and ready to work.',
-    'Consegne rapide senza rinunciare alla cura del dettaglio': 'Fast delivery without giving up attention to detail',
-    'Design curato e su misura, mai copia-incolla': 'Crafted, tailor-made design, never copy-paste',
-    'Interlocutore unico, comunicazione diretta, tempi rispettati': 'Single contact, direct communication, deadlines met',
-    "Costi trasparenti, sotto il prezzo di un'agenzia": "Transparent costs, below an agency's price",
-    // perche
-    'Perché Dext Lab': 'Why Dext Lab', 'Il meglio dei': 'The best of', 'due mondi': 'both worlds',
-    "La cura di un'agenzia, la velocità e i costi di chi lavora senza sovrastrutture.":
-      'The care of an agency, the speed and cost of someone working without overhead.',
-    'Agenzia': 'Agency', 'Freelance classico': 'Classic freelancer', 'Tempi di consegna': 'Delivery time',
-    'Lunghi': 'Long', 'Variabili': 'Variable', 'Rapidi': 'Fast', 'Costi': 'Costs', 'Alti': 'High',
-    'Medi': 'Medium', 'Accessibili': 'Affordable', 'Design su misura': 'Custom design', 'Sì': 'Yes',
-    'Spesso template': 'Often templates', 'Sempre': 'Always', 'Tecnologia aggiornata': 'Up-to-date technology',
-    'A volte': 'Sometimes', 'Raramente': 'Rarely',
-    'Interlocutore unico': 'Single contact', 'Più passaggi': 'Multiple steps', 'Sempre tu & io': 'Always you & me',
+    // Gli impegni, che hanno preso il posto dei quattro punti di About e della
+    // tabella «Perché Dext Lab». Le voci della tabella non sono più tradotte
+    // perché non esistono più: dicevano cose su agenzie e freelance che nessuno
+    // poteva verificare. 'Design su misura' sopravvive più sotto, come voce del
+    // configuratore.
+    'Quattro cose che ti prometto per iscritto': 'Four things I promise you in writing',
+    'Prezzo fisso, prima di iniziare': 'Fixed price, before we start',
+    'Il preventivo è chiaro e concordato prima della prima riga di codice. Se il lavoro cresce, si decide insieme.':
+      'The quote is clear and agreed before the first line of code. If the work grows, we decide together.',
+    'La data la dico prima, e la rispetto': 'I give you the date up front, and I keep it',
+    'Non una stima da rivedere in corsa: una data, detta all\u2019inizio e mantenuta.':
+      'Not an estimate to be revised along the way: a date, given at the start and kept.',
+    'Risposta entro 24 ore': 'A reply within 24 hours',
+    'A ogni messaggio, anche solo per dirti quando riesco a guardarlo davvero.':
+      'To every message, even if only to tell you when I can properly look at it.',
+    'Un solo interlocutore': 'One single contact',
+    'Chi ti risponde è chi scrive il codice. Nessun passaggio di mano, nessun preventivo tradotto.':
+      'The person answering you is the person writing the code. No handovers, no quote lost in translation.',
     // recensioni
     'Cosa dicono i': 'What', 'clienti': 'clients say',
-    'Sito pronto in pochi giorni, esattamente come lo immaginavo. Comunicazione chiara e zero stress.':
-      'Site ready in a few days, exactly as I imagined. Clear communication and zero stress.',
-    'Titolare e-commerce': 'E-commerce owner',
-    'Ha capito subito cosa serviva alla mia attività. Il gestionale ci fa risparmiare ore ogni settimana.':
-      'He immediately understood what my business needed. The tool saves us hours every week.',
-    'Studio professionale': 'Professional firm',
+    // I testi delle due recensioni d'esempio non sono più qui: la sezione esiste
+    // solo se il database ha recensioni vere, e quelle vengono dal pannello —
+    // non passano da questo dizionario. Le intestazioni restano, per quando ce
+    // ne sarà una.
     // configuratore
     'Preventivo istantaneo': 'Instant quote', 'Configura il tuo': 'Configure your', 'progetto': 'project',
     'Stima indicativa in tempo reale. Nessun impegno: serve a darci un punto di partenza.':
