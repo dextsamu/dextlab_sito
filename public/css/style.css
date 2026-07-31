@@ -216,7 +216,7 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
 
 /* ---------- hero ---------- */
-.hero{position:relative;min-height:100vh;display:flex;align-items:center;padding:120px 0 80px}
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;padding:104px 0 70px}
 .hero-inner{display:flex;flex-direction:column;align-items:center;text-align:center;max-width:880px}
 .hero-badge{
   display:inline-flex;align-items:center;gap:9px;
@@ -229,15 +229,46 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
    variabile e da quando lo serviamo noi si può chiedere un valore a metà. Il JS
    muove --w mentre esci dall'hero (vedi main.js); il valore di riposo è 600, lo
    stesso di tutti gli altri titoli, quindi senza JS non cambia niente. */
-.hero-title{font-size:clamp(2.4rem,6vw,4.4rem);margin-bottom:24px;font-variation-settings:'wght' var(--w,600)}
+.hero-title{font-size:clamp(2.2rem,5.2vw,3.9rem);margin-bottom:18px;font-variation-settings:'wght' var(--w,600)}
 .hero-title .grad{display:inline-block}
-.hero-sub{font-size:clamp(1.05rem,2vw,1.3rem);color:var(--muted);max-width:640px;margin-bottom:38px}
+.hero-sub{font-size:clamp(1rem,1.7vw,1.18rem);color:var(--muted);max-width:600px;margin-bottom:26px}
 .hero-sub strong{color:var(--text);font-weight:600}
-.hero-actions{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:64px}
-.hero-stats{display:flex;gap:48px;flex-wrap:wrap;justify-content:center}
-.stat{text-align:center}
-.stat-num,.stat-suf{font-family:'Space Grotesk',sans-serif;font-size:2.4rem;font-weight:700;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.stat p{font-size:.85rem;color:var(--muted);margin-top:4px}
+.hero-actions{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+
+/* La prima domanda del configuratore, nell'hero. Il riquadro ha un fondo
+   appena più chiaro perché è l'unica cosa cliccabile della schermata insieme ai
+   due bottoni: deve leggersi come uno strumento, non come del testo. */
+.hero-conf{
+  width:100%;max-width:600px;margin:0 0 24px;padding:20px 24px 22px;
+  border-radius:var(--radius);background:rgba(255,255,255,.03);
+  border:1px solid var(--border);
+  background-image:linear-gradient(90deg,transparent,rgba(84,201,200,.5),transparent);
+  background-repeat:no-repeat;background-size:100% 1px;background-position:top center;
+  display:grid;gap:13px;justify-items:center;
+}
+.hero-conf-q{font-family:'Space Grotesk',sans-serif;font-size:.96rem;font-weight:600;color:var(--text)}
+.hero-tipi{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
+.hero-tipo{
+  font-size:.88rem;padding:9px 15px;border-radius:999px;cursor:pointer;
+  font-family:'Space Grotesk',sans-serif;font-weight:500;
+  background:var(--surface-2);border:1px solid var(--border);color:var(--muted);
+  transition:color .25s,border-color .25s,background .25s;
+}
+.hero-tipo:hover{color:var(--text);border-color:var(--border-2)}
+.hero-tipo.active{background:var(--grad);border-color:transparent;color:#04121a;font-weight:600}
+.hero-stima{display:grid;gap:3px;justify-items:center}
+.hero-stima-lab{
+  font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+  font-family:'Space Grotesk',sans-serif;font-weight:600;
+}
+.hero-stima b{
+  font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:clamp(1.7rem,4vw,2.3rem);
+  letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.15;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero-stima-t{font-size:.86rem;color:var(--muted)}
+.hero-stima-t strong{color:var(--text);font-weight:600}
+
 .hero-scroll{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);width:26px;height:42px;border:2px solid var(--border-2);border-radius:14px}
 .hero-scroll span{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:4px;height:8px;border-radius:2px;background:var(--cyan);animation:scrolldot 1.8s infinite}
 @keyframes scrolldot{0%{opacity:0;top:8px}40%{opacity:1}80%{opacity:0;top:22px}100%{opacity:0}}
@@ -398,6 +429,40 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
    affiancate: senza, i numeri di larghezza diversa non si allineano fra loro. */
 
 /* ---------- showcase mockups ---------- */
+/* Riquadro del codice vero. Niente colorazione della sintassi: servirebbe una
+   libreria per fare bella figura su venti righe, e una riga evidenziata dice
+   già dove guardare. */
+.codice{
+  border-radius:var(--radius);overflow:hidden;background:#060a13;
+  border:1px solid var(--border);
+}
+.codice-bar{
+  display:flex;align-items:center;gap:9px;padding:11px 16px;
+  background:rgba(255,255,255,.03);border-bottom:1px solid var(--border);
+}
+.codice-file{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.74rem;color:var(--muted);
+}
+.codice-corpo{
+  margin:0;padding:16px 0;overflow-x:auto;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.76rem;line-height:1.7;color:#c6d4e4;
+}
+.codice-riga{display:block;padding:0 18px;white-space:pre;tab-size:2}
+/* La barra di scorrimento predefinita è chiara e su una superficie quasi nera
+   diventa la cosa più luminosa del riquadro. Qui è l'unico posto del sito dove
+   serve scorrere di lato, quindi la regola resta locale. */
+.codice-corpo{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.16) transparent}
+.codice-corpo::-webkit-scrollbar{height:8px}
+.codice-corpo::-webkit-scrollbar-track{background:transparent}
+.codice-corpo::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:8px}
+.codice-corpo::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.26)}
+.codice-riga.spicca{
+  background:rgba(84,201,200,.1);
+  box-shadow:inset 3px 0 0 var(--cyan);
+}
+
 .mocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:28px}
 .mock{display:flex;flex-direction:column;gap:18px}
 .mock figcaption{font-size:.95rem;color:var(--muted);line-height:1.5}
@@ -446,12 +511,44 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .mock.in .bw-line,.mock.in .bw-btn,.mock.in .bw-grid span,.mock.in .chart span{animation-play-state:running}
 
 /* ---------- steps ---------- */
-.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:24px}
-.step{position:relative;padding:30px 26px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border);transition:transform .4s var(--ease)}
-.step:hover{transform:translateY(-6px)}
-.step-n{font-family:'Space Grotesk',sans-serif;font-size:2.6rem;font-weight:700;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;opacity:.9}
-.step h3{font-size:1.2rem;margin:10px 0 8px}
-.step p{color:var(--muted);font-size:.93rem}
+/* I quattro passi erano quattro riquadri affiancati, tutti uguali e tutti
+   accesi: un elenco, non un processo. Ora sono tappe su una linea che avanza
+   mentre scendi, e quella che ti riguarda è l'unica accesa. La stessa
+   informazione con una forma che la racconta.
+   La linea la disegna un ::before sul contenitore, così le tappe restano celle
+   di griglia e su telefono si impilano senza portarsi dietro geometrie. */
+.steps{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:22px;padding-top:34px}
+.steps::before{
+  content:"";position:absolute;top:6px;left:0;right:0;height:2px;border-radius:2px;
+  background:rgba(255,255,255,.08);
+}
+.steps::after{
+  content:"";position:absolute;top:6px;left:0;height:2px;border-radius:2px;
+  width:var(--avanzamento,25%);background:var(--grad);
+  transition:width .55s var(--ease);
+}
+.step{
+  position:relative;padding:20px 20px 22px;border-radius:var(--radius);
+  background:var(--surface);border:1px solid var(--border);
+  transition:border-color .45s,background .45s,opacity .45s;
+  opacity:.5;
+}
+/* Il pallino sulla linea, sopra ogni tappa. */
+.step::before{
+  content:"";position:absolute;top:-34px;left:20px;width:10px;height:10px;border-radius:50%;
+  background:var(--bg-2);border:2px solid rgba(255,255,255,.14);
+  transition:border-color .45s,background .45s,box-shadow .45s;
+}
+.step.viva{opacity:1;border-color:var(--border-2);background:var(--surface-2)}
+.step.viva::before{border-color:var(--cyan);background:var(--cyan);box-shadow:0 0 12px 2px rgba(84,201,200,.45)}
+.step-n{font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:700;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;opacity:.9}
+.step h3{font-size:1.12rem;margin:6px 0 8px}
+.step p{color:var(--muted);font-size:.9rem}
+@media (prefers-reduced-motion:reduce){
+  /* Senza movimento la linea non ha senso: tutte le tappe accese, come prima. */
+  .step{opacity:1}
+  .steps::after{width:100%}
+}
 
 /* ---------- about ---------- */
 .about-inner{display:grid;grid-template-columns:1fr 1.2fr;gap:64px;align-items:center}
@@ -632,26 +729,23 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .rotator.rot-out{opacity:0;transform:translateY(-12px)}
 
 /* ---------- portfolio ---------- */
-.portfolio{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
-.pcard{
-  border-radius:var(--radius);overflow:hidden;background:var(--surface);border:1px solid var(--border);
-  transition:transform .25s var(--ease),border-color .4s,box-shadow .4s;
-  transform:perspective(900px) rotateX(var(--ry,0deg)) rotateY(var(--rx,0deg)) translateY(var(--ty,0));
-  transform-style:preserve-3d;will-change:transform;
+/* ---------- prove verificabili (ex portfolio finto) ---------- */
+/* Griglia a due colonne su desktop: sei voci in colonna sarebbero un elenco da
+   scorrere, in due colonne si abbracciano con un'occhiata — che è il punto,
+   perché il valore sta nel numero di cose verificabili, non in una in
+   particolare. */
+.prove{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:2px;
+  border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--border)}
+.prova{
+  background:var(--bg-2);padding:22px 24px;display:grid;gap:7px;align-content:start;
+  transition:background .35s;
 }
-.pcard:hover{--ty:-6px;border-color:var(--border-2);box-shadow:0 26px 60px rgba(0,0,0,.45)}
-.pcard-img{position:relative;height:170px;display:flex;align-items:flex-end;padding:16px}
-.grad-a{background:linear-gradient(135deg,#3fa9d6,#54c9c8)}
-.grad-b{background:linear-gradient(135deg,#54c9c8,#8bd89e)}
-.grad-c{background:linear-gradient(135deg,#3fa9d6,#8bd89e)}
-.pcard-img::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(7,11,22,.35));opacity:0;transition:opacity .4s}
-.pcard:hover .pcard-img::after{opacity:1}
-.pcard-tag{position:relative;z-index:1;font-size:.74rem;font-weight:700;letter-spacing:.06em;padding:5px 12px;border-radius:999px;background:rgba(7,11,22,.55);color:#fff;backdrop-filter:blur(4px)}
-.pcard-body{padding:22px}
-.pcard-body h3{font-size:1.25rem;margin-bottom:8px}
-.pcard-body p{color:var(--muted);font-size:.93rem;margin-bottom:16px}
-.pcard-stack{display:flex;flex-wrap:wrap;gap:7px}
-.pcard-stack span{font-size:.74rem;color:var(--cyan);padding:4px 10px;border-radius:999px;background:rgba(84,201,200,.08);border:1px solid var(--border-2)}
+.prova:hover{background:rgba(255,255,255,.035)}
+.prova-voce{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);
+}
+.prova p{color:var(--muted);font-size:.94rem}
 .portfolio-note{text-align:center;color:var(--muted);font-size:.95rem;margin-top:34px}
 .portfolio-note a{color:var(--cyan);border-bottom:1px solid var(--border-2)}
 
@@ -764,6 +858,23 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 /* ---------- footer ---------- */
 .footer{padding:48px 0;border-top:1px solid var(--border);background:var(--bg-2)}
 .footer-inner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px}
+
+/* Pannello di stato: numeri veri, presi dal processo che serve la pagina. Il
+   monospazio non è un vezzo — dice «questi sono dati, non slogan». */
+.stato{
+  display:flex;flex-wrap:wrap;align-items:center;gap:9px 22px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.76rem;color:var(--muted);
+  padding-bottom:26px;margin-bottom:30px;border-bottom:1px solid var(--border);
+}
+.stato b{color:var(--text);font-weight:400}
+.stato-v{display:inline-flex;align-items:center;gap:8px;color:var(--green)}
+.stato-punto{
+  width:7px;height:7px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 0 0 rgba(139,216,158,.6);animation:pulse 2s infinite;
+}
+@media (prefers-reduced-motion:reduce){.stato-punto{animation:none}}
+.stato-s{width:1px;height:12px;background:var(--border)}
 .footer-logo{height:30px;width:auto}
 .footer-copy{color:var(--muted);font-size:.88rem}
 .footer-links{display:flex;gap:24px}
@@ -789,12 +900,24 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
    partenza e i blocchi resterebbero spostati (c'è un controllo in CI). */
 .js .card.reveal,
 .js .mock.reveal,
-.js .pcard.reveal,
 .js .review.reveal,
 .js .marquee.reveal{transform:scale(.965)}
 .js .about-visual.reveal{transform:translateX(-32px)}
 .js .about-text.reveal{transform:translateX(32px)}
 .js .config.reveal{transform:translateY(-26px)}
+
+/* C · l'ingresso dell'hero è una sequenza, non un blocco.
+   Trentotto comparse identiche non fanno colpo; il primo secondo e mezzo sì, se
+   le cose arrivano nell'ordine in cui si leggono. Sono solo ritardi sulla
+   transizione che c'era già: nessuna animazione nuova, nessun costo in più.
+   Vale solo per l'hero, che è l'unico blocco visibile all'ingresso — sulle
+   sezioni sotto lo scaglionamento lo fa già l'osservatore. */
+.js .hero .reveal{transition-delay:var(--ordine,0s)}
+.js .hero-badge{--ordine:.05s}
+.js .hero-title{--ordine:.16s}
+.js .hero-sub{--ordine:.30s}
+.js .hero-conf{--ordine:.44s}
+.js .hero-actions{--ordine:.58s}
 
 .js .reveal.in{opacity:1;transform:none}
 
@@ -811,6 +934,12 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   .contact-inner{grid-template-columns:1fr;gap:40px}
 }
 @media (max-width:720px){
+  /* Quattro tappe in una colonna: la linea orizzontale non ha più senso e i
+     pallini nemmeno. Tutte accese, come erano prima. */
+  .steps{grid-template-columns:1fr;padding-top:0;gap:16px}
+  .steps::before,.steps::after,.step::before{display:none}
+  .step{opacity:1}
+
   .nav-toggle{display:flex}
   .nav-links{
     position:fixed;top:74px;right:0;flex-direction:column;align-items:flex-start;gap:0;
@@ -821,8 +950,7 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   .nav-links.open{transform:translateX(0)}
   .nav-links a{width:100%;padding:16px 0;font-size:1.1rem;border-bottom:1px solid var(--border)}
   .nav-cta{margin-top:16px;text-align:center}
-  .hero-stats{gap:30px}
-  .stat-num,.stat-suf{font-size:2rem}
+  .hero-conf{padding:20px 18px 22px}
   .section{padding:80px 0}
 }
 @media (max-width:680px){
@@ -855,4 +983,8 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   /* La specificità deve pareggiare quella di .js .reveal, altrimenti con
      movimento ridotto le sezioni resterebbero a opacity:0. */
   .js .reveal{opacity:1;transform:none}
+  /* La regola qui sopra azzera la durata ma non il ritardo: senza questa riga i
+     blocchi dell'hero comparirebbero comunque a scaglioni fino a mezzo secondo,
+     che è movimento. */
+  .js .hero .reveal{transition-delay:0s}
 }

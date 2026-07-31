@@ -78,6 +78,35 @@
     titolo.style.setProperty('--w', Math.round(PESO_PIENO - q * (PESO_PIENO - PESO_MAGRO)));
   };
 
+  /* la linea del processo avanza mentre scendi
+     ------------------------------------------
+     Quattro tappe, quattro scatti: la barra si ferma su una tappa prima di
+     passare alla successiva, come un passo che si completa. Guidata dalla
+     posizione della sezione nella finestra, non da un timer: è il visitatore
+     che avanza, non un'animazione che gira per conto suo. */
+  const passi = document.querySelector('.steps');
+  const tappe = passi ? [...passi.querySelectorAll('.step')] : [];
+  const muoviProcesso = () => {
+    const r = passi.getBoundingClientRect();
+    const alto = window.innerHeight;
+    // 0 quando la sezione entra dal basso, 1 quando esce dall'alto.
+    const q = Math.max(0, Math.min(0.999, (alto - r.top) / (alto + r.height)));
+    const quale = Math.floor(q * tappe.length);
+    passi.style.setProperty('--avanzamento', (quale + 1) * (100 / tappe.length) + '%');
+    tappe.forEach((t, i) => t.classList.toggle('viva', i <= quale));
+  };
+
+  /* Tempo di risposta nel pannello del footer: quello vero di questa richiesta,
+     letto dalle misure di navigazione del browser. Se il browser non le espone
+     — o il valore è zero, come da file:// — la voce dice che qui non si misura,
+     invece di mostrare uno zero che sembrerebbe finto. */
+  const statoMs = document.getElementById('statoMs');
+  if (statoMs) {
+    const nav0 = performance.getEntriesByType('navigation')[0];
+    const ms = nav0 ? Math.round(nav0.responseStart - nav0.requestStart) : 0;
+    statoMs.textContent = ms > 0 ? ms + ' ms' : 'non misurata';
+  }
+
   /* nav scroll state + scroll progress bar */
   const nav = document.getElementById('nav');
   const progress = document.getElementById('scrollProgress');
@@ -97,6 +126,7 @@
       requestAnimationFrame(() => {
         attesaScroll = false;
         if (esagoni.length) muoviAlveare();
+        if (tappe.length) muoviProcesso();
         // Il peso del titolo si ferma dopo la prima schermata: oltre, il titolo
         // non è più in vista e riscrivere la variabile costerebbe un ridisegno
         // di testo per niente.
@@ -148,40 +178,6 @@
     reveals.forEach((el) => io.observe(el));
   } else {
     reveals.forEach((el) => el.classList.add('in'));
-  }
-
-  /* count-up stats */
-  const counters = document.querySelectorAll('.stat-num');
-  const animateCount = (el) => {
-    const target = +el.dataset.count;
-    const dur = 1400;
-    // Lo zero di partenza lo mette qui il JS, un frame prima di iniziare a
-    // salire: nell'HTML c'è il valore vero, così vale anche senza JS.
-    el.textContent = '0';
-    const start = performance.now();
-    const step = (now) => {
-      const p = Math.min((now - start) / dur, 1);
-      const eased = 1 - Math.pow(1 - p, 3);
-      el.textContent = Math.round(target * eased);
-      if (p < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  };
-  // Con movimento ridotto non si azzera e non si anima: la cifra servita dal
-  // server è già quella giusta, e una cifra che sale è movimento.
-  if ('IntersectionObserver' in window && !menoMoto.matches) {
-    const co = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            animateCount(e.target);
-            co.unobserve(e.target);
-          }
-        });
-      },
-      { threshold: 0.6 }
-    );
-    counters.forEach((el) => co.observe(el));
   }
 
   /* KPI count-up inside dashboard mockup */
@@ -441,28 +437,18 @@
     document.addEventListener('visibilitychange', () => (document.hidden ? ferma() : avvia()));
   }
 
-  /* 3D tilt on portfolio cards */
-  const fine = window.matchMedia('(pointer:fine)').matches;
-  if (fine && !menoMoto.matches) {
-    document.querySelectorAll('.pcard').forEach((card) => {
-      card.addEventListener('pointermove', (e) => {
-        const r = card.getBoundingClientRect();
-        const px = (e.clientX - r.left) / r.width - 0.5;
-        const py = (e.clientY - r.top) / r.height - 0.5;
-        card.style.setProperty('--rx', px * 7 + 'deg');
-        card.style.setProperty('--ry', -py * 7 + 'deg');
-      });
-      card.addEventListener('pointerleave', () => {
-        card.style.setProperty('--rx', '0deg');
-        card.style.setProperty('--ry', '0deg');
-      });
-    });
-  }
-
   /* preventivo configurator */
   const cfgTypes = document.getElementById('cfgTypes');
   if (cfgTypes) {
     const addons = document.querySelectorAll('#cfgAddons input');
+    // Elementi dell'hero: la prima domanda del configuratore sta lassù, e da
+    // qui si tiene in sincrono. Se l'hero non ci fosse — pagina di manutenzione,
+    // markup cambiato — restano null e non succede niente.
+    const eroeTipi = document.getElementById('heroTipi');
+    const eroeMin = document.getElementById('heroMin');
+    const eroeMax = document.getElementById('heroMax');
+    const eroeTime = document.getElementById('heroTime');
+
     const elMin = document.getElementById('cfgMin');
     const elMax = document.getElementById('cfgMax');
     const elTime = document.getElementById('cfgTime');
@@ -560,12 +546,25 @@
       }
       mostrati = { min, max, weeks };
       if (elStickyVal) elStickyVal.textContent = `${fmt(min)} – ${fmt(max)}`;
+      // La stima nell'hero è la stessa, non una seconda copia calcolata a parte:
+      // una formula duplicata è una formula che prima o poi divergerà.
+      if (eroeMin) eroeMin.textContent = fmt(min);
+      if (eroeMax) eroeMax.textContent = fmt(max);
+      // Anche il pallino evidenziato lassù, non solo i numeri: scegliendo qui
+      // in fondo, l'hero mostrava la cifra giusta con l'opzione sbagliata
+      // accesa.
+      if (eroeTipi) {
+        eroeTipi.querySelectorAll('.hero-tipo').forEach((b) =>
+          b.classList.toggle('active', b.dataset.label === label.trim())
+        );
+      }
 
       const en = document.documentElement.lang === 'en';
       const wTxt = en
         ? weeks <= 1 ? 'about 1 week' : weeks <= 6 ? `about ${weeks} weeks` : `${weeks}+ weeks`
         : weeks <= 1 ? 'circa 1 settimana' : weeks <= 6 ? `circa ${weeks} settimane` : `${weeks}+ settimane`;
       elTime.textContent = wTxt;
+      if (eroeTime) eroeTime.textContent = wTxt;
       // I valori nel messaggio vengono dal calcolo, non da textContent: durante
       // il conteggio quello contiene cifre intermedie, e un clic sul pulsante a
       // metà animazione avrebbe precompilato il form con una stima inesistente.
@@ -624,6 +623,24 @@
         if (i >= testo.length) clearInterval(elEcoVis._t);
       }, 20);
     });
+
+    /* I bottoni dell'hero non calcolano niente: premono il bottone corrispondente
+       del configuratore e lasciano fare a compute(). Così scegliere in cima è
+       identico a scegliere in fondo, e quando il visitatore arriva al
+       configuratore la sua scelta è già selezionata. L'accoppiamento è
+       sull'etichetta perché è ciò che entrambe le liste mostrano, e viene dallo
+       stesso listino nel database. */
+    if (eroeTipi) {
+      const tipiCfg = [...cfgTypes.querySelectorAll('.cfg-type')];
+      eroeTipi.querySelectorAll('.hero-tipo').forEach((b) => {
+        b.addEventListener('click', () => {
+          eroeTipi.querySelectorAll('.hero-tipo').forEach((x) => x.classList.remove('active'));
+          b.classList.add('active');
+          const gemello = tipiCfg.find((t) => t.textContent.trim() === b.dataset.label);
+          if (gemello) gemello.click();
+        });
+      });
+    }
 
     compute();
 

@@ -1,54 +1,77 @@
 ---
-const progetti = [
+/**
+ * Un caso reale al posto di due inventati.
+ *
+ * Qui c'erano due schede — «E-commerce artigianale» e «Gestionale prenotazioni»
+ * — con immagini finte, e sotto la riga «I progetti mostrati sono esempi
+ * rappresentativi». Quella riga era onesta, ed è proprio per questo che faceva
+ * danno: era l'unico punto della pagina che invitava a non fidarsi, e chi la
+ * leggeva smetteva di credere anche al resto.
+ *
+ * Il caso reale però c'è, e il visitatore ci sta già dentro: è questo sito. Ogni
+ * riga qui sotto si controlla in trenta secondi con gli strumenti per
+ * sviluppatori — non è una promessa, è una cosa verificabile. È il tipo di prova
+ * che un portfolio di mockup non può dare.
+ *
+ * Regola per chi modificherà questa sezione: qui vanno solo affermazioni che il
+ * visitatore può verificare da sé, da questa pagina. Un numero che non si può
+ * controllare fa più danno che se non ci fosse, perché siamo nella sezione che
+ * dice «fidati, questo è vero».
+ */
+const prove = [
   {
-    gradient: 'grad-a',
-    tag: 'Sito Web',
-    title: 'E-commerce artigianale',
-    text: 'Vetrina e shop online con catalogo dinamico e checkout sicuro.',
-    stack: ['Next.js', 'Stripe', 'SEO'],
+    voce: 'rendering',
+    testo: 'Astro 7 lato server a ogni richiesta, non una pagina statica rigenerata a mano.',
   },
   {
-    gradient: 'grad-b',
-    tag: 'Web App',
-    title: 'Gestionale prenotazioni',
-    text: 'Dashboard per gestire appuntamenti, clienti e pagamenti in tempo reale.',
-    stack: ['React', 'API', 'Database'],
+    voce: 'contenuti',
+    testo:
+      'Prezzi, recensioni e FAQ stanno su PostgreSQL e si cambiano dal pannello, senza toccare il codice.',
+  },
+  {
+    voce: 'deploy',
+    testo:
+      'Da un push alla produzione in due minuti: immagine costruita, pubblicata e messa in servizio da sola.',
+  },
+  {
+    voce: 'controlli',
+    testo: 'Verifiche automatiche prima di ogni pubblicazione: se una fallisce, il deploy non parte.',
+  },
+  {
+    voce: 'caratteri',
+    testo: 'Serviti da questo dominio: la pagina non fa nessuna richiesta verso altri host.',
+  },
+  {
+    voce: 'senza JS',
+    testo: 'Con JavaScript disattivato la pagina resta leggibile per intero, sezioni comprese.',
   },
 ];
 ---
 
 <section class="section section-alt" id="portfolio">
   <div class="container">
-    <div class="section-head reveal">
-      <span class="eyebrow">Lavori</span>
-      <h2>Progetti <span class="grad">selezionati</span></h2>
+    <div class="section-head aperta reveal">
+      <span class="eyebrow">Un caso reale</span>
+      <h2>Il sito che stai <span class="grad">guardando</span></h2>
       <p class="section-lead">
-        Una selezione di prodotti digitali realizzati. Ogni progetto parte da zero, su misura.
+        Nessuna piattaforma, nessun tema comprato. Tutto quello che segue lo puoi verificare adesso,
+        da questa pagina.
       </p>
     </div>
-    <div class="portfolio">
+
+    <div class="prove reveal">
       {
-        progetti.map((p) => (
-          <article class="pcard reveal">
-            <div class:list={['pcard-img', p.gradient]}>
-              <span class="pcard-tag">{p.tag}</span>
-            </div>
-            <div class="pcard-body">
-              <h3>{p.title}</h3>
-              <p>{p.text}</p>
-              <div class="pcard-stack">
-                {p.stack.map((s) => (
-                  <span>{s}</span>
-                ))}
-              </div>
-            </div>
-          </article>
+        prove.map((p) => (
+          <div class="prova">
+            <span class="prova-voce">{p.voce}</span>
+            <p>{p.testo}</p>
+          </div>
         ))
       }
     </div>
+
     <p class="portfolio-note reveal">
-      I progetti mostrati sono esempi rappresentativi. Vuoi vedere casi reali?
-      <a href="#contatti">Scrivimi</a>.
+      Vuoi vedere come lavoro su un progetto tuo? <a href="#contatti">Scrivimi</a>.
     </p>
   </div>
 </section>
