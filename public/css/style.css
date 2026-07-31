@@ -298,19 +298,61 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 /* ---------- sections ---------- */
 .section{padding:110px 0;position:relative}
 .section-alt{background:linear-gradient(180deg,transparent,var(--bg-2),transparent)}
+/* Cucitura fra le sezioni alternate: un filetto che sfuma ai lati invece di un
+   bordo pieno da un capo all'altro, che su fondo scuro sembra una crepa. Dà una
+   struttura visibile a una pagina che è lunga dodici sezioni. */
+.section-alt::before,.section-alt::after{
+  content:"";position:absolute;left:0;right:0;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,var(--border-2),transparent);
+}
+.section-alt::before{top:0}
+.section-alt::after{bottom:0}
+
 .section-head{max-width:640px;margin:0 auto 64px;text-align:center}
+/* Il filetto prima dell'occhiello: due pixel di grafica che dicono "questo è un
+   sopratitolo", dove prima c'era solo del maiuscoletto spaziato. */
 .eyebrow{
-  display:inline-block;font-size:.8rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+  display:inline-flex;align-items:center;gap:11px;
+  font-size:.8rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
   color:var(--cyan);margin-bottom:14px;
 }
-.section-head h2{font-size:clamp(2rem,4vw,3rem);margin-bottom:16px}
+.eyebrow::before{content:"";width:26px;height:1px;background:var(--grad);flex:0 0 26px}
+/* Peso 680: sta fra i gradini 600 e 700 e prima non era chiedibile. I titoli
+   diventano più decisi senza diventare grassetti. */
+.section-head h2{
+  font-size:clamp(2.15rem,4.4vw,3.3rem);margin-bottom:16px;
+  font-variation-settings:'wght' 680;letter-spacing:-.028em;
+}
 .section-lead{color:var(--muted);font-size:1.1rem}
+
+/* Testa di sezione aperta: titolo a sinistra, sommario a destra, allineati in
+   basso. Serve a rompere il ritmo — dodici sezioni con lo stesso blocco
+   centrato si leggono come un modulo compilato dodici volte, ed è la cosa che
+   più fa sembrare un sito fatto in serie. Applicata solo ad alcune, così
+   l'alternanza si nota. */
+.section-head.aperta{
+  max-width:none;text-align:left;
+  display:grid;grid-template-columns:1.05fr .95fr;gap:0 56px;align-items:end;
+}
+.section-head.aperta .eyebrow{grid-column:1;grid-row:1}
+.section-head.aperta h2{grid-column:1;grid-row:2;margin-bottom:0}
+.section-head.aperta .section-lead{grid-column:2;grid-row:2;align-self:end;padding-bottom:6px}
 
 /* ---------- cards ---------- */
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:24px}
 .card{
   position:relative;padding:34px 28px;border-radius:var(--radius);
-  background:var(--surface);border:1px solid var(--border);
+  /* Colore d'accento per card, preso dai tre del gradiente: --acc lo imposta il
+     componente. Tre rettangoli scuri identici non si guardano, tre con
+     un'identità sì — e i colori sono già i suoi, non ne arrivano di nuovi. */
+  background-color:var(--surface);
+  /* Filetto luminoso sul solo bordo alto, sfumato ai lati: è il modo in cui una
+     superficie scura mostra di avere uno spessore. Sta in background-image
+     perché ::before e ::after sono già occupati dal bordo al passaggio del
+     mouse e dall'alone che segue il puntatore. */
+  background-image:linear-gradient(90deg,transparent,rgba(var(--acc,84,201,200),.6),transparent);
+  background-repeat:no-repeat;background-size:100% 1px;background-position:top center;
+  border:1px solid var(--border);
   transition:transform .4s var(--ease),border-color .4s,background .4s;
   overflow:hidden;
   /* Colonna flessibile per allineare i tag in fondo a tutte le card: la
@@ -329,22 +371,29 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .card::after{
   content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
   opacity:0;transition:opacity .4s;
-  background:radial-gradient(220px circle at var(--mx,50%) var(--my,50%),rgba(84,201,200,.16),transparent 60%);
+  background:radial-gradient(220px circle at var(--mx,50%) var(--my,50%),rgba(var(--acc,84,201,200),.17),transparent 60%);
 }
 .card:hover{transform:translateY(-8px);background:var(--surface-2)}
 .card:hover::before{opacity:1}
 .card:hover::after{opacity:1}
-.card-featured{background:linear-gradient(160deg,rgba(84,201,200,.08),var(--surface))}
+/* Solo background-color: usare la scorciatoia background cancellerebbe il
+   filetto luminoso, che sta in background-image. */
+.card-featured{background-color:rgba(84,201,200,.07)}
 .card-badge{position:absolute;top:18px;right:18px;font-size:.7rem;font-weight:700;letter-spacing:.1em;padding:4px 10px;border-radius:999px;background:var(--grad);color:#04121a}
 .card-icon{
   width:54px;height:54px;border-radius:14px;display:grid;place-items:center;margin-bottom:22px;
-  background:var(--surface-2);border:1px solid var(--border);color:var(--cyan);
+  background:rgba(var(--acc,84,201,200),.1);
+  border:1px solid rgba(var(--acc,84,201,200),.3);
+  color:rgb(var(--acc,84,201,200));
 }
 .card-icon svg{width:26px;height:26px}
 .card h3{font-size:1.35rem;margin-bottom:12px}
 .card p{color:var(--muted);font-size:.96rem;margin-bottom:18px}
 .card-tags{list-style:none;display:flex;flex-wrap:wrap;gap:8px}
-.card-tags li{font-size:.78rem;color:var(--cyan);padding:4px 11px;border-radius:999px;background:rgba(84,201,200,.08);border:1px solid var(--border-2)}
+.card-tags li{
+  font-size:.78rem;color:rgb(var(--acc,84,201,200));padding:4px 11px;border-radius:999px;
+  background:rgba(var(--acc,84,201,200),.08);border:1px solid rgba(var(--acc,84,201,200),.28);
+}
 /* Prezzo di partenza nella card. Cifre tabellari perché le tre card stanno
    affiancate: senza, i numeri di larghezza diversa non si allineano fra loro. */
 
@@ -751,6 +800,12 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 
 /* ---------- responsive ---------- */
 @media (max-width:880px){
+  /* Su schermo stretto la testa aperta torna a una colonna, ma resta allineata
+     a sinistra: è quello che la distingue dalle altre. */
+  .section-head.aperta{grid-template-columns:1fr;gap:16px}
+  .section-head.aperta h2,.section-head.aperta .section-lead{grid-column:1}
+  .section-head.aperta h2{grid-row:2}
+  .section-head.aperta .section-lead{grid-row:3;padding-bottom:0}
   .about-inner{grid-template-columns:1fr;gap:48px}
   .about-visual{order:-1}
   .contact-inner{grid-template-columns:1fr;gap:40px}
@@ -771,6 +826,19 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   .section{padding:80px 0}
 }
 @media (max-width:680px){
+  /* I due bottoni flottanti coprivano il testo delle card: su 390px un cerchio
+     da 56px nell'angolo destro finisce sopra la fine delle righe. Rimpiccioliti
+     e accostati all'angolo si recuperano una ventina di pixel per lato, quindi
+     la sovrapposizione si riduce — non sparisce: un bottone fisso su uno schermo
+     stretto copre sempre qualcosa, e la soluzione vera sarebbe tenerne uno solo.
+     La pulsazione qui va spenta: attira l'occhio proprio dove c'è da leggere. */
+  .wa-float,.chat-launch{width:48px;height:48px;right:12px}
+  .wa-float{bottom:74px}
+  .chat-launch{bottom:16px}
+  .wa-float svg{width:25px;height:25px}
+  .chat-launch svg{width:24px;height:24px}
+  .wa-float::before{animation:none}
+
   .compare-row{grid-template-columns:1fr;}
   .compare-head{display:none}
   .compare-feat{font-family:'Space Grotesk',sans-serif;font-weight:600;background:var(--surface-2);border-bottom:1px solid var(--border)}
