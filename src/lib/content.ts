@@ -27,20 +27,23 @@ const FALLBACK_ADDONS: PricingItem[] = [
   { label: 'Copywriting', price: 300, weeks: 0 },
 ];
 
-const FALLBACK_REVIEWS: ReviewItem[] = [
-  {
-    quote: 'Sito pronto in pochi giorni, esattamente come lo immaginavo. Comunicazione chiara e zero stress.',
-    author: 'Marco R.',
-    role: 'Titolare e-commerce',
-    stars: 5,
-  },
-  {
-    quote: 'Ha capito subito cosa serviva alla mia attività. Il gestionale ci fa risparmiare ore ogni settimana.',
-    author: 'Laura B.',
-    role: 'Studio professionale',
-    stars: 5,
-  },
-];
+/**
+ * Le recensioni sono l'unica cosa che NON ha un ripiego, ed è deliberato.
+ *
+ * Qui c'erano due recensioni firmate con nome e iniziale del cognome, cinque
+ * stelle entrambe (i testi esatti sono in migrations/005, che le ritira dalla
+ * produzione: NON vanno riportati qui, e un controllo in CI lo impedisce —
+ * altrimenti una ricerca del nome non distingue più una spiegazione da un
+ * ripiego tornato in servizio). Erano contenuto d'esempio, e per un
+ * listino o una FAQ un esempio plausibile è un ripiego onesto: nessuno viene
+ * ingannato da un prezzo di riferimento. Una recensione no. Una recensione è
+ * un'affermazione su una persona che esiste, e inventarla è l'unico modo in cui
+ * questo sito poteva dire una cosa falsa senza accorgersene.
+ *
+ * Quindi: se il database non ha recensioni vere, la sezione non c'è. Vale anche
+ * per il caso in cui il database sia giù — meglio una sezione in meno che due
+ * clienti inesistenti. Vedi la 005 per la stessa pulizia in produzione.
+ */
 
 const FALLBACK_FAQS: FaqItem[] = [
   {
@@ -94,7 +97,9 @@ export async function getLandingContent(settings?: Settings): Promise<LandingCon
   return {
     types: types.length > 0 ? types : FALLBACK_TYPES,
     addons: addons.length > 0 ? addons : FALLBACK_ADDONS,
-    reviews: reviews.length > 0 ? reviews : FALLBACK_REVIEWS,
+    // Nessun ripiego, per il motivo scritto sopra: quello che c'è nel database
+    // o niente.
+    reviews,
     faqs: faqs.length > 0 ? faqs : FALLBACK_FAQS,
     contactEmail: setting(s, 'contact_email', 'info@dextlab.it'),
     calendly: setting(s, 'calendly', 'https://calendly.com/dextlab/call'),

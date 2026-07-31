@@ -354,6 +354,10 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   position:relative;
   font-size:clamp(2.15rem,4.4vw,3.3rem);margin-bottom:16px;
   font-variation-settings:'wght' 680;letter-spacing:-.028em;
+  /* Nella colonna stretta di .section-head.aperta i titoli lasciavano una sola
+     parola sull'ultima riga — «Quello che gira qui / sotto». balance distribuisce
+     le righe invece di riempirle. */
+  text-wrap:balance;
 }
 
 /* Il segnale che arriva prima di te.
@@ -779,8 +783,26 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .portfolio-note{text-align:center;color:var(--muted);font-size:.95rem;margin-top:34px}
 .portfolio-note a{color:var(--cyan);border-bottom:1px solid var(--border-2)}
 
-/* ---------- stack marquee ---------- */
+/* ---------- stack ---------- */
 .section-stack{padding-bottom:90px}
+/* Quello che gira davvero: una griglia di riquadri, non un nastro. Il nastro
+   scorre e quindi si legge male di proposito — va bene per un elenco di
+   competenze, non per l'unica affermazione verificabile della sezione. */
+.gira{list-style:none;margin:34px 0 0;padding:0;display:grid;gap:1px;background:var(--border);
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.gira-v{background:var(--bg);padding:20px 22px;display:grid;gap:4px;position:relative}
+.gira-v b{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:1.05rem;
+  font-variation-settings:'wght' 620;color:var(--text)}
+.gira-v span{font-size:.85rem;color:var(--muted);line-height:1.45}
+/* Il filetto sopra il nome nasce dal ciano e si spegne: dice «questa riga è un
+   fatto» senza scriverlo, e lo dice con lo stesso segno del resto del sito. */
+.gira-v::before{content:'';position:absolute;top:0;left:0;width:100%;height:2px;
+  background:linear-gradient(90deg,var(--cyan),transparent 70%);opacity:.55}
+.gira-v:hover::before{opacity:1}
+.stack-anche{margin:46px 0 0;font-size:.9rem;letter-spacing:.02em;color:var(--muted)}
+/* Il nastro ora segue la riga che lo introduce, non un titolo: i 50px di
+   default lo staccavano dalla frase a cui appartiene. */
+.section-stack .marquee{margin-top:16px}
 .marquee{margin-top:50px;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
 .marquee-track{display:flex;gap:16px;width:max-content;animation:marquee 28s linear infinite}
 .marquee:hover .marquee-track{animation-play-state:paused}

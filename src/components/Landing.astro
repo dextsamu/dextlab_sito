@@ -65,7 +65,9 @@ const structuredData = JSON.stringify({
   />
 
   <Chrome />
-  <Nav />
+  {/* La voce «Recensioni» nel menu esiste solo se la sezione esiste: un'ancora
+      che porta a niente è peggio di una voce in meno. */}
+  <Nav mostraRecensioni={content.reviews.length > 0} />
   <Hero types={content.types} />
   <Servizi />
   <Showcase />
@@ -74,7 +76,7 @@ const structuredData = JSON.stringify({
   <Stack />
   <About />
   <Perche />
-  <Recensioni reviews={content.reviews} />
+  {content.reviews.length > 0 && <Recensioni reviews={content.reviews} />}
   <Configuratore types={content.types} addons={content.addons} />
   <Faq faqs={content.faqs} />
   <Contatti contactEmail={content.contactEmail} calendly={content.calendly} />

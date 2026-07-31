@@ -1,34 +1,97 @@
 ---
-// Il marquee scorre in continuo: la lista va ripetuta due volte perché
-// l'animazione CSS traslando del 50% dia l'illusione di un ciclo infinito.
-const tecnologie = [
-  'React',
-  'Next.js',
-  'TypeScript',
-  'Node.js',
-  'Python',
-  'Tailwind',
-  'PostgreSQL',
-  'Docker',
-  'Figma',
-  'Astro',
+/**
+ * Tecnologie.
+ *
+ * Prima era un nastro con dieci nomi: React, Next.js, TypeScript, Node.js,
+ * Python, Tailwind, PostgreSQL, Docker, Figma, Astro. Cinque di quei dieci non
+ * girano da nessuna parte in questo sito, e messi tutti in fila alla stessa
+ * altezza il visitatore non ha modo di sapere quali. Una lista di nomi senza
+ * gerarchia non è un'informazione: è rumore che somiglia a una competenza.
+ *
+ * Ora sono due cose diverse, dette in due modi diversi. Sopra, quello che sta
+ * girando mentre leggi — e ogni voce ha una PROVA nel repository: se domani
+ * togli `pg` dalle dipendenze, PostgreSQL sparisce da qui da solo, senza che
+ * nessuno debba ricordarsi di aggiornare il markup. È lo stesso patto del
+ * riquadro di codice in Showcase: ciò che si legge non può invecchiare.
+ *
+ * ── Sulle VERSIONI, e perché non ci sono ──────────────────────────────────
+ * L'idea era di scrivere «astro 7.1.6 · typescript 6.0.3 · pg 8.22», lette da
+ * package.json. Fa un effetto migliore e sarebbe stato altrettanto verificabile.
+ * Non l'ho fatto perché contraddice una regola già scritta in src/lib/stato.ts:
+ * dichiarare pubblicamente le versioni di ciò che gira sul server restringe a
+ * chi cerca bersagli l'insieme delle vulnerabilità da provare. Lì valeva per
+ * Node e PostgreSQL, e vale identico per il framework che serve le richieste.
+ * Al visitatore non cambia niente — non gli interessa se è la 7.1.6, gli
+ * interessa che l'elenco non sia inventato — quindi il rischio sarebbe stato
+ * gratuito, e i rischi gratuiti non si prendono per un dettaglio grafico.
+ * I nomi si leggono dal progetto, i numeri di versione restano fuori.
+ */
+import pkgSorgente from '../../package.json?raw';
+import dockerfile from '../../deploy-docker/Dockerfile?raw';
+
+interface Pkg {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+}
+
+const pkg = JSON.parse(pkgSorgente) as Pkg;
+const dipendenze = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
+
+/**
+ * Ogni voce dichiara come si dimostra. La prova non è decorativa: è la
+ * condizione perché la voce compaia. Una tecnologia che nessun file del progetto
+ * conferma non viene mostrata, ed è l'unico modo perché questa sezione non possa
+ * mentire col passare del tempo.
+ */
+const candidate: { nome: string; nota: string; prova: boolean }[] = [
+  { nome: 'Astro', nota: 'rendering lato server', prova: 'astro' in dipendenze },
+  { nome: 'TypeScript', nota: 'tipi controllati in CI', prova: 'typescript' in dipendenze },
+  { nome: 'Node', nota: 'il processo che risponde', prova: '@astrojs/node' in dipendenze },
+  { nome: 'PostgreSQL', nota: 'contenuti e preventivi', prova: 'pg' in dipendenze },
+  {
+    nome: 'Docker',
+    nota: 'immagine nuova a ogni commit',
+    prova: /^\s*FROM\s+\S/m.test(dockerfile),
+  },
 ];
+
+const gira = candidate.filter((c) => c.prova);
+
+// Il secondo elenco sono competenze, non fatti su questa pagina, e il testo che
+// lo introduce lo dice. Nessuna di queste compare sopra: se una cominciasse a
+// girare qui salirebbe da sé nel primo elenco, e andrebbe togliuta da questo.
+const ancheCon = ['React', 'Next.js', 'Tailwind', 'Python', 'Figma', 'Nodemailer'];
 ---
 
 <section class="section section-alt section-stack" id="stack">
   <div class="container">
-    <div class="section-head reveal">
-      <span class="eyebrow">Tecnologie & strumenti</span>
-      <h2>Lo stack <span class="grad">moderno</span> che uso</h2>
+    <div class="section-head aperta reveal">
+      <span class="eyebrow">Tecnologie</span>
+      <h2>Quello che gira <span class="grad">qui sotto</span></h2>
       <p class="section-lead">
-        Strumenti attuali per costruire prodotti veloci, sicuri e scalabili.
+        Non un elenco di competenze: le tecnologie che stanno servendo questa pagina adesso. La
+        lista è letta dai file del progetto mentre la pagina si costruisce, quindi non può
+        invecchiare.
       </p>
     </div>
+
+    <ul class="gira reveal">
+      {
+        gira.map((t) => (
+          <li class="gira-v">
+            <b>{t.nome}</b>
+            <span>{t.nota}</span>
+          </li>
+        ))
+      }
+    </ul>
+
+    <p class="stack-anche reveal">E lavoro anche con</p>
   </div>
   <div class="marquee reveal" aria-hidden="true">
     <div class="marquee-track">
-      {tecnologie.map((t) => <span>{t}</span>)}
-      {tecnologie.map((t) => <span>{t}</span>)}
+      {ancheCon.map((t) => <span>{t}</span>)}
+      {ancheCon.map((t) => <span>{t}</span>)}
     </div>
   </div>
 </section>

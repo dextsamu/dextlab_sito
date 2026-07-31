@@ -1,5 +1,12 @@
 ---
 // Barra di navigazione con selettore lingua (gestito da public/js/i18n.js).
+
+interface Props {
+  /** Falso quando non ci sono recensioni vere: la voce di menu sparisce con la sezione. */
+  mostraRecensioni?: boolean;
+}
+
+const { mostraRecensioni = true } = Astro.props;
 ---
 
 <header class="nav" id="nav">
@@ -11,7 +18,7 @@
       <a href="#servizi">Servizi</a>
       <a href="#portfolio">Caso reale</a>
       <a href="#perche">Perché me</a>
-      <a href="#recensioni">Recensioni</a>
+      {mostraRecensioni && <a href="#recensioni">Recensioni</a>}
       <span class="lang-switch" role="group" aria-label="Lingua">
         <button type="button" class="lang-btn active" data-lang="it">IT</button>
         <button type="button" class="lang-btn" data-lang="en">EN</button>
