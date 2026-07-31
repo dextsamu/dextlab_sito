@@ -32,7 +32,13 @@ body{
   overflow-x:hidden;
   -webkit-font-smoothing:antialiased;
 }
-img{max-width:100%;display:block}
+/* height:auto è obbligatorio, non cosmetico: le <img> hanno gli attributi width
+   e height per riservare lo spazio ed evitare lo scatto del layout, ma quegli
+   attributi valgono come altezza imposta. Senza questa riga, qualsiasi regola
+   che cambi la larghezza (es. .about-logo) lascia l'altezza a quella nativa e
+   stira l'immagine. Con height:auto il browser usa gli attributi solo come
+   proporzione, che è il motivo per cui sono lì. */
+img{max-width:100%;display:block;height:auto}
 a{color:inherit;text-decoration:none}
 h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;letter-spacing:-.02em}
 .container{width:100%;max-width:var(--maxw);margin:0 auto;padding:0 24px}
