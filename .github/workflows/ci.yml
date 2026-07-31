@@ -296,6 +296,44 @@ jobs:
           fi
           exit $fail
 
+      # Il sito PHP che c'era prima serviva CSS e JS con "access plus 7 days" nel
+      # .htaccess: chi l'ha visitato nella settimana della migrazione riceveva
+      # dalla propria cache lo style.css di allora insieme all'HTML nuovo, e
+      # vedeva una pagina metà e metà — prezzi senza layout, logo stirato, barra
+      # della stima come testo in fondo. Nessuna intestazione può cancellare
+      # quelle voci: l'unico rimedio è chiedere un URL diverso.
+      - name: CSS e JS sono chiesti con l'impronta del contenuto
+        run: |
+          html=$(curl -s http://127.0.0.1:4321/)
+          fail=0
+
+          nudi=$(grep -oE '(href|src)="/(css|js)/[a-zA-Z0-9._-]+"' <<<"$html" || true)
+          if [ -n "$nudi" ]; then
+            echo "::error::riferimenti senza impronta, una cache avvelenata li servirebbe vecchi: $(tr '\n' ' ' <<<"$nudi")"
+            fail=1
+          else
+            echo "  ok    nessun riferimento nudo a /css o /js"
+          fi
+
+          impronte=$(grep -oE '/(css|js)/[a-zA-Z0-9._-]+\?v=[a-f0-9]{10}' <<<"$html" | sort -u)
+          n=$(wc -l <<<"$impronte")
+          if [ "$n" != "3" ]; then
+            echo "::error::asset con impronta trovati $n, attesi 3 (style.css, i18n.js, main.js)"
+            fail=1
+          fi
+          for u in $impronte; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:4321$u")
+            if [ "$code" = "200" ]; then echo "  ok    $u -> 200"
+            else echo "::error::$u ha risposto $code"; fail=1; fi
+          done
+
+          # Senza questa, un HTML vecchio ripescato dalla cache continuerebbe a
+          # puntare agli asset vecchi e la correzione non arriverebbe mai.
+          cc=$(curl -s -D- -o /dev/null http://127.0.0.1:4321/ | grep -i '^cache-control:' | tr -d '\r')
+          if grep -qi 'no-cache' <<<"$cc"; then echo "  ok    l'HTML si rivalida: $cc"
+          else echo "::error::l'HTML non chiede la rivalidazione: '$cc'"; fail=1; fi
+          exit $fail
+
       - name: La pagina pubblica non nomina l'AI
         run: |
           # Il confronto su "AI" è sensibile alle maiuscole di proposito: in

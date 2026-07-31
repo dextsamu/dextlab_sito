@@ -10,6 +10,7 @@ import HBar from '../../components/admin/HBar.astro';
 import { isLoggedIn, attemptLogin, createSession, csrfToken, verifyCsrf } from '../../lib/auth.ts';
 import { leadStats, visitStats } from '../../lib/admin.ts';
 import { setFlash } from '../../lib/flash.ts';
+import { versioned } from '../../lib/assets.ts';
 
 let loginError = '';
 
@@ -56,7 +57,7 @@ const sourceTotal = Math.max(1, leads?.bySource.reduce((a, s) => a + s.count, 0)
         <meta name="robots" content="noindex" />
         <title>Accesso — Dext Lab admin</title>
         <link rel="icon" type="image/png" href="/assets/logo-h.png" />
-        <link rel="stylesheet" href="/css/admin.css" />
+        <link rel="stylesheet" href={versioned('/css/admin.css')} />
       </head>
       <body class="login-page">
         <form class="login-box" method="post">

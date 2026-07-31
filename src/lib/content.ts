@@ -145,37 +145,3 @@ export function initialEstimate(types: PricingItem[]): { min: string; max: strin
     weeks: formatWeeks(weeks),
   };
 }
-
-export interface ServicePrice {
-  /** Prezzo di partenza già formattato, es. "490 €". */
-  from: string;
-  /** Solo la parte numerica dei tempi, es. "1–2": la parola resta traducibile. */
-  weeks: string;
-}
-
-/**
- * Prezzo di partenza e tempi per una card di servizio, ricavati dal listino
- * del configuratore.
- *
- * Le card dei servizi e il configuratore vendono le stesse cose con nomi
- * diversi ("Siti Web" copre sia la landing sia il sito vetrina), quindi il
- * collegamento è una lista esplicita di etichette invece di un accostamento
- * automatico. Se nessuna combacia — perché le hai rinominate dal pannello —
- * restituisce null e la card non mostra alcun prezzo: meglio nessun numero
- * che un numero sbagliato.
- *
- * Il prezzo non va scritto a mano nel componente: verrebbe da sé a divergere
- * dal listino, come già successo con la stima iniziale del configuratore.
- */
-export function servicePrice(types: PricingItem[], labels: string[]): ServicePrice | null {
-  const trovati = types.filter((t) => labels.includes(t.label));
-  if (trovati.length === 0) return null;
-
-  const min = Math.min(...trovati.map((t) => t.weeks));
-  const max = Math.max(...trovati.map((t) => t.weeks));
-  return {
-    from: `${groupThousands(Math.min(...trovati.map((t) => t.price)))} €`,
-    // Il trattino è una lineetta media, non un meno: è un intervallo.
-    weeks: min === max ? String(min) : `${min}–${max}`,
-  };
-}

@@ -4,6 +4,7 @@
  * Riusa public/css/admin.css come nella versione PHP.
  */
 import { takeFlash } from '../lib/flash.ts';
+import { versioned } from '../lib/assets.ts';
 
 interface Props {
   /** Chiave della voce di menu attiva. */
@@ -33,7 +34,7 @@ const nav = [
     <meta name="robots" content="noindex" />
     <title>{title} — Dext Lab admin</title>
     <link rel="icon" type="image/png" href="/assets/logo-h.png" />
-    <link rel="stylesheet" href="/css/admin.css" />
+    <link rel="stylesheet" href={versioned('/css/admin.css')} />
   </head>
   <body>
     <header class="adm-top">

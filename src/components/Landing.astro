@@ -25,6 +25,7 @@ import CookieBanner from './CookieBanner.astro';
 import VisitBeacon from './VisitBeacon.astro';
 import { getLandingContent } from '../lib/content.ts';
 import { siteUrl } from '../lib/env.ts';
+import { versioned } from '../lib/assets.ts';
 
 // Le impostazioni sono già state caricate dal middleware: si riusano invece di
 // interrogare di nuovo il database.
@@ -66,7 +67,7 @@ const structuredData = JSON.stringify({
   <Chrome />
   <Nav />
   <Hero />
-  <Servizi types={content.types} />
+  <Servizi />
   <Showcase />
   <Portfolio />
   <Processo />
@@ -82,7 +83,9 @@ const structuredData = JSON.stringify({
   <ChatWidget />
   <CookieBanner />
 
-  <script is:inline src="/js/i18n.js"></script>
-  <script is:inline src="/js/main.js"></script>
+  {/* Con l'impronta del contenuto, come il foglio di stile: anche questi due
+      file erano dichiarati validi sette giorni dal .htaccess di prima. */}
+  <script is:inline src={versioned('/js/i18n.js')}></script>
+  <script is:inline src={versioned('/js/main.js')}></script>
   <VisitBeacon token={Astro.locals.visitToken} />
 </BaseLayout>

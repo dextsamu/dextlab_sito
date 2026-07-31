@@ -39,6 +39,31 @@ function isPreviewRequest(url: URL): boolean {
   }
 }
 
+/**
+ * L'HTML deve essere sempre rivalidato, e va detto esplicitamente.
+ *
+ * Senza nessuna intestazione di cache un browser è libero di applicare la
+ * propria euristica e riusare una pagina già vista. Qui non è accettabile per un
+ * motivo preciso: l'HTML è l'unico posto in cui sta la versione degli asset
+ * (vedi src/lib/assets.ts). Se il browser rispolvera un HTML di ieri, quello
+ * punta agli asset di ieri, e la liberazione delle cache avvelenate non arriva
+ * mai a destinazione.
+ *
+ * no-cache non vuol dire "non conservare": vuol dire "chiedi prima di usare". La
+ * pagina resta nella cache del browser e su una connessione lenta la
+ * rivalidazione costa un 304, non un nuovo scaricamento.
+ *
+ * Si applica a ogni risposta HTML, comprese quelle dell'admin, e non sovrascrive
+ * un'intestazione già impostata da una rotta.
+ */
+function rivalidaSempre(risposta: Response): Response {
+  const tipo = risposta.headers.get('content-type') ?? '';
+  if (tipo.includes('text/html') && !risposta.headers.has('cache-control')) {
+    risposta.headers.set('Cache-Control', 'no-cache');
+  }
+  return risposta;
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
   const { url, request } = context;
 
@@ -59,7 +84,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   context.locals.clientIp = clientIp(request, context.clientAddress);
 
-  if (!isVisitablePage(url.pathname)) return next();
+  // Non è una pagina da tracciare (API, admin, asset), ma se è HTML l'intestazione
+  // di rivalidazione serve comunque.
+  if (!isVisitablePage(url.pathname)) return rivalidaSempre(await next());
 
   const settings = await getSettings();
   context.locals.settings = settings;
@@ -78,5 +105,5 @@ export const onRequest = defineMiddleware(async (context, next) => {
     request.headers.get('referer') ?? ''
   );
 
-  return next();
+  return rivalidaSempre(await next());
 });
