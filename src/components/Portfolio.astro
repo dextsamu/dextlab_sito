@@ -136,7 +136,19 @@ const conFigura = lavori.map((l) => ({ ...l, figura: immagineLavoro(l.url) }));
                 )}
                 <div class="lavoro-testo">
                   <h3>{l.title}</h3>
-                  <p class="lavoro-url">{dominio(l.url)}</p>
+                  <p class="lavoro-url">
+                    {dominio(l.url)}
+                    {/*
+                      «Progetto mio» va detto, non lasciato intendere. Un sito
+                      fatto per un cliente dimostra che sai eseguire una
+                      commessa; un prodotto nato da te dimostra che sai decidere
+                      cosa costruire, ed è la cosa più difficile delle due.
+                      Metterli in fila indistinti sminuisce il secondo — e far
+                      passare per commessa una cosa nata da te non è modestia,
+                      è un'informazione sbagliata.
+                    */}
+                    {l.proprio && <span class="lavoro-mio">progetto mio</span>}
+                  </p>
                   {l.summary && <p class="lavoro-sunto">{l.summary}</p>}
                   {etichette(l.tags).length > 0 && (
                     <ul class="lavoro-tag">

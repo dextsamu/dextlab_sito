@@ -43,6 +43,7 @@
     // showcase: il codice vero al posto del mockup disegnato
     // lavori
     'Lavori': 'Work', 'Siti che sono': 'Sites that are', 'online adesso': 'online right now',
+    'progetto mio': 'my own project',
     'Ogni voce porta al sito vero: si apre e si guarda. Sotto c\u2019è questo sito, il solo su cui posso mostrarti anche com\u2019è fatto dentro.':
       'Every entry links to the real site: open it and look. Below is this site, the only one where I can also show you how it is built.',
     'E questo sito, che è l\u2019unico di cui posso mostrarti anche l\u2019interno':

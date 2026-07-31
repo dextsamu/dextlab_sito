@@ -272,11 +272,11 @@ export const TABLE_FIELDS = {
   pricing_addons: ['label', 'price', 'weeks', 'sort', 'active'],
   reviews: ['quote', 'author', 'role', 'stars', 'sort', 'active'],
   faqs: ['question', 'answer', 'sort', 'active'],
-  works: ['title', 'url', 'summary', 'tags', 'sort', 'active'],
+  works: ['title', 'url', 'summary', 'tags', 'proprio', 'sort', 'active'],
 } as const satisfies Record<ContentTable, readonly string[]>;
 
 const NUMERIC_FIELDS = new Set(['price', 'weeks', 'sort', 'stars']);
-const BOOLEAN_FIELDS = new Set(['active']);
+const BOOLEAN_FIELDS = new Set(['active', 'proprio']);
 
 export function isContentTable(value: string): value is ContentTable {
   return (CONTENT_TABLES as readonly string[]).includes(value);

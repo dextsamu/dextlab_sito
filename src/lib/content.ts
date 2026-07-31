@@ -11,7 +11,7 @@ import { rowsActive, getSettings, setting, type Settings, type PricingRow, type 
 export type PricingItem = Pick<PricingRow, 'label' | 'price' | 'weeks'>;
 export type ReviewItem = Pick<ReviewRow, 'quote' | 'author' | 'role' | 'stars'>;
 export type FaqItem = Pick<FaqRow, 'question' | 'answer'>;
-export type WorkItem = Pick<WorkRow, 'title' | 'url' | 'summary' | 'tags'>;
+export type WorkItem = Pick<WorkRow, 'title' | 'url' | 'summary' | 'tags' | 'proprio'>;
 
 const FALLBACK_TYPES: PricingItem[] = [
   { label: 'Landing page', price: 490, weeks: 1 },

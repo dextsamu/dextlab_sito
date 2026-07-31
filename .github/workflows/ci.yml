@@ -393,6 +393,21 @@ jobs:
             && echo "  ok    e il caso studio resta anche con i lavori" \
             || { echo "::error::i lavori hanno mangiato il caso studio"; fail=1; }
 
+          # 4) «Progetto mio» compare solo dove è segnato. Confondere un prodotto
+          # nato da sé con una commessa non è modestia, è un'informazione
+          # sbagliata — e il contrario è un vanto non dovuto.
+          if grep -qF 'class="lavoro-mio"' <<<"$h3"; then
+            echo "::error::l'etichetta «progetto mio» compare su un lavoro che non è segnato come tale"
+            fail=1
+          else
+            echo "  ok    nessuna etichetta «progetto mio» su una commessa"
+          fi
+          q "update works set proprio = true where sort = 92"
+          h4=$(curl -s http://127.0.0.1:4321/)
+          grep -qF 'class="lavoro-mio"' <<<"$h4" \
+            && echo "  ok    e compare quando il lavoro è segnato come proprio" \
+            || { echo "::error::il lavoro è segnato come proprio ma l'etichetta non compare"; fail=1; }
+
           q "delete from works where sort in (90, 91, 92)"
           exit $fail
 

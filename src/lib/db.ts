@@ -131,6 +131,11 @@ export interface WorkRow {
   summary: string;
   /** Cosa comprendeva il lavoro, separato da virgole. */
   tags: string;
+  /**
+   * Vero se è un progetto nato da me, falso se è una commessa. Sono due cose che
+   * un cliente valuta in modo diverso, e non vanno confuse: vedi la 007.
+   */
+  proprio: boolean;
   sort: number;
   active: boolean;
 }
