@@ -401,6 +401,7 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 /* ---------- configuratore ---------- */
 .config{display:grid;grid-template-columns:1.5fr 1fr;gap:28px;align-items:start}
 .config-form{display:flex;flex-direction:column;gap:28px}
+.cfg-n{color:var(--cyan)}
 .config-block h3{font-size:1.1rem;margin-bottom:16px;font-family:'Space Grotesk',sans-serif}
 .config-types{display:flex;flex-wrap:wrap;gap:10px}
 .cfg-type{
@@ -550,6 +551,10 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .review:hover{transform:translateY(-6px);border-color:var(--border-2)}
 .stars{color:#febc2e;letter-spacing:2px;margin-bottom:14px;font-size:1.05rem}
 .review blockquote{color:var(--text);font-size:1rem;line-height:1.6;margin-bottom:20px}
+/* Virgolette come decorazione, non come contenuto: dentro il nodo di testo
+   cambiavano la stringa e il dizionario inglese non la trovava. */
+.review blockquote::before{content:'\201C'}
+.review blockquote::after{content:'\201D'}
 .review figcaption{display:flex;align-items:center;gap:12px}
 .rv-avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-family:'Space Grotesk',sans-serif;font-weight:700;color:#04121a;background:var(--grad);flex:0 0 44px}
 .review figcaption span:last-child{display:flex;flex-direction:column;font-size:.85rem;color:var(--muted)}

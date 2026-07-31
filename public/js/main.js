@@ -201,37 +201,54 @@
     let raf = null;
     let ultimo = 0;
 
+    /**
+     * Una traccia è un agente che cammina sulla griglia e agli incroci può
+     * svoltare, come chi instrada le piste su un circuito stampato. Prima
+     * correvano soltanto in linea retta.
+     *
+     * La coda è una breve storia di punti e non un velo steso sul fondo:
+     * velare vorrebbe dire riempire il canvas a ogni fotogramma, e sotto c'è
+     * la griglia, che verrebbe coperta.
+     *
+     * I punti si campionano ogni PASSO_SCIA pixel percorsi, non a ogni
+     * fotogramma: un agente avanza meno di un pixel per fotogramma, quindi
+     * dodici punti presi a tempo coprivano sei pixel in tutto e la scia non si
+     * vedeva. Campionati nello spazio coprono una novantina di pixel.
+     */
+    const CODA = 14;
+    const PASSO_SCIA = 7;
+    const DIREZIONI = [
+      [1, 0],
+      [0, 1],
+      [-1, 0],
+      [0, -1],
+    ];
+
     const nuova = (dentro) => {
-      const oriz = Math.random() < 0.5;
-      // Una traccia orizzontale corre lungo X e siede su una linea Y, quindi la
-      // dimensione da cui pescare la linea è quella perpendicolare alla marcia.
-      const perpendicolare = oriz ? H : W;
+      const x0 = Math.round((Math.random() * W) / PASSO) * PASSO + 0.5;
+      const y0 = Math.round((Math.random() * (dentro ? H : PASSO * 2)) / PASSO) * PASSO + 0.5;
       return {
-        oriz,
-        // Ancorata a una linea della griglia: fuori da quelle si vedrebbe che
-        // le tracce e la griglia non c'entrano niente l'una con l'altra.
-        linea: Math.round((Math.random() * perpendicolare) / PASSO) * PASSO + 0.5,
-        pos: dentro ? Math.random() * (oriz ? W : H) : -140,
-        vel: 24 + Math.random() * 38,
-        coda: 70 + Math.random() * 110,
+        x: x0,
+        y: y0,
+        dir: (Math.random() * 4) | 0,
+        vel: 22 + Math.random() * 34,
+        // Distanza dall'ultimo incrocio: arrivata a PASSO si decide se girare.
+        percorso: 0,
         tinta: TINTE[(Math.random() * TINTE.length) | 0],
-        alpha: 0.14 + Math.random() * 0.2,
-        verso: Math.random() < 0.5 ? 1 : -1,
+        alpha: 0.16 + Math.random() * 0.2,
+        scia: [{ x: x0, y: y0 }],
+        // Vita in secondi: senza, un agente che gira in tondo resterebbe per
+        // sempre nello stesso angolo e la distribuzione si sbilancerebbe.
+        vita: 14 + Math.random() * 22,
       };
     };
 
-    /**
-     * Attenuazione verso il centro dello schermo, dove sta il testo.
-     *
-     * Sostituisce la maschera CSS che avevo messo prima: quella andava
-     * riapplicata a ogni frame su tutto il livello, questa è una
-     * moltiplicazione per traccia. Al centro le tracce quasi scompaiono, ai
-     * bordi restano piene.
-     */
     const attenua = (t) => {
-      const centro = (t.oriz ? H : W) / 2;
-      const d = Math.abs(t.linea - centro) / centro; // 0 al centro, 1 al bordo
-      return Math.min(1, 0.12 + d * 1.5);
+      // Distanza dal centro dello schermo, dove sta il testo: 0 al centro,
+      // 1 ai bordi. Sostituisce la maschera CSS, che costava più del disegno.
+      const dx = Math.abs(t.x - W / 2) / (W / 2);
+      const dy = Math.abs(t.y - H / 2) / (H / 2);
+      return Math.min(1, 0.12 + Math.max(dx, dy) * 1.5);
     };
 
     const dimensiona = () => {
@@ -250,7 +267,7 @@
       tele.style.width = W + 'px';
       tele.style.height = H + 'px';
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const quante = Math.max(3, Math.min(16, Math.round((W * H) / 95000)));
+      const quante = Math.max(3, Math.min(14, Math.round((W * H) / 110000)));
       tracce = Array.from({ length: quante }, () => nuova(true));
     };
 
@@ -258,37 +275,62 @@
       const dt = ultimo ? Math.min(0.05, (ora - ultimo) / 1000) : 0;
       ultimo = ora;
       ctx.clearRect(0, 0, W, H);
+      ctx.lineWidth = 1;
+
       for (let i = 0; i < tracce.length; i++) {
         const t = tracce[i];
-        t.pos += t.vel * dt;
-        const estensione = t.oriz ? W : H;
-        if (t.pos - t.coda > estensione) {
+        t.vita -= dt;
+        const [dx, dy] = DIREZIONI[t.dir];
+        const passo = t.vel * dt;
+        t.x += dx * passo;
+        t.y += dy * passo;
+        t.percorso += passo;
+
+        if (t.percorso >= PASSO) {
+          t.percorso = 0;
+          // Riallineo all'incrocio prima di girare: senza, la svolta cadrebbe
+          // fuori dalla griglia e si vedrebbe che le due cose non c'entrano.
+          t.x = Math.round((t.x - 0.5) / PASSO) * PASSO + 0.5;
+          t.y = Math.round((t.y - 0.5) / PASSO) * PASSO + 0.5;
+          if (Math.random() < 0.42) t.dir = (t.dir + (Math.random() < 0.5 ? 1 : 3)) % 4;
+        }
+
+        // Un punto ogni PASSO_SCIA pixel percorsi, non uno per fotogramma.
+        const u = t.scia[t.scia.length - 1];
+        if (Math.abs(t.x - u.x) + Math.abs(t.y - u.y) >= PASSO_SCIA) {
+          t.scia.push({ x: t.x, y: t.y });
+          if (t.scia.length > CODA) t.scia.shift();
+        }
+
+        const fuori = t.x < -PASSO || t.x > W + PASSO || t.y < -PASSO || t.y > H + PASSO;
+        if (fuori || t.vita <= 0) {
           tracce[i] = nuova(false);
           continue;
         }
-        const testa = t.verso === 1 ? t.pos : estensione - t.pos;
-        const fine = testa - t.coda * t.verso;
-        const x1 = t.oriz ? fine : t.linea;
-        const y1 = t.oriz ? t.linea : fine;
-        const x2 = t.oriz ? testa : t.linea;
-        const y2 = t.oriz ? t.linea : testa;
+
         const a = t.alpha * attenua(t);
-        const g = ctx.createLinearGradient(x1, y1, x2, y2);
+        // Un solo tracciato per agente con un gradiente dalla coda alla testa.
+        // Disegnare i segmenti uno per uno con il proprio colore costava, e
+        // misurato faceva scendere gli fps da 36 a 25: quattordici agenti per
+        // quattordici segmenti sono duecento tracciati invece di quattordici.
+        // Sulle svolte il gradiente segue la corda e non il percorso, che a
+        // questa trasparenza non si distingue.
+        const coda = t.scia[0];
+        const g = ctx.createLinearGradient(coda.x, coda.y, t.x, t.y);
         g.addColorStop(0, `rgba(${t.tinta},0)`);
         g.addColorStop(1, `rgba(${t.tinta},${a})`);
         ctx.strokeStyle = g;
-        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
+        ctx.moveTo(coda.x, coda.y);
+        for (let k = 1; k < t.scia.length; k++) ctx.lineTo(t.scia[k].x, t.scia[k].y);
+        ctx.lineTo(t.x, t.y);
         ctx.stroke();
-        // Punto di testa: dà la direzione, che la sola coda non renderebbe.
-        ctx.fillStyle = `rgba(${t.tinta},${Math.min(0.75, a * 2.6)})`;
-        ctx.fillRect(x2 - 1, y2 - 1, 2, 2);
+        // Punto di testa: dà la direzione, che la sola scia non renderebbe.
+        ctx.fillStyle = `rgba(${t.tinta},${Math.min(0.7, a * 2.4)})`;
+        ctx.fillRect(t.x - 1, t.y - 1, 2, 2);
       }
       raf = requestAnimationFrame(disegna);
     };
-
     const avvia = () => {
       if (raf === null) {
         ultimo = 0;
