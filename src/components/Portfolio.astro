@@ -24,8 +24,8 @@
  * che non si può controllare fa più danno che se non ci fosse, perché siamo nella
  * sezione che dice «fidati, questo è vero».
  */
-import { immagineLavoro } from '../lib/assets.ts';
-import type { WorkItem } from '../lib/content.ts';
+import { immagineLavoro, slugLavoro } from '../lib/assets.ts';
+import { paragrafiLavoro, type WorkItem } from '../lib/content.ts';
 
 interface Props {
   lavori: WorkItem[];
@@ -79,7 +79,20 @@ function dominio(url: string): string {
   }
 }
 
-const conFigura = lavori.map((l) => ({ ...l, figura: immagineLavoro(l.url) }));
+/*
+  La pagina del lavoro esiste solo se c'è un testo da metterci: senza, il link
+  porterebbe a un'intestazione e a un vuoto. Il nome nell'indirizzo è lo stesso
+  che nomina i file delle schermate, quindi non c'è una colonna in più da tenere
+  allineata — se un giorno l'indirizzo del lavoro cambia, cambiano insieme.
+*/
+const conFigura = lavori.map((l) => {
+  const slug = slugLavoro(l.url);
+  return {
+    ...l,
+    figura: immagineLavoro(l.url),
+    pagina: slug && paragrafiLavoro(l.story).length > 0 ? `/lavori/${slug}` : null,
+  };
+});
 ---
 
 <section class="section section-alt" id="portfolio">
@@ -112,11 +125,17 @@ const conFigura = lavori.map((l) => ({ ...l, figura: immagineLavoro(l.url) }));
           {conFigura.map((l) => (
             <li class="lavoro">
               {/*
-                Tutta la scheda è il link: su un elenco di lavori l'unica azione
-                possibile è aprire il sito, e obbligare a centrare il titolo
-                sarebbe un bersaglio piccolo per niente.
+                Tutta la scheda è il link, e punta al sito vero: su un elenco di
+                lavori l'unica azione che conta è aprirlo, e obbligare a centrare
+                il titolo sarebbe un bersaglio piccolo per niente.
                 rel="noopener" è obbligatorio con target=_blank — senza, la pagina
                 aperta può manipolare quella che l'ha aperta.
+
+                L'approfondimento è un secondo link, sotto, e non il bersaglio
+                principale: la prova più forte resta il sito online, non una mia
+                pagina che ne parla. Sono due <a> affiancati e non annidati —
+                un link dentro un altro non è HTML valido, e il browser lo
+                spezzerebbe dove gli conviene.
               */}
               <a href={l.url} target="_blank" rel="noopener noreferrer">
                 {l.figura ? (
@@ -159,6 +178,19 @@ const conFigura = lavori.map((l) => ({ ...l, figura: immagineLavoro(l.url) }));
                   )}
                 </div>
               </a>
+              {/*
+                «Guarda da vicino» e non «com'è fatto»: la riga d'apertura della
+                sezione dice che questo sito è il solo di cui posso mostrare
+                com'è fatto dentro, ed è vero — di un sito di un cliente mostro
+                le sue pagine, non il suo codice. Due etichette che si
+                contraddicono a due centimetri di distanza costano più di quanto
+                valga la parola più bella.
+              */}
+              {l.pagina && (
+                <a class="lavoro-piu" href={l.pagina}>
+                  Guarda da vicino <span aria-hidden="true">→</span>
+                </a>
+              )}
             </li>
           ))}
         </ul>

@@ -44,6 +44,16 @@
     // lavori
     'Lavori': 'Work', 'Siti che sono': 'Sites that are', 'online adesso': 'online right now',
     'progetto mio': 'my own project',
+    // La voce che porta alla pagina del lavoro. Il testo della pagina arriva dal
+    // database, cioè è in italiano come le descrizioni delle schede: qui si
+    // traduce quello che è scritto nel codice, che è l'unica cosa che il
+    // dizionario può tradurre.
+    // La voce che porta alla pagina del lavoro. La pagina in sé non passa da
+    // qui: non carica questo file, e il suo testo arriva dal database, cioè è
+    // in italiano come le descrizioni delle schede. Tradurre l'etichetta e
+    // lasciare la pagina in italiano è meglio del contrario — chi legge in
+    // inglese capisce cosa sta per aprire.
+    'Guarda da vicino': 'Take a closer look',
     'Ogni voce porta al sito vero: si apre e si guarda. Sotto c\u2019è questo sito, il solo su cui posso mostrarti anche com\u2019è fatto dentro.':
       'Every entry links to the real site: open it and look. Below is this site, the only one where I can also show you how it is built.',
     'E questo sito, che è l\u2019unico di cui posso mostrarti anche l\u2019interno':

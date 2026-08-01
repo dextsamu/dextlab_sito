@@ -28,6 +28,9 @@ const workFields: FieldSpec[] = [
   { name: 'summary', type: 'textarea', placeholder: "Una riga: cos'è e cosa fa il sito" },
   { name: 'tags', type: 'text', placeholder: 'Cosa comprendeva, separato da virgole' },
   { name: 'proprio', type: 'check', placeholder: '' },
+  { name: 'story', type: 'textarea', placeholder: 'Pagina del lavoro: paragrafi separati da una riga vuota', rows: 8 },
+  { name: 'links', type: 'textarea', placeholder: 'Da aprire sul sito: una riga «etichetta | https://…»', rows: 4 },
+  { name: 'shots', type: 'textarea', placeholder: 'Didascalie delle schermate, una per riga', rows: 4 },
   { name: 'sort', type: 'number', placeholder: 'ordine' },
   { name: 'active', type: 'check', placeholder: '' },
 ];
@@ -72,6 +75,19 @@ const [reviews, works, faqs, leads] = await Promise.all([
       Per l'anteprima: metti l'immagine in <code>public/assets/lavori/</code> con il nome del dominio
       senza estensione — per <code>https://esempio.it/</code> il file è <code>esempio.jpg</code>
       (vanno bene anche webp, png, avif). Se non c'è, la scheda mostra il dominio in grande.
+    </p>
+    <p class="hint">
+      Il testo lungo crea la <strong>pagina del lavoro</strong> su
+      <code>/lavori/esempio</code>, e sulla scheda compare «Com'è fatto». Se lo lasci vuoto la
+      pagina non esiste e la scheda resta com'era: meglio nessuna pagina che una pagina vuota. È il
+      posto giusto per quello che solo tu sai — cosa ha chiesto il cliente, cosa hai deciso e
+      perché — purché resti verificabile aprendo il sito.
+    </p>
+    <p class="hint">
+      Le schermate in più vanno nella stessa cartella numerate:
+      <code>esempio-1.jpg</code>, <code>esempio-2.jpg</code>… La ricerca si ferma al primo numero
+      che manca. In «didascalie» scrivi una riga per schermata, nello stesso ordine: le righe in più
+      non si vedono, quelle in meno lasciano la schermata senza didascalia.
     </p>
   </section>
 

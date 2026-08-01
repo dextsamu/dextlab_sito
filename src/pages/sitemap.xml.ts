@@ -5,6 +5,7 @@
  */
 import type { APIRoute } from 'astro';
 import { siteUrl } from '../lib/env.ts';
+import { lavoriConPagina } from '../lib/content.ts';
 
 const PAGES = [
   { path: '/', changefreq: 'monthly', priority: '1.0' },
@@ -12,9 +13,21 @@ const PAGES = [
   { path: '/termini', changefreq: 'yearly', priority: '0.3' },
 ];
 
-export const GET: APIRoute = () => {
+export const GET: APIRoute = async () => {
   const base = siteUrl();
-  const urls = PAGES.map((p) => {
+  /*
+    Le pagine dei lavori si aggiungono da sé: nascono quando qualcuno scrive il
+    testo nel pannello e spariscono quando il lavoro viene spento, quindi
+    elencarle a mano qui vorrebbe dire promettere indirizzi che poi rispondono
+    404. Stessa ragione per cui la sitemap non è un file statico.
+  */
+  const lavori = (await lavoriConPagina()).map((slug) => ({
+    path: `/lavori/${slug}`,
+    changefreq: 'monthly',
+    priority: '0.6',
+  }));
+
+  const urls = [...PAGES, ...lavori].map((p) => {
     const loc = new URL(p.path, base + '/').href;
     return `  <url>
     <loc>${loc}</loc>

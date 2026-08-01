@@ -1,0 +1,194 @@
+---
+/**
+ * La pagina di un lavoro.
+ *
+ * La scheda in home dice tre righe e porta al sito, che per chi passa è tutto
+ * quello che serve. Questa pagina è per chi si è fermato: cosa fa quel sito,
+ * quali sue pagine vale la pena aprire, e qualche schermata di quello che
+ * troverà. Vale la regola della sezione da cui si arriva — solo affermazioni che
+ * il visitatore può controllare, e il modo di controllarle a un clic di distanza.
+ *
+ * Niente Nav e niente Indice, come le pagine legali: quelle voci sono ancore
+ * verso le sezioni della home, e qui porterebbero al nulla. Per la stessa ragione
+ * non c'è nessuna classe .reveal — main.js non viene caricato, e le sezioni
+ * resterebbero invisibili fino allo scadere del timer di sicurezza.
+ *
+ * La pagina è in italiano e non ha il selettore della lingua: il testo arriva dal
+ * database, dove è scritto in italiano come le descrizioni delle schede, e un
+ * dizionario applicato solo alle tre intestazioni di codice avrebbe prodotto una
+ * pagina metà inglese e metà italiana. In home l'etichetta che porta qui è
+ * tradotta, così chi legge in inglese sa cosa sta per aprire.
+ *
+ * Il contenuto arriva dal database e passa dallo stesso filtro della home: un
+ * lavoro spento o incompleto non ha una pagina. Senza testo la pagina non
+ * esiste — non si inventa un caso studio per fare volume, come non si inventa
+ * una recensione.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getWork, paragrafiLavoro, linkLavoro, didascalieLavoro } from '../../lib/content.ts';
+import { immagineLavoro, schermateLavoro } from '../../lib/assets.ts';
+
+const { slug = '' } = Astro.params;
+const lavoro = await getWork(slug);
+const testo = lavoro ? paragrafiLavoro(lavoro.story) : [];
+
+// Senza testo non c'è una pagina da mostrare: è la stessa scelta della sezione in
+// home, dove una voce senza titolo non compare. Meglio un 404 onesto che una
+// pagina con l'intestazione e sotto il vuoto.
+const trovato = lavoro !== null && testo.length > 0;
+if (!trovato) Astro.response.status = 404;
+
+const dominio = (() => {
+  try {
+    return lavoro ? new URL(lavoro.url).hostname.replace(/^www\./, '') : '';
+  } catch {
+    return '';
+  }
+})();
+
+const etichette = lavoro
+  ? lavoro.tags
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean)
+  : [];
+
+const link = lavoro ? linkLavoro(lavoro.links) : [];
+
+// Le immagini si trovano su disco, le didascalie stanno nel database: si appaiano
+// qui, in ordine. Un'immagine in più resta senza didascalia — che è meglio della
+// didascalia di un'altra pagina sotto la schermata sbagliata.
+const didascalie = lavoro ? didascalieLavoro(lavoro.shots) : [];
+const schermate = lavoro
+  ? schermateLavoro(lavoro.url).map((src, i) => ({ src, testo: didascalie[i] ?? '' }))
+  : [];
+
+const anteprima = lavoro ? immagineLavoro(lavoro.url) : null;
+---
+
+<BaseLayout
+  title={trovato ? `${lavoro!.title} — un lavoro di Dext Lab` : 'Lavoro non trovato — Dext Lab'}
+  description={
+    trovato
+      ? lavoro!.summary || `${lavoro!.title}: cosa fa il sito e cosa comprendeva il lavoro.`
+      : 'Questo lavoro non è fra quelli pubblicati.'
+  }
+  path={`/lavori/${slug}`}
+  noindex={!trovato}
+>
+  <div class="bg-glow glow-1" aria-hidden="true"></div>
+
+  {
+    trovato ? (
+      <main class="lavoro-pagina container">
+        <a href="/#portfolio" class="back">← Torna ai lavori</a>
+
+        <header class="lp-testa">
+          <h1>{lavoro!.title}</h1>
+          <p class="lp-dominio">
+            {dominio}
+            {lavoro!.proprio && <span class="lavoro-mio">progetto mio</span>}
+          </p>
+          {lavoro!.summary && <p class="lp-sunto">{lavoro!.summary}</p>}
+          {etichette.length > 0 && (
+            <ul class="lavoro-tag">
+              {etichette.map((t) => (
+                <li>{t}</li>
+              ))}
+            </ul>
+          )}
+          {/*
+            L'azione principale è aprire il sito, non leggere questa pagina: sta
+            in alto e si vede prima del testo. rel="noopener" è obbligatorio con
+            target=_blank — senza, la pagina aperta può manipolare questa.
+          */}
+          <p class="lp-azioni">
+            <a class="btn btn-primary" href={lavoro!.url} target="_blank" rel="noopener noreferrer">
+              Apri {dominio} ↗
+            </a>
+          </p>
+        </header>
+
+        {anteprima && (
+          <img
+            src={anteprima}
+            alt={`Schermata del sito ${lavoro!.title}`}
+            class="lp-copertina"
+            width="1200"
+            height="750"
+          />
+        )}
+
+        <div class="lp-testo">
+          {testo.map((p) => (
+            <p>{p}</p>
+          ))}
+        </div>
+
+        {link.length > 0 && (
+          <section class="lp-link">
+            <h2>Da aprire sul sito</h2>
+            {/*
+              Non sono link decorativi: sono il modo di verificare quello che c'è
+              scritto sopra senza credermi sulla parola.
+            */}
+            <ul>
+              {link.map((l) => (
+                <li>
+                  <a href={l.url} target="_blank" rel="noopener noreferrer">
+                    {l.label} ↗
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {schermate.length > 0 && (
+          <section class="lp-schermate">
+            <h2>Qualche schermata</h2>
+            {schermate.map((s) => (
+              <figure>
+                <img
+                  src={s.src}
+                  alt={s.testo || `Una schermata del sito ${lavoro!.title}`}
+                  width="1200"
+                  height="750"
+                  loading="lazy"
+                />
+                {s.testo && <figcaption>{s.testo}</figcaption>}
+              </figure>
+            ))}
+            <p class="lp-nota">
+              Le schermate sono di pagine pubbliche del sito, prese così come si
+              vedono. Se il sito cambia, la verità è il sito: <a
+                href={lavoro!.url}
+                target="_blank"
+                rel="noopener noreferrer">apri {dominio} ↗</a
+              >
+            </p>
+          </section>
+        )}
+
+        <p class="lp-chiusa">
+          Vuoi vedere come lavoro su un progetto tuo? <a href="/#contatti">Scrivimi</a>.
+        </p>
+      </main>
+    ) : (
+      <main class="lavoro-pagina container">
+        <a href="/#portfolio" class="back">← Torna ai lavori</a>
+        <header class="lp-testa">
+          <h1>Questo lavoro non c'è</h1>
+          <p class="lp-sunto">
+            L'indirizzo non corrisponde a nessun lavoro pubblicato: può essere stato
+            ritirato, o il link può essere sbagliato. Quelli online sono tutti
+            nella sezione dei lavori.
+          </p>
+          <p class="lp-azioni">
+            <a class="btn btn-primary" href="/#portfolio">Vedi i lavori</a>
+          </p>
+        </header>
+      </main>
+    )
+  }
+</BaseLayout>

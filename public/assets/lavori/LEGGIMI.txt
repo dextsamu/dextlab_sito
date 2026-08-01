@@ -1,4 +1,4 @@
-Anteprime dei lavori nel portfolio.
+Anteprime e schermate dei lavori nel portfolio.
 
 Il nome del file è il dominio del sito senza estensione, per esempio:
 
@@ -16,3 +16,24 @@ quello vecchio rimasto in cache.
 
 Proporzione consigliata 16:10, larghezza 800-1200px. Il riquadro ritaglia dal
 bordo alto, così l'intestazione del sito resta visibile.
+
+
+Le schermate della pagina del lavoro
+------------------------------------
+
+Sulla pagina /lavori/<dominio> stanno le schermate in più, numerate:
+
+    esempio-1.jpg
+    esempio-2.jpg
+    esempio-3.jpg
+
+La ricerca parte da -1 e si ferma al primo numero che manca: se cancelli la
+seconda, la terza non si vede più. Le didascalie NON stanno qui — si scrivono
+dal pannello, in admin -> Contenuti -> Lavori, una riga per schermata e nello
+stesso ordine dei file. Le righe in più vengono ignorate, e una schermata senza
+la sua riga resta senza didascalia.
+
+Vale la stessa proporzione dell'anteprima: 16:10 e ritaglio dal bordo alto.
+Vanno bene solo pagine pubbliche del sito, prese così come si vedono: quelle
+schermate sono un'affermazione sul sito di qualcun altro, e chi le guarda deve
+poterle confrontare con l'originale aprendo il link che sta lì accanto.

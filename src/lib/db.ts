@@ -136,6 +136,25 @@ export interface WorkRow {
    * un cliente valuta in modo diverso, e non vanno confuse: vedi la 007.
    */
   proprio: boolean;
+  /**
+   * Il testo della pagina del lavoro, paragrafi separati da una riga vuota. Se è
+   * vuoto la pagina non esiste e la scheda non offre l'approfondimento: vedi la
+   * 009. Vale la regola della sezione — qui va solo ciò che il visitatore può
+   * controllare aprendo il sito.
+   */
+  story: string;
+  /**
+   * Le pagine del sito che vale la pena aprire, una per riga nella forma
+   * `etichetta | indirizzo`. Sono la parte verificabile della pagina: portano al
+   * sito vero, non a un racconto.
+   */
+  links: string;
+  /**
+   * Le didascalie delle schermate, una per riga e nell'ordine dei file
+   * `<dominio>-1`, `<dominio>-2`, … Le immagini si trovano da sé (assets.ts):
+   * qui c'è solo il testo, perché una didascalia è una frase e non un file.
+   */
+  shots: string;
   sort: number;
   active: boolean;
 }

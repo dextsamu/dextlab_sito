@@ -10,6 +10,12 @@ export interface FieldSpec {
   name: string;
   type: 'text' | 'number' | 'textarea' | 'check';
   placeholder?: string;
+  /**
+   * Righe visibili di un textarea. Due bastano per una recensione o una risposta
+   * di FAQ, non per il testo di una pagina: scriverne tre paragrafi in una
+   * fessura di due righe è un modo di non farlo scrivere a nessuno.
+   */
+  rows?: number;
 }
 
 interface Props {
@@ -49,7 +55,7 @@ function checkedOf(field: FieldSpec): boolean {
           <textarea
             name={field.name}
             placeholder={field.placeholder}
-            rows="2"
+            rows={field.rows ?? 2}
             set:text={valueOf(field)}
           />
         )}
