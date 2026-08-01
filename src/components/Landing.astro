@@ -40,7 +40,10 @@ const sezioni = [
   { id: 'hero', nome: 'Inizio' },
   { id: 'servizi', nome: 'Servizi' },
   { id: 'showcase', nome: 'Il codice' },
-  { id: 'portfolio', nome: 'Caso reale' },
+  // «Lavori» quando ce ne sono, «Caso reale» quando la sezione mostra solo
+  // questo sito: il nome nell'indice deve dire cosa si trova là, non cosa
+  // c'era prima.
+  { id: 'portfolio', nome: content.works.length > 0 ? 'Lavori' : 'Caso reale' },
   { id: 'processo', nome: 'Processo' },
   { id: 'stack', nome: 'Tecnologie' },
   { id: 'perche', nome: 'Approccio' },
@@ -91,7 +94,7 @@ const structuredData = JSON.stringify({
   <Hero types={content.types} />
   <Servizi />
   <Showcase />
-  <Portfolio />
+  <Portfolio lavori={content.works} />
   <Processo />
   <Stack />
   {/* Perche.astro non esiste più: le sue righe erano le stesse di About dette

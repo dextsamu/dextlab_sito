@@ -922,6 +922,49 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 
 /* ---------- portfolio ---------- */
 /* ---------- prove verificabili (ex portfolio finto) ---------- */
+/* ---------- lavori ---------- */
+/* Le schede dei siti online. Tre per riga su desktop, una su telefono: sono
+   poche e vanno guardate tutte, quindi nessuno scorrimento laterale. */
+.lavori{list-style:none;margin:0 0 64px;padding:0;display:grid;gap:22px;
+  grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
+.lavoro a{
+  display:grid;height:100%;border-radius:var(--radius);overflow:hidden;
+  background:var(--surface);border:1px solid var(--border);
+  transition:transform .35s var(--ease),border-color .35s,box-shadow .35s;
+}
+.lavoro a:hover{transform:translateY(-5px);border-color:var(--border-2);
+  box-shadow:0 18px 44px rgba(0,0,0,.32)}
+.lavoro a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+/* Rapporto fisso sull'anteprima, così le schede restano alte uguali anche con
+   screenshot di proporzioni diverse — e senza screenshot il riquadro resta:
+   sono le schede a dover essere regolari, non le immagini che arrivano. */
+.lavoro-img,.lavoro-dominio{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;
+  object-position:top center;border-bottom:1px solid var(--border)}
+/* Il ripiego quando l'immagine non c'è: il dominio grande, che è comunque
+   l'informazione che il visitatore può andare a controllare. */
+.lavoro-dominio{display:grid;place-items:center;text-align:center;padding:0 18px;
+  font-family:'Space Grotesk',sans-serif;font-size:1.05rem;color:var(--muted);
+  background:linear-gradient(160deg,rgba(84,201,200,.10),transparent 65%);
+  font-variation-settings:'wght' 520;word-break:break-all}
+.lavoro-testo{padding:20px 22px 22px;display:grid;gap:6px;align-content:start}
+.lavoro-testo h3{font-size:1.1rem;font-variation-settings:'wght' 620;color:var(--text)}
+.lavoro-url{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.74rem;letter-spacing:.02em;color:var(--cyan);margin:0}
+.lavoro-url{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* L'etichetta «progetto mio» sta accanto al dominio e non sotto il titolo:
+   è una qualifica dell'origine del lavoro, non una parte del nome. */
+.lavoro-mio{font-family:'Space Grotesk',sans-serif;font-size:.66rem;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--green);padding:2px 7px;border-radius:999px;
+  border:1px solid rgba(139,216,158,.32);background:rgba(139,216,158,.08)}
+.lavoro-sunto{color:var(--muted);font-size:.9rem;line-height:1.55;margin:4px 0 0}
+.lavoro-tag{list-style:none;display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0;padding:0}
+.lavoro-tag li{font-size:.72rem;color:var(--muted);padding:3px 9px;border-radius:999px;
+  border:1px solid var(--border);background:var(--bg)}
+/* La riga che introduce il caso studio di questo sito, quando sopra ci sono i
+   lavori dei clienti: senza, le sei prove sembrerebbero riferite all'ultimo. */
+.lavori-cap{margin:0 0 26px;font-family:'Space Grotesk',sans-serif;font-size:1rem;
+  color:var(--text);font-variation-settings:'wght' 540}
+
 /* Griglia a due colonne su desktop: sei voci in colonna sarebbero un elenco da
    scorrere, in due colonne si abbracciano con un'occhiata — che è il punto,
    perché il valore sta nel numero di cose verificabili, non in una in

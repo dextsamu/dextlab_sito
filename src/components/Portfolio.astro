@@ -1,23 +1,38 @@
 ---
 /**
- * Un caso reale al posto di due inventati.
+ * I lavori, e un caso reale.
  *
  * Qui c'erano due schede — «E-commerce artigianale» e «Gestionale prenotazioni»
  * — con immagini finte, e sotto la riga «I progetti mostrati sono esempi
  * rappresentativi». Quella riga era onesta, ed è proprio per questo che faceva
  * danno: era l'unico punto della pagina che invitava a non fidarsi, e chi la
- * leggeva smetteva di credere anche al resto.
+ * leggeva smetteva di credere anche al resto. Sono state sostituite dal caso
+ * studio di questo sito, che è verificabile riga per riga.
  *
- * Il caso reale però c'è, e il visitatore ci sta già dentro: è questo sito. Ogni
- * riga qui sotto si controlla in trenta secondi con gli strumenti per
- * sviluppatori — non è una promessa, è una cosa verificabile. È il tipo di prova
- * che un portfolio di mockup non può dare.
+ * Adesso ci sono anche i lavori per clienti, e sono la prova più forte delle
+ * due: un sito online si apre e si guarda. Il caso studio resta sotto, perché
+ * dice una cosa che i siti dei clienti non possono dire — com'è fatto dentro.
+ *
+ * I lavori arrivano dal database e non da qui: cambiano quando arriva un
+ * cliente, e non devono richiedere un deploy. Come le recensioni non hanno un
+ * ripiego nel codice, e per una ragione più forte — un lavoro inventato ha un
+ * indirizzo che chiunque può aprire. Se la tabella è vuota la sezione resta
+ * esattamente com'era.
  *
  * Regola per chi modificherà questa sezione: qui vanno solo affermazioni che il
- * visitatore può verificare da sé, da questa pagina. Un numero che non si può
- * controllare fa più danno che se non ci fosse, perché siamo nella sezione che
- * dice «fidati, questo è vero».
+ * visitatore può verificare da sé, da questa pagina o aprendo un link. Un numero
+ * che non si può controllare fa più danno che se non ci fosse, perché siamo nella
+ * sezione che dice «fidati, questo è vero».
  */
+import { immagineLavoro } from '../lib/assets.ts';
+import type { WorkItem } from '../lib/content.ts';
+
+interface Props {
+  lavori: WorkItem[];
+}
+
+const { lavori } = Astro.props;
+
 const prove = [
   {
     voce: 'rendering',
@@ -26,7 +41,7 @@ const prove = [
   {
     voce: 'contenuti',
     testo:
-      'Prezzi, recensioni e FAQ stanno su PostgreSQL e si cambiano dal pannello, senza toccare il codice.',
+      'Prezzi, lavori e FAQ stanno su PostgreSQL e si cambiano dal pannello, senza toccare il codice.',
   },
   {
     voce: 'deploy',
@@ -46,18 +61,117 @@ const prove = [
     testo: 'Con JavaScript disattivato la pagina resta leggibile per intero, sezioni comprese.',
   },
 ];
+
+/** Etichette dai tag separati da virgola. Le stringhe vuote cadono. */
+function etichette(tags: string): string[] {
+  return tags
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+}
+
+/** L'host senza «www.», che è quello che si legge sotto il titolo. */
+function dominio(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+}
+
+const conFigura = lavori.map((l) => ({ ...l, figura: immagineLavoro(l.url) }));
 ---
 
 <section class="section section-alt" id="portfolio">
   <div class="container">
     <div class="section-head aperta reveal">
-      <span class="eyebrow">Un caso reale</span>
-      <h2>Il sito che stai <span class="grad">guardando</span></h2>
+      <span class="eyebrow">{lavori.length > 0 ? 'Lavori' : 'Un caso reale'}</span>
+      {
+        lavori.length > 0 ? (
+          <h2>
+            Siti che sono <span class="grad">online adesso</span>
+          </h2>
+        ) : (
+          <h2>
+            Il sito che stai <span class="grad">guardando</span>
+          </h2>
+        )
+      }
       <p class="section-lead">
-        Nessuna piattaforma, nessun tema comprato. Tutto quello che segue lo puoi verificare adesso,
-        da questa pagina.
+        {
+          lavori.length > 0
+            ? 'Ogni voce porta al sito vero: si apre e si guarda. Sotto c’è questo sito, il solo su cui posso mostrarti anche com’è fatto dentro.'
+            : 'Nessuna piattaforma, nessun tema comprato. Tutto quello che segue lo puoi verificare adesso, da questa pagina.'
+        }
       </p>
     </div>
+
+    {
+      conFigura.length > 0 && (
+        <ul class="lavori reveal">
+          {conFigura.map((l) => (
+            <li class="lavoro">
+              {/*
+                Tutta la scheda è il link: su un elenco di lavori l'unica azione
+                possibile è aprire il sito, e obbligare a centrare il titolo
+                sarebbe un bersaglio piccolo per niente.
+                rel="noopener" è obbligatorio con target=_blank — senza, la pagina
+                aperta può manipolare quella che l'ha aperta.
+              */}
+              <a href={l.url} target="_blank" rel="noopener noreferrer">
+                {l.figura ? (
+                  <img
+                    src={l.figura}
+                    alt={`Schermata del sito ${l.title}`}
+                    class="lavoro-img"
+                    loading="lazy"
+                  />
+                ) : (
+                  /* Senza screenshot la scheda non lascia un buco: il dominio,
+                     grande, fa da figura. È anche l'informazione che conta —
+                     è ciò che il visitatore può andare a controllare. */
+                  <span class="lavoro-dominio" aria-hidden="true">
+                    {dominio(l.url)}
+                  </span>
+                )}
+                <div class="lavoro-testo">
+                  <h3>{l.title}</h3>
+                  <p class="lavoro-url">
+                    {dominio(l.url)}
+                    {/*
+                      «Progetto mio» va detto, non lasciato intendere. Un sito
+                      fatto per un cliente dimostra che sai eseguire una
+                      commessa; un prodotto nato da te dimostra che sai decidere
+                      cosa costruire, ed è la cosa più difficile delle due.
+                      Metterli in fila indistinti sminuisce il secondo — e far
+                      passare per commessa una cosa nata da te non è modestia,
+                      è un'informazione sbagliata.
+                    */}
+                    {l.proprio && <span class="lavoro-mio">progetto mio</span>}
+                  </p>
+                  {l.summary && <p class="lavoro-sunto">{l.summary}</p>}
+                  {etichette(l.tags).length > 0 && (
+                    <ul class="lavoro-tag">
+                      {etichette(l.tags).map((t) => (
+                        <li>{t}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+
+    {
+      lavori.length > 0 && (
+        <p class="lavori-cap reveal">
+          E questo sito, che è l’unico di cui posso mostrarti anche l’interno
+        </p>
+      )
+    }
 
     <div class="prove reveal">
       {

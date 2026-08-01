@@ -66,3 +66,50 @@ export function versioned(percorso: string): string {
   impronte.set(percorso, url);
   return url;
 }
+
+/**
+ * Immagine di un lavoro, se esiste, altrimenti null.
+ *
+ * Le schede del portfolio funzionano senza figura — il titolo, una riga e il
+ * link al sito vero bastano — ma con l'anteprima funzionano meglio. Invece di
+ * costruire un caricamento di file nel pannello, che vorrebbe un volume
+ * persistente e una validazione dei tipi per una cosa che cambia tre volte
+ * l'anno, la scheda cerca il file nel repository e lo mostra se c'è.
+ *
+ * Convenzione: public/assets/lavori/<host-senza-punti>.<estensione>, per esempio
+ * `poderelavandaro.jpg` per https://poderelavandaro.it/. Il nome si ricava
+ * dall'indirizzo, quindi non c'è un secondo campo da tenere allineato: si mette
+ * il file, e alla build successiva la figura compare. Se non c'è, non compare
+ * niente e non si rompe nulla.
+ *
+ * L'impronta arriva da versioned(): se un giorno sostituisci lo screenshot con
+ * uno aggiornato, l'URL cambia da sé e nessuno vede quello vecchio in cache.
+ */
+const ESTENSIONI = ['webp', 'jpg', 'jpeg', 'png', 'avif'] as const;
+
+export function immagineLavoro(url: string): string | null {
+  const base = nomeDaIndirizzo(url);
+  if (!base) return null;
+  for (const est of ESTENSIONI) {
+    const percorso = `/assets/lavori/${base}.${est}`;
+    if (leggi(percorso)) return versioned(percorso);
+  }
+  return null;
+}
+
+/**
+ * Dall'indirizzo al nome del file: si tiene solo l'host, senza «www.» e senza
+ * punti. Se l'indirizzo non è valido si restituisce null invece di sollevare —
+ * il campo lo compila una persona a mano nel pannello, e un errore di battitura
+ * non deve far cadere la home.
+ */
+function nomeDaIndirizzo(url: string): string | null {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, '');
+    // Solo caratteri sicuri per un nome di file: quello che resta è un host, ma
+    // il valore arriva da un campo di testo e non lo si usa senza filtrarlo.
+    return host.replace(/\.[a-z]{2,}$/i, '').replace(/[^a-z0-9-]/gi, '') || null;
+  } catch {
+    return null;
+  }
+}
