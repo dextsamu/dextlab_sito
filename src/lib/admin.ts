@@ -272,7 +272,7 @@ export const TABLE_FIELDS = {
   pricing_addons: ['label', 'price', 'weeks', 'sort', 'active'],
   reviews: ['quote', 'author', 'role', 'stars', 'sort', 'active'],
   faqs: ['question', 'answer', 'sort', 'active'],
-  works: ['title', 'url', 'summary', 'tags', 'proprio', 'sort', 'active'],
+  works: ['title', 'url', 'summary', 'tags', 'proprio', 'story', 'links', 'shots', 'sort', 'active'],
 } as const satisfies Record<ContentTable, readonly string[]>;
 
 const NUMERIC_FIELDS = new Set(['price', 'weeks', 'sort', 'stars']);

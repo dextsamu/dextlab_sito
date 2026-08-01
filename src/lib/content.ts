@@ -7,11 +7,15 @@
  * mostrare sezioni vuote o una pagina d'errore.
  */
 import { rowsActive, getSettings, setting, type Settings, type PricingRow, type ReviewRow, type FaqRow, type WorkRow } from './db.ts';
+import { slugLavoro } from './assets.ts';
 
 export type PricingItem = Pick<PricingRow, 'label' | 'price' | 'weeks'>;
 export type ReviewItem = Pick<ReviewRow, 'quote' | 'author' | 'role' | 'stars'>;
 export type FaqItem = Pick<FaqRow, 'question' | 'answer'>;
-export type WorkItem = Pick<WorkRow, 'title' | 'url' | 'summary' | 'tags' | 'proprio'>;
+export type WorkItem = Pick<
+  WorkRow,
+  'title' | 'url' | 'summary' | 'tags' | 'proprio' | 'story' | 'links' | 'shots'
+>;
 
 const FALLBACK_TYPES: PricingItem[] = [
   { label: 'Landing page', price: 490, weeks: 1 },
@@ -141,6 +145,94 @@ function lavoroMostrabile(w: { title: string; url: string }): boolean {
     // pubblicare una scheda rotta, e non deve far cadere la home.
     return false;
   }
+}
+
+/**
+ * Indirizzo web utilizzabile, o null.
+ *
+ * È lo stesso controllo che lavoroMostrabile fa sull'indirizzo del lavoro, e per
+ * la stessa ragione: i link della pagina di un lavoro arrivano dal pannello e
+ * finiscono in un href. Astro sfugge il testo ma non giudica lo schema, quindi
+ * senza questo filtro un `javascript:` scritto per prova sarebbe eseguibile.
+ */
+function indirizzoWeb(raw: string): string | null {
+  const value = raw.trim();
+  if (value === '') return null;
+  try {
+    const u = new URL(value);
+    return u.protocol === 'https:' || u.protocol === 'http:' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * I paragrafi del testo di un lavoro: separati da una riga vuota, come si scrive
+ * in una casella di testo senza conoscere l'HTML.
+ */
+export function paragrafiLavoro(story: string): string[] {
+  return story
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
+/**
+ * I link di approfondimento: una riga per link, `etichetta | indirizzo`.
+ *
+ * Le righe senza barra, senza etichetta o con un indirizzo che non è http(s)
+ * cadono in silenzio. In silenzio e non con un errore perché il campo lo compila
+ * una persona: una riga sbagliata deve costare quella riga, non la pagina.
+ */
+export function linkLavoro(links: string): { label: string; url: string }[] {
+  return links
+    .split('\n')
+    .map((riga) => {
+      const taglio = riga.indexOf('|');
+      if (taglio < 0) return null;
+      const label = riga.slice(0, taglio).trim();
+      const url = indirizzoWeb(riga.slice(taglio + 1));
+      return label && url ? { label, url } : null;
+    })
+    .filter((v): v is { label: string; url: string } => v !== null);
+}
+
+/**
+ * Le didascalie delle schermate, una per riga, appaiate alle immagini trovate su
+ * disco. Più immagini che didascalie: le ultime restano senza, ed è meglio di una
+ * didascalia sbagliata sotto la schermata di un'altra pagina.
+ */
+export function didascalieLavoro(shots: string): string[] {
+  return shots.split('\n').map((riga) => riga.trim());
+}
+
+/**
+ * Un lavoro dal suo nome nell'indirizzo, o null.
+ *
+ * Passa dalle stesse righe attive della home e dallo stesso filtro: un lavoro
+ * che non è mostrabile in home non ha una pagina, e uno spento non ce l'ha più.
+ * Così non esiste una seconda via d'accesso ai contenuti che la sezione scarta.
+ */
+export async function getWork(slug: string): Promise<WorkItem | null> {
+  const works = (await rowsActive<WorkRow>('works')).filter(lavoroMostrabile);
+  return works.find((w) => slugLavoro(w.url) === slug) ?? null;
+}
+
+/**
+ * I nomi dei lavori che hanno una pagina, nell'ordine della sezione.
+ *
+ * Serve alla sitemap: le pagine dei lavori nascono e muoiono da un campo del
+ * pannello, quindi un elenco scritto a mano nella sitemap prometterebbe ai motori
+ * di ricerca indirizzi che rispondono 404. Se il database non risponde l'elenco è
+ * vuoto e la sitemap resta quella delle pagine fisse, che è il comportamento
+ * giusto: meglio una sitemap corta che una che mente.
+ */
+export async function lavoriConPagina(): Promise<string[]> {
+  const works = (await rowsActive<WorkRow>('works')).filter(lavoroMostrabile);
+  return works
+    .filter((w) => paragrafiLavoro(w.story).length > 0)
+    .map((w) => slugLavoro(w.url))
+    .filter((s): s is string => s !== null);
 }
 
 /** Link WhatsApp precompilato. Ritorna stringa vuota se il numero non è impostato. */

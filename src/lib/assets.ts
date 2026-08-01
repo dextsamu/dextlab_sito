@@ -90,11 +90,49 @@ const ESTENSIONI = ['webp', 'jpg', 'jpeg', 'png', 'avif'] as const;
 export function immagineLavoro(url: string): string | null {
   const base = nomeDaIndirizzo(url);
   if (!base) return null;
+  return figuraLavoro(base);
+}
+
+/**
+ * Le schermate in più che stanno sulla pagina del lavoro, per convenzione
+ * `<dominio>-1`, `<dominio>-2`, … nella stessa cartella dell'anteprima.
+ *
+ * Si fermano al primo numero mancante invece di provare fino a un limite: chi
+ * aggiunge la quarta schermata la chiama `-4` e compare, chi cancella la seconda
+ * si accorge subito che la terza non si vede più. Il tetto a nove esiste solo
+ * perché un ciclo senza fine su un disco è un modo di non rispondere mai.
+ */
+export function schermateLavoro(url: string): string[] {
+  const base = nomeDaIndirizzo(url);
+  if (!base) return [];
+  const trovate: string[] = [];
+  for (let n = 1; n <= 9; n++) {
+    const figura = figuraLavoro(`${base}-${n}`);
+    if (!figura) break;
+    trovate.push(figura);
+  }
+  return trovate;
+}
+
+/** Il primo file che esiste fra le estensioni accettate, con l'impronta. */
+function figuraLavoro(nome: string): string | null {
   for (const est of ESTENSIONI) {
-    const percorso = `/assets/lavori/${base}.${est}`;
+    const percorso = `/assets/lavori/${nome}.${est}`;
     if (leggi(percorso)) return versioned(percorso);
   }
   return null;
+}
+
+/**
+ * Il nome del lavoro nell'indirizzo della sua pagina: `/lavori/sagrago`.
+ *
+ * È lo stesso valore che nomina i file delle schermate, e non è un caso — è
+ * l'host senza «www.» e senza estensione, quindi si ricava dall'indirizzo del
+ * lavoro e non c'è una terza colonna da tenere allineata a mano. Ritorna null
+ * per un indirizzo che non si può leggere, e chi chiama salta la voce.
+ */
+export function slugLavoro(url: string): string | null {
+  return nomeDaIndirizzo(url);
 }
 
 /**

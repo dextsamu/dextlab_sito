@@ -455,6 +455,108 @@ jobs:
           q "delete from works where sort in (90, 91, 92)"
           exit $fail
 
+      # La pagina di un lavoro. Esiste solo se c'è un testo da metterci, e deve
+      # continuare a portare al sito vero: è un approfondimento della prova, non
+      # il suo sostituto. Se un giorno la scheda smettesse di puntare al sito e
+      # puntasse solo qui, la sezione avrebbe perso la cosa che la rende diversa
+      # da un racconto.
+      - name: Ogni lavoro ha la sua pagina, o non ce l'ha
+        run: |
+          fail=0
+          q() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -q -c "$1"; }
+          qv() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -tA -c "$1"; }
+          html=$(curl -s http://127.0.0.1:4321/)
+          sitemap=$(curl -s http://127.0.0.1:4321/sitemap.xml)
+
+          # 1) Tante voci «Com'è fatto» quante sono le righe con un testo: né una
+          # in più (pagina vuota) né una in meno (lavoro fatto che nessuno vede).
+          attese=$(qv "select count(*) from works where active and title <> '' and url ~ '^https?://' and story <> ''")
+          pagine=$(grep -o 'class="lavoro-piu" href="/lavori/[^"]*"' <<<"$html" | wc -l)
+          if [ "$pagine" != "$attese" ]; then
+            echo "::error::righe con un testo: $attese, voci «Com'è fatto» in pagina: $pagine"
+            fail=1
+          else
+            echo "  ok    le $pagine voci «Com'è fatto» sono le righe che hanno un testo"
+          fi
+
+          # 2) Ogni pagina risponde, e da lì si arriva al sito vero. Gli indirizzi
+          # si leggono dalla home invece di ricostruire il nome dal dominio: se un
+          # giorno la convenzione cambia, questa guardia continua a valere.
+          for href in $(grep -o 'class="lavoro-piu" href="/lavori/[^"]*"' <<<"$html" | sed 's/.*href="//;s/"//'); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:4321$href")
+            if [ "$code" != 200 ]; then
+              echo "::error::$href risponde $code: la scheda porta a una pagina che non c'è"
+              fail=1
+              continue
+            fi
+            pag=$(curl -s "http://127.0.0.1:4321$href")
+            grep -qE 'href="https?://[^"]+"[^>]*rel="noopener' <<<"$pag" \
+              && echo "  ok    $href porta al sito vero con rel=noopener" \
+              || { echo "::error::$href non ha un link al sito vero con rel=noopener"; fail=1; }
+            # Qui main.js non viene caricato: una classe .reveal renderebbe la
+            # pagina invisibile fino allo scadere del timer di sicurezza.
+            if grep -q 'class="[^"]*reveal' <<<"$pag"; then
+              echo "::error::$href usa .reveal, ma su questa pagina main.js non gira: resterebbe vuota"
+              fail=1
+            else
+              echo "  ok    $href non dipende da main.js per farsi vedere"
+            fi
+            grep -qF "$href" <<<"$sitemap" \
+              && echo "  ok    $href è nella sitemap" \
+              || { echo "::error::$href non è nella sitemap"; fail=1; }
+          done
+
+          # 3) Un indirizzo inventato risponde 404 e non una pagina vuota con
+          # l'intestazione.
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4321/lavori/inventato)
+          [ "$code" = 404 ] \
+            && echo "  ok    un lavoro che non esiste risponde 404" \
+            || { echo "::error::/lavori/inventato ha risposto $code, atteso 404"; fail=1; }
+
+          # 4) E la prova al contrario: un lavoro completo ma senza testo non ha
+          # la pagina, e la scheda non la offre. Poi si scrive il testo e compare.
+          q "insert into works (title, url, summary, tags, sort, active) values ('Senza testo CI', 'https://senza-testo.example/', 'Riga di prova.', '', 93, true)"
+          h1=$(curl -s http://127.0.0.1:4321/)
+          grep -qF 'Senza testo CI' <<<"$h1" \
+            || { echo "::error::il lavoro di prova non compare nemmeno come scheda"; fail=1; }
+          if grep -qF 'href="/lavori/senza-testo"' <<<"$h1"; then
+            echo "::error::un lavoro senza testo offre la pagina: porterebbe a un'intestazione e al vuoto"
+            fail=1
+          else
+            echo "  ok    senza testo la scheda non offre la pagina"
+          fi
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4321/lavori/senza-testo)
+          [ "$code" = 404 ] \
+            && echo "  ok    e la pagina risponde 404 anche se il lavoro esiste" \
+            || { echo "::error::/lavori/senza-testo ha risposto $code con story vuota, atteso 404"; fail=1; }
+          q "update works set story = 'Un paragrafo di prova.' where sort = 93"
+          h2=$(curl -s http://127.0.0.1:4321/)
+          grep -qF 'href="/lavori/senza-testo"' <<<"$h2" \
+            && echo "  ok    scritto il testo, la scheda offre la pagina" \
+            || { echo "::error::scritto il testo, la voce «Com'è fatto» non è comparsa"; fail=1; }
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4321/lavori/senza-testo)
+          [ "$code" = 200 ] \
+            && echo "  ok    e la pagina risponde" \
+            || { echo "::error::/lavori/senza-testo ha risposto $code con un testo, atteso 200"; fail=1; }
+          # Un link scritto male nel pannello non deve finire in un href: è un
+          # campo di testo, e «javascript:» sarebbe eseguibile.
+          q "update works set links = E'Buono | https://esempio.example/\nCattivo | javascript:alert(1)\nSenza barra https://esempio.example/' where sort = 93"
+          pag=$(curl -s http://127.0.0.1:4321/lavori/senza-testo)
+          grep -qF 'https://esempio.example/' <<<"$pag" \
+            && echo "  ok    il link buono compare" \
+            || { echo "::error::il link valido non compare fra quelli da aprire"; fail=1; }
+          if grep -qF 'javascript:' <<<"$pag"; then
+            echo "::error::un link «javascript:» è finito in pagina"
+            fail=1
+          else
+            echo "  ok    il link «javascript:» viene scartato"
+          fi
+          n_link=$(grep -o 'class="lp-link"' <<<"$pag" | wc -l)
+          [ "$n_link" = 1 ] || { echo "::error::la sezione dei link da aprire non è stata resa"; fail=1; }
+
+          q "delete from works where sort = 93"
+          exit $fail
+
       # Le quattro cose che si vedono, e le tre trappole che nascondono.
       - name: Indice, cuciture, titoli e domande
         run: |
