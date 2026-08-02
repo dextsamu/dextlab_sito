@@ -273,27 +273,40 @@ const secretHint = (key: string) =>
         {dpoOn && qualificheOk > 0 && <strong>attiva</strong>}
       </label>
       <p class="hint" style="margin-top:0">
+        {dpoOn ? (
+          <>
+            La pagina è pubblica: <a href="/gdpr" target="_blank" rel="noopener">apri /gdpr</a>. Da
+            qui passano anche la voce «Protezione dati» nel menu, la card nei servizi e il piè di
+            pagina.
+          </>
+        ) : (
+          'Spunta la casella per pubblicare la pagina del servizio.'
+        )}
+      </p>
+      {/*
+        Le qualifiche non decidono se il servizio è in vendita — quello lo decide
+        la casella qui sopra. Decidono se il sito DICHIARA una certificazione, e
+        senza il dato la pagina descrive il lavoro senza nominare titoli. Detto
+        qui perché è la differenza fra le due cose, e altrimenti si scopre
+        aprendo la pagina e non trovandoci l'attestato.
+      */}
+      <p class="hint" style="margin-top:10px">
         {
           qualificheOk === 0 ? (
             <>
-              Nessuna qualifica compilata: la pagina risponde <strong>404</strong> anche con la
-              casella spuntata. Servono titolo ed ente in{' '}
-              <a href="/admin/contenuti">Contenuti → Formazione e certificazioni</a>. Non è un
-              impedimento burocratico: una pagina che vende conformità senza una qualifica
-              dimostrabile è esattamente ciò che questo sito non fa.
+              <strong>Nessuna qualifica dichiarata.</strong> La pagina esce comunque, ma non nomina
+              nessuna certificazione: senza l'ente che l'ha rilasciata un titolo non è
+              verificabile, e questo sito non pubblica affermazioni su di sé che chi legge non possa
+              controllare. Il posto per scriverla è già pronto in{' '}
+              <a href="/admin/contenuti">Contenuti → Formazione e certificazioni</a>: servono il
+              titolo come sta sull'attestato, l'ente, e la spunta «attiva».
             </>
           ) : (
             <>
               {qualificheOk === 1
-                ? '1 qualifica compilata e mostrabile.'
-                : `${qualificheOk} qualifiche compilate e mostrabili.`}{' '}
-              {dpoOn ? (
-                <>
-                  La pagina è pubblica: <a href="/gdpr" target="_blank" rel="noopener">apri /gdpr</a>.
-                </>
-              ) : (
-                'Spunta la casella per pubblicare la pagina.'
-              )}
+                ? '1 qualifica dichiarata'
+                : `${qualificheOk} qualifiche dichiarate`}: compare in «L'approccio» sulla home, in
+              cima alla pagina del servizio e nei dati strutturati.
             </>
           )
         }

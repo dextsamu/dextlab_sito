@@ -1543,64 +1543,75 @@ jobs:
 
           exit $fail
 
-      # Una qualifica è un'affermazione su una persona, come una recensione: la
-      # differenza è che qui l'affermazione è su di sé, e nessuno la smentisce per
-      # noi. Da qui le due regole che questa guardia protegge — una qualifica senza
-      # l'ente che l'ha rilasciata non si mostra (non è verificabile, quindi è
-      # indistinguibile da una inventata), e la pagina che vende il servizio esiste
-      # solo se una qualifica c'è davvero. La seconda regola serve a rendere
-      # impossibile la sequenza sbagliata: pubblicare la pagina e compilare la
-      # qualifica il giorno dopo.
-      - name: Una qualifica si dichiara solo se c'è
+      # Due regole separate, e la separazione è il punto (vedi la 015). L'offerta
+      # di un servizio dipende da un interruttore: si accende e la pagina esiste.
+      # La DICHIARAZIONE di una certificazione dipende dal dato: senza l'ente che
+      # l'ha rilasciata, quel titolo non è verificabile e la pagina non lo nomina.
+      # Prima erano legate, e il risultato era un servizio invisibile perché
+      # mancava l'anno di un attestato. Questa guardia protegge entrambe, e
+      # soprattutto il confine: la pagina può vendere il lavoro senza mai
+      # affermare un titolo che non può mostrare.
+      - name: Il servizio si offre, la qualifica si dichiara solo se c'è
         run: |
           fail=0
-          sql() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -tAc "$1"; }
           esegui() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -qc "$1"; }
           uguale() {
             if [ "$2" = "$3" ]; then echo "  ok    $1: $2"
             else echo "::error::$1: atteso «$3», trovato «$2»"; fail=1; fi
           }
           codice() { curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:4321$1"; }
-          # I dati strutturati della home: le qualifiche dichiarate, in JSON.
-          # Su una riga sola perché dentro un blocco YAML ogni riga porta la sua
-          # rientratura, e Python la leggerebbe come indentazione sbagliata.
+          # Le occorrenze, non le righe: l'HTML reso mette più link sulla stessa.
+          conta() { curl -s http://127.0.0.1:4321/ | grep -o 'href="/gdpr"' | wc -l | tr -d ' '; }
+          # Le qualifiche dichiarate nei dati strutturati, in JSON. Su una riga sola
+          # perché dentro un blocco YAML ogni riga porta la sua rientratura, e
+          # Python la leggerebbe come indentazione sbagliata.
           ld() {
             curl -s http://127.0.0.1:4321/ | python3 -c "import sys,re,json;h=sys.stdin.read();m=re.search(r'ld[+]json\">(.*?)</script>',h,re.S);d=json.loads(m.group(1)) if m else {};o=d.get('@graph',[d]);a=next((x for x in o if x.get('@type')=='ProfessionalService'),{});print(json.dumps(a.get('hasCredential',[]),ensure_ascii=False))"
           }
+          # Una parola che la pagina non deve contenere quando non c'è nessuna
+          # qualifica dichiarata: è la prova che non si sta affermando un titolo.
+          dice() { curl -s http://127.0.0.1:4321/gdpr | grep -oic "$1" | head -1; }
 
-          # 1. Stato di partenza: interruttore spento e nessuna qualifica.
+          # 1. Servizio spento: la pagina non esiste, e non la nomina nessuno.
           esegui "DELETE FROM credentials;"
           esegui "UPDATE settings SET v='' WHERE k='dpo_attiva';"
-          uguale 'la pagina del servizio non esiste' "$(codice /gdpr)" '404'
-          # Le occorrenze, non le righe: grep -c conta le righe che contengono un
-          # match, e l'HTML reso mette più link sulla stessa riga.
-          conta() { curl -s http://127.0.0.1:4321/ | grep -o 'href="/gdpr"' | wc -l | tr -d ' '; }
+          uguale 'con il servizio spento la pagina non esiste' "$(codice /gdpr)" '404'
           uguale 'la home non la nomina' "$(conta)" '0'
           uguale 'la sitemap non la promette' \
             "$(curl -s http://127.0.0.1:4321/sitemap.xml | grep -c gdpr || true)" '0'
-          uguale 'nessuna qualifica nei dati strutturati' "$(ld)" '[]'
 
-          # 2. Solo l'interruttore: non basta. È la regola che conta più delle altre.
+          # 2. Servizio acceso senza nessuna qualifica: la pagina esce e vende il
+          #    lavoro, ma non nomina certificazioni e non ha la sezione che le
+          #    mostra. È il caso normale finché nessuno ha compilato i dati.
           esegui "UPDATE settings SET v='1' WHERE k='dpo_attiva';"
-          uguale "l'interruttore da solo non pubblica la pagina" "$(codice /gdpr)" '404'
+          uguale 'il servizio acceso pubblica la pagina' "$(codice /gdpr)" '200'
+          uguale 'la pagina descrive il servizio' \
+            "$(curl -s http://127.0.0.1:4321/gdpr | grep -c 'DPO esterno')" '1'
+          uguale 'senza qualifiche non c-e la sezione delle qualifiche' "$(dice 'Su cosa si basa')" '0'
+          uguale 'senza qualifiche non nomina certificazioni' "$(dice 'certificat\|certificaz')" '0'
+          uguale 'niente qualifiche nei dati strutturati' "$(ld)" '[]'
+          # Menu, card dei servizi, piè di pagina: tre. Il quarto link nasce dalla
+          # riga delle qualifiche in home, che ancora non c'è.
+          uguale 'la home porta alla pagina' "$(conta)" '3'
+          uguale 'la sitemap la dichiara' \
+            "$(curl -s http://127.0.0.1:4321/sitemap.xml | grep -c '/gdpr' || true)" '1'
 
-          # 3. Qualifica senza ente: non è verificabile, quindi non esiste.
+          # 3. Una riga con il titolo ma senza ente non cambia niente: un titolo
+          #    che nessuno può smentire non è una qualifica.
           esegui "INSERT INTO credentials (title, issuer, active) VALUES ('Data Protection Officer', '', true);"
-          uguale 'una qualifica senza ente non pubblica la pagina' "$(codice /gdpr)" '404'
+          uguale 'una qualifica senza ente non aggiunge la sezione' "$(dice 'Su cosa si basa')" '0'
           uguale 'una qualifica senza ente non entra nei dati strutturati' "$(ld)" '[]'
+          uguale "una qualifica senza ente non aggiunge link in home" "$(conta)" '3'
 
-          # 4. Qualifica completa: adesso sì, e la pagina dice chi l'ha rilasciata.
+          # 4. Qualifica completa: adesso la pagina la dichiara, e dice chi l'ha
+          #    rilasciata.
           esegui "UPDATE credentials SET issuer='Ente di prova CI', scheme='UNI 11697:2017', year='2026', code='CI-1';"
-          uguale 'con la qualifica la pagina esiste' "$(codice /gdpr)" '200'
           pagina=$(curl -s http://127.0.0.1:4321/gdpr)
-          for atteso in 'Ente di prova CI' 'UNI 11697:2017' 'CI-1' 'DPO esterno'; do
+          for atteso in 'Su cosa si basa' 'Ente di prova CI' 'UNI 11697:2017' 'CI-1'; do
             if grep -qF "$atteso" <<<"$pagina"; then echo "  ok    la pagina contiene $atteso"
             else echo "::error::la pagina non contiene $atteso"; fail=1; fi
           done
-          uguale 'la sitemap la dichiara' \
-            "$(curl -s http://127.0.0.1:4321/sitemap.xml | grep -c '/gdpr' || true)" '1'
-          # Quattro: menu, card dei servizi, riga delle qualifiche, piè di pagina.
-          uguale 'la home porta alla pagina' "$(conta)" '4'
+          uguale 'la qualifica aggiunge la riga in home' "$(conta)" '4'
           uguale 'i dati strutturati dicono chi ha rilasciato la qualifica' \
             "$(ld | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0]['recognizedBy']['name'])")" \
             'Ente di prova CI'
@@ -1625,11 +1636,11 @@ jobs:
             echo "  ok    un indirizzo non web viene scartato"
           fi
 
-          # Si rimette come si è trovato: le guardie dopo questa leggono la home, e
-          # una pagina in più cambierebbe il conto dei link.
+          # Si rimette come la trova la migrazione 015: servizio acceso, una bozza
+          # da compilare, nessuna qualifica dichiarata.
           esegui "DELETE FROM credentials;"
-          esegui "UPDATE settings SET v='' WHERE k='dpo_attiva';"
-          uguale 'lo stato torna quello di prima' "$(codice /gdpr)" '404'
+          esegui "INSERT INTO credentials (title, issuer, active) VALUES ('Data Protection Officer', '', false);"
+          uguale 'lo stato torna quello della migrazione' "$(codice /gdpr)" '200'
 
           exit $fail
 
