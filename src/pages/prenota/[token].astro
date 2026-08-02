@@ -1,0 +1,147 @@
+---
+/**
+ * La scheda di un appuntamento, per chi l'ha preso.
+ *
+ * L'indirizzo contiene un codice casuale di sedici byte: è tutta
+ * l'autenticazione che serve, e la sola che si può chiedere a un visitatore che
+ * non ha e non deve avere un account. Chi ha il link vede il proprio
+ * appuntamento e può disdirlo; chi non l'ha non trova niente, e la pagina
+ * risponde 404 senza far capire se quel codice esiste.
+ *
+ * La disdetta è un POST e non un link: un GET che cambia i dati viene eseguito
+ * dai precaricamenti dei browser e dagli scanner di sicurezza delle caselle di
+ * posta, e un appuntamento sparirebbe perché qualcuno ha passato il mouse sopra
+ * il link nell'email.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { query, tryQuery, getSettings } from '../../lib/db.ts';
+import { quandoPerEsteso, type AppuntamentoRow } from '../../lib/agenda.ts';
+import { mailConfig, sendCancellationMail } from '../../lib/mail.ts';
+
+const { token = '' } = Astro.params;
+
+async function leggi(): Promise<AppuntamentoRow | null> {
+  if (!/^[a-f0-9]{32}$/.test(token)) return null;
+  const rows = await tryQuery<AppuntamentoRow>('SELECT * FROM appointments WHERE token = $1', [token]);
+  return rows[0] ?? null;
+}
+
+let app = await leggi();
+let disdettaFatta = false;
+let errore = '';
+
+if (Astro.request.method === 'POST' && app) {
+  let azione = '';
+  try {
+    azione = String((await Astro.request.formData()).get('azione') ?? '');
+  } catch {
+    errore = 'Richiesta non valida.';
+  }
+
+  if (azione === 'disdici') {
+    if (app.status !== 'confermato') {
+      errore = 'Questo appuntamento era già stato disdetto.';
+    } else if (app.starts_at.getTime() < Date.now()) {
+      // Un appuntamento passato non si disdice: è già accaduto o già mancato, e
+      // cambiarlo adesso riscriverebbe la storia senza liberare niente.
+      errore = 'Questo appuntamento è già passato: non c’è più niente da disdire.';
+    } else {
+      try {
+        await query("UPDATE appointments SET status = 'disdetto' WHERE token = $1", [token]);
+        disdettaFatta = true;
+        // L'avviso a chi doveva rispondere: senza, l'orario resta segnato in un
+        // calendario personale che nessuno ha aggiornato.
+        await sendCancellationMail(app, mailConfig(await getSettings()));
+        app = await leggi();
+      } catch (err) {
+        console.error('[prenota] disdetta non registrata:', (err as Error).message);
+        errore = 'Non è stato possibile registrare la disdetta. Scrivimi a info@dextlab.it.';
+      }
+    }
+  }
+}
+
+if (!app) Astro.response.status = 404;
+
+const attivo = app?.status === 'confermato';
+const passato = app ? app.starts_at.getTime() < Date.now() : false;
+---
+
+<BaseLayout
+  title={app ? 'Il tuo appuntamento — Dext Lab' : 'Appuntamento non trovato — Dext Lab'}
+  description="Orario, dettagli e disdetta del tuo appuntamento."
+  path={`/prenota/${token}`}
+  noindex={true}
+>
+  <div class="bg-glow glow-1" aria-hidden="true"></div>
+
+  <main class="prenota container">
+    <a href="/#contatti" class="back">← Torna al sito</a>
+
+    {
+      !app ? (
+        <header class="pr-testa">
+          <h1>Questo appuntamento non c’è</h1>
+          <p class="pr-sunto">
+            Il link non corrisponde a nessun appuntamento. Può essere incompleto, o
+            copiato a metà. Se ti serve un orario, <a href="/prenota">l’agenda è qui</a>.
+          </p>
+        </header>
+      ) : (
+        <>
+          <header class="pr-testa">
+            <h1>{disdettaFatta ? 'Appuntamento disdetto' : attivo ? 'Appuntamento confermato' : 'Appuntamento disdetto'}</h1>
+            <p class="pr-sunto">
+              {attivo
+                ? `Ti aspetto ${quandoPerEsteso(app.starts_at)}, ora italiana. Dura ${app.minutes} minuti.`
+                : `Era ${quandoPerEsteso(app.starts_at)}. L’orario è di nuovo libero per chiunque.`}
+            </p>
+          </header>
+
+          {errore && <p class="pr-errore" role="alert">{errore}</p>}
+
+          <dl class="pr-scheda">
+            <dt>Quando</dt>
+            <dd>{quandoPerEsteso(app.starts_at)} · {app.minutes} minuti · ora italiana</dd>
+            <dt>A nome di</dt>
+            <dd>{app.name}</dd>
+            <dt>Email</dt>
+            <dd>{app.email}</dd>
+            {app.phone && (
+              <>
+                <dt>Telefono</dt>
+                <dd>{app.phone}</dd>
+              </>
+            )}
+            {app.note && (
+              <>
+                <dt>Note</dt>
+                <dd>{app.note}</dd>
+              </>
+            )}
+          </dl>
+
+          {attivo && !passato && (
+            <div class="pr-azioni">
+              {/* Il file per il calendario: un appuntamento che resta solo in
+                  un'email è un appuntamento che si dimentica. */}
+              <a class="btn btn-ghost" href={`/prenota/${token}.ics`} download>
+                Aggiungi al calendario
+              </a>
+              <form method="POST" action={`/prenota/${token}`}>
+                <input type="hidden" name="azione" value="disdici" />
+                <button class="btn-disdici" type="submit">Disdici l’appuntamento</button>
+              </form>
+            </div>
+          )}
+
+          {!attivo && (
+            <p class="pr-nota">
+              Se ti serve un altro orario, <a href="/prenota">l’agenda è qui</a>.
+            </p>
+          )}
+        </>
+      )
+    }
+  </main>
+</BaseLayout>

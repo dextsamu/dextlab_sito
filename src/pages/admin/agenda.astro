@@ -1,0 +1,279 @@
+---
+/**
+ * Agenda: fasce, giorni chiusi, appuntamenti e il feed per il calendario.
+ *
+ * L'ordine della pagina è quello delle domande che si fanno davvero: quando sono
+ * disponibile, quando no, chi ha prenotato. Le impostazioni stanno in fondo
+ * perché si toccano una volta.
+ */
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import CrudRow, { type FieldSpec } from '../../components/admin/CrudRow.astro';
+import { guardAdmin, handleAdminPost } from '../../lib/admin-actions.ts';
+import { csrfToken } from '../../lib/auth.ts';
+import { contentRows, leadStats } from '../../lib/admin.ts';
+import { getSettings, settingOn, tryQuery } from '../../lib/db.ts';
+import { siteUrl } from '../../lib/env.ts';
+import {
+  agendaConfig,
+  giorniLiberi,
+  quandoPerEsteso,
+  minutiDaOrario,
+  type FasciaRow,
+  type ChiusuraRow,
+  type AppuntamentoRow,
+} from '../../lib/agenda.ts';
+
+const denied = guardAdmin(Astro);
+if (denied) return denied;
+
+const { response } = await handleAdminPost(Astro, '/admin/agenda');
+if (response) return response;
+
+const csrf = csrfToken(Astro.cookies);
+const [s, leads, fasce, chiusure, appuntamenti] = await Promise.all([
+  getSettings(),
+  leadStats(),
+  contentRows<FasciaRow>('agenda_windows'),
+  contentRows<ChiusuraRow>('agenda_closures'),
+  tryQuery<AppuntamentoRow>(
+    `SELECT * FROM appointments
+      WHERE starts_at > now() - interval '60 days'
+      ORDER BY starts_at DESC LIMIT 100`
+  ),
+]);
+
+const cfg = agendaConfig(s);
+const attiva = settingOn(s, 'agenda_attiva');
+
+const fasciaFields: FieldSpec[] = [
+  { name: 'weekday', type: 'number', placeholder: '1=lun … 7=dom', label: 'Giorno (1=lun … 7=dom)' },
+  { name: 'from_time', type: 'text', placeholder: '09:30', label: 'Dalle' },
+  { name: 'to_time', type: 'text', placeholder: '13:00', label: 'Alle' },
+  { name: 'sort', type: 'number', placeholder: 'ordine', label: 'Ordine' },
+  { name: 'active', type: 'check', placeholder: 'attiva' },
+];
+
+const chiusuraFields: FieldSpec[] = [
+  { name: 'day', type: 'text', placeholder: '2026-08-15', label: 'Giorno chiuso' },
+  { name: 'reason', type: 'text', placeholder: 'Ferie', label: 'Motivo (solo per te)' },
+  { name: 'sort', type: 'number', placeholder: 'ordine', label: 'Ordine' },
+  { name: 'active', type: 'check', placeholder: 'attivo' },
+];
+
+/* Le fasce con un orario illeggibile non fanno cadere niente, ma non producono
+   nemmeno slot: qui si dicono per nome, perché un campo sbagliato che non
+   protesta è un campo che resta sbagliato per mesi. */
+const fasceRotte = fasce.filter(
+  (f) => f.active && (minutiDaOrario(f.from_time) === null || minutiDaOrario(f.to_time) === null)
+);
+const fasceVuote = fasce.filter((f) => {
+  const da = minutiDaOrario(f.from_time);
+  const a = minutiDaOrario(f.to_time);
+  return f.active && da !== null && a !== null && a - da < cfg.minuti;
+});
+
+/* Anteprima: quanti slot uscirebbero davvero. È la sola risposta utile alla
+   domanda «ho configurato bene?», e non richiede di aprire il sito pubblico. */
+const occupati = appuntamenti.filter((a) => a.status === 'confermato').map((a) => a.starts_at);
+const anteprima = giorniLiberi(cfg, fasce, chiusure, occupati);
+const slotTotali = anteprima.reduce((n, g) => n + g.slot.length, 0);
+
+const prossimi = appuntamenti.filter((a) => a.starts_at.getTime() >= Date.now());
+const passati = appuntamenti.filter((a) => a.starts_at.getTime() < Date.now());
+
+const feed = cfg.chiaveIcs ? `${siteUrl()}/agenda.ics?k=${cfg.chiaveIcs}` : '';
+---
+
+<AdminLayout current="agenda" title="Agenda" newLeads={leads.newCount}>
+  <h1>Agenda</h1>
+
+  <section class="block">
+    <h2>Stato</h2>
+    <form method="post" class="settings-form">
+      <input type="hidden" name="csrf" value={csrf} />
+      <div class:list={['maint-box', { on: attiva }]}>
+        <label class="ck big">
+          <input type="checkbox" name="agenda_attiva" checked={attiva} /> 📅 Prenotazioni online attive
+          {attiva && <strong>(ATTIVE)</strong>}
+        </label>
+        <p class="hint">
+          Con l'agenda attiva il pulsante «Prenota una call gratuita» nella sezione contatti porta a
+          <code>/prenota</code> invece che al link Calendly. Spenta, torna al link di prima e la
+          pagina <code>/prenota</code> dice che le prenotazioni sono chiuse, con l'email come
+          alternativa.
+        </p>
+      </div>
+
+      <label for="agenda_minuti">Durata di un appuntamento (minuti)</label>
+      <input id="agenda_minuti" name="agenda_minuti" value={String(cfg.minuti)} />
+      <label for="agenda_preavviso">Preavviso minimo (ore)</label>
+      <input id="agenda_preavviso" name="agenda_preavviso" value={String(cfg.preavviso)} />
+      <p class="hint">
+        Nessuno può prenotare prima di così: con 12 ore, alle 9 di stamattina il primo orario
+        disponibile è domani alle 9.
+      </p>
+      <label for="agenda_giorni">Quanto avanti si può prenotare (giorni)</label>
+      <input id="agenda_giorni" name="agenda_giorni" value={String(cfg.giorni)} />
+
+      <button class="btn-s" name="action" value="save_agenda">Salva</button>
+    </form>
+
+    <p class="hint">
+      Con questi numeri, adesso ci sono <strong>{slotTotali}</strong> orari liberi su{' '}
+      {anteprima.length} giorni.
+      {slotTotali === 0 && ' Nessuno: controlla le fasce qui sotto.'}
+    </p>
+    {
+      fasceRotte.length > 0 && (
+        <p class="hint err">
+          Fasce con un orario che non si legge (vanno scritte come <code>09:30</code>), e che quindi
+          non producono orari: {fasceRotte.map((f) => `#${f.id}`).join(', ')}.
+        </p>
+      )
+    }
+    {
+      fasceVuote.length > 0 && (
+        <p class="hint err">
+          Fasce più corte di un appuntamento ({cfg.minuti} minuti), che quindi non producono orari:{' '}
+          {fasceVuote.map((f) => `#${f.id}`).join(', ')}.
+        </p>
+      )
+    }
+  </section>
+
+  <section class="block">
+    <h2>Fasce settimanali</h2>
+    {fasce.map((row) => <CrudRow table="agenda_windows" fields={fasciaFields} row={row} csrf={csrf} />)}
+    <h3>+ Nuova fascia</h3>
+    <CrudRow table="agenda_windows" fields={fasciaFields} row={null} csrf={csrf} />
+    <p class="hint">
+      Il giorno è un numero: 1 lunedì, 7 domenica. Gli orari si scrivono
+      <code>09:30</code>, ora italiana — il cambio dell'ora legale è gestito da sé. Una fascia
+      produce un orario ogni {cfg.minuti} minuti, e si ferma quando l'appuntamento non ci sta più
+      dentro: da 09:30 a 13:00 con appuntamenti da 30 minuti, l'ultimo è alle 12:30.
+    </p>
+  </section>
+
+  <section class="block">
+    <h2>Giorni chiusi</h2>
+    {
+      chiusure.map((row) => (
+        <CrudRow table="agenda_closures" fields={chiusuraFields} row={row} csrf={csrf} />
+      ))
+    }
+    <h3>+ Nuovo giorno chiuso</h3>
+    <CrudRow table="agenda_closures" fields={chiusuraFields} row={null} csrf={csrf} />
+    <p class="hint">
+      Un giorno chiuso vince su tutte le fasce, e si scrive <code>2026-08-15</code>. È anche il posto
+      dove bloccare un giorno in cui hai un impegno preso altrove:
+      <strong>questa agenda non vede il tuo calendario personale</strong>, quindi senza una riga qui
+      proporrebbe quell'orario a chiunque.
+    </p>
+  </section>
+
+  <section class="block">
+    <h2>Appuntamenti</h2>
+    {
+      prossimi.length === 0 ? (
+        <p class="hint">Nessun appuntamento in arrivo.</p>
+      ) : (
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Quando</th>
+              <th>Chi</th>
+              <th>Contatti</th>
+              <th>Note</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {prossimi.map((a) => (
+              <tr class={a.status === 'confermato' ? '' : 'spento'}>
+                <td>{quandoPerEsteso(a.starts_at)}</td>
+                <td>{a.name}</td>
+                <td>
+                  <a href={`mailto:${a.email}`}>{a.email}</a>
+                  {a.phone && <div>{a.phone}</div>}
+                </td>
+                <td>{a.note || '—'}</td>
+                <td>
+                  {a.status === 'confermato' ? (
+                    <form method="post">
+                      <input type="hidden" name="csrf" value={csrf} />
+                      <input type="hidden" name="id" value={a.id} />
+                      <button
+                        class="btn-s danger"
+                        name="action"
+                        value="app_disdici"
+                        data-confirm="Disdire questo appuntamento?"
+                      >
+                        Disdici
+                      </button>
+                    </form>
+                  ) : (
+                    <span class="hint">disdetto</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )
+    }
+    {
+      passati.length > 0 && (
+        <details class="passati">
+          <summary>{passati.length} appuntamenti passati</summary>
+          <table class="tbl">
+            <tbody>
+              {passati.map((a) => (
+                <tr class={a.status === 'confermato' ? '' : 'spento'}>
+                  <td>{quandoPerEsteso(a.starts_at)}</td>
+                  <td>{a.name}</td>
+                  <td>
+                    <a href={`mailto:${a.email}`}>{a.email}</a>
+                  </td>
+                  <td>{a.status === 'confermato' ? '' : 'disdetto'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      )
+    }
+  </section>
+
+  <section class="block">
+    <h2>Il feed per il tuo calendario</h2>
+    <p class="hint">
+      Questo indirizzo va incollato nel tuo calendario come «iscrizione a un calendario» (Google
+      Calendar → Altri calendari → Da URL; su iPhone: Calendari → Aggiungi → Aggiungi calendario con
+      sottoscrizione). Gli appuntamenti presi sul sito compariranno fra i tuoi impegni, e si
+      aggiorneranno da soli.
+    </p>
+    {
+      feed ? (
+        <p class="feed-url"><code>{feed}</code></p>
+      ) : (
+        <p class="hint err">Nessuna chiave impostata: il feed è spento. Generane una qui sotto.</p>
+      )
+    }
+    <p class="hint">
+      Chi ha questo indirizzo legge nome, email e note di chi ha prenotato: trattalo come una
+      password e non incollarlo in chat o in documenti condivisi. Va in una direzione sola — il sito
+      non vede i tuoi impegni, per quelli servono i giorni chiusi.
+    </p>
+    <form method="post">
+      <input type="hidden" name="csrf" value={csrf} />
+      <button
+        class="btn-s"
+        name="action"
+        value="agenda_chiave"
+        data-confirm="Rigenerare la chiave? Il vecchio indirizzo smetterà di funzionare e il calendario andrà sottoscritto di nuovo."
+      >
+        Rigenera la chiave
+      </button>
+    </form>
+  </section>
+</AdminLayout>

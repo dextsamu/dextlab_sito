@@ -2,9 +2,21 @@
 interface Props {
   contactEmail: string;
   calendly: string;
+  /** Vero se l'agenda del sito è accesa: allora si prenota qui, non altrove. */
+  agendaAttiva: boolean;
 }
 
-const { contactEmail, calendly } = Astro.props;
+const { contactEmail, calendly, agendaAttiva } = Astro.props;
+
+/*
+  Con l'agenda accesa il pulsante resta dentro il sito: il link a Calendly
+  portava il visitatore su un altro dominio nel punto esatto in cui aveva deciso
+  di parlarci — altra grafica, cookie di terze parti, e un modulo che non è
+  questo. Spenta, il link di prima continua a funzionare: finché nessuno ha
+  deciso le proprie fasce, un'agenda vuota è peggio di Calendly.
+*/
+const prenotaHref = agendaAttiva ? '/prenota' : calendly;
+const prenotaFuori = !agendaAttiva;
 ---
 
 <section class="section section-contact" id="contatti">
@@ -24,9 +36,9 @@ const { contactEmail, calendly } = Astro.props;
           {contactEmail}
         </a>
         <a
-          href={calendly}
-          target="_blank"
-          rel="noopener noreferrer"
+          href={prenotaHref}
+          target={prenotaFuori ? '_blank' : undefined}
+          rel={prenotaFuori ? 'noopener noreferrer' : undefined}
           class="contact-link contact-link-cal"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">

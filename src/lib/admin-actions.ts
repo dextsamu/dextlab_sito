@@ -14,9 +14,10 @@ import {
   updateLeadStatus,
   deleteLead,
 } from './admin.ts';
-import { saveSettings, CONTENT_TABLES } from './db.ts';
-import { settingsFromForm } from './admin.ts';
+import { saveSettings, CONTENT_TABLES, query } from './db.ts';
+import { settingsFromForm, agendaSettingsFromForm } from './admin.ts';
 import { runBackup, deleteBackup } from './backup.ts';
+import { randomBytes } from 'node:crypto';
 
 const CRUD_ACTION = new RegExp(`^(save|delete)_(${CONTENT_TABLES.join('|')})$`);
 
@@ -98,6 +99,34 @@ export async function handleAdminPost(context: APIContext, redirectTo: string): 
       case 'save_settings': {
         await saveSettings(settingsFromForm(form));
         setFlash(cookies, 'Impostazioni salvate.');
+        break;
+      }
+      case 'save_agenda': {
+        await saveSettings(agendaSettingsFromForm(form));
+        setFlash(cookies, 'Agenda aggiornata.');
+        break;
+      }
+      case 'agenda_chiave': {
+        // Chiave nuova per il feed: chi aveva sottoscritto il vecchio indirizzo
+        // smette di ricevere aggiornamenti, ed è il punto — si rigenera quando
+        // quell'indirizzo è finito dove non doveva.
+        await saveSettings({ agenda_ics_key: randomBytes(16).toString('hex') });
+        setFlash(cookies, 'Chiave del calendario rigenerata: il vecchio indirizzo non funziona più.');
+        break;
+      }
+      case 'app_disdici': {
+        // Disdetta dal pannello: l'orario torna libero perché il vincolo univoco
+        // vale solo sui confermati. Non si cancella la riga — «avevo prenotato»
+        // è una domanda a cui serve poter rispondere.
+        const righe = await query<{ id: number }>(
+          "UPDATE appointments SET status = 'disdetto' WHERE id = $1 AND status = 'confermato' RETURNING id",
+          [id]
+        );
+        setFlash(
+          cookies,
+          righe.length > 0 ? 'Appuntamento disdetto: l’orario è di nuovo libero.' : 'Nessun appuntamento da disdire.',
+          righe.length > 0 ? 'ok' : 'error'
+        );
         break;
       }
       case 'run_backup': {

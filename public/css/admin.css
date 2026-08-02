@@ -114,3 +114,26 @@ button.logout:hover{color:var(--txt)}
 
 /* nota di ripristino nella pagina backup */
 .restore-cmd{display:block;margin-top:6px;padding:10px 12px;background:var(--bg2);border:1px solid var(--bord);border-radius:8px;font-size:.82rem;overflow-x:auto;white-space:pre}
+
+/* ---------- agenda ---------- */
+/* Tabella degli appuntamenti: stessa impostazione di quella dei lead, di cui
+   riusa misure e colori — due tabelle che si assomigliano nel pannello devono
+   assomigliarsi anche nel foglio di stile. */
+table.tbl{width:100%;border-collapse:collapse;font-size:.86rem}
+table.tbl th,table.tbl td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--bord);vertical-align:top}
+table.tbl th{color:var(--mut);font-size:.75rem;text-transform:uppercase}
+table.tbl tr.spento{opacity:.55}
+table.tbl tr.spento td:first-child{text-decoration:line-through}
+/* Avvisi su una configurazione che non produrrebbe nessun orario: sono la
+   risposta alla domanda «perché non si può prenotare?». */
+.hint.err{color:#ff8a8a}
+/* Il feed va copiato per intero: si manda a capo invece di tagliarsi. */
+.feed-url{margin-top:14px}
+.feed-url code{display:block;padding:11px 13px;background:var(--bg2);border:1px solid var(--bord);
+  border-radius:8px;font-size:.8rem;word-break:break-all}
+.passati{margin-top:18px}
+.passati summary{cursor:pointer;color:var(--mut);font-size:.86rem}
+/* Etichetta di un campo dentro una riga CRUD: serve dove il valore da solo non
+   si spiega (le fasce dell'agenda), e resta assente dove il testo parla da sé. */
+.fld-lab{display:block;font-size:.72rem;color:var(--mut);margin-bottom:4px;
+  text-transform:uppercase;letter-spacing:.05em}

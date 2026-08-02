@@ -16,6 +16,14 @@ export interface FieldSpec {
    * fessura di due righe è un modo di non farlo scrivere a nessuno.
    */
   rows?: number;
+  /**
+   * Etichetta sopra il campo, per le tabelle in cui il valore da solo non si
+   * capisce. Su una recensione il testo dice cos'è; su una fascia dell'agenda
+   * una colonna di «1 / 09:30 / 13:00 / 10» non dice niente a nessuno, e il
+   * segnaposto si vede solo quando il campo è vuoto — cioè mai, dopo il primo
+   * salvataggio.
+   */
+  label?: string;
 }
 
 interface Props {
@@ -49,6 +57,7 @@ function checkedOf(field: FieldSpec): boolean {
   {
     fields.map((field) => (
       <div class:list={['fld', `fld-${field.type}`]}>
+        {field.label && field.type !== 'check' && <span class="fld-lab">{field.label}</span>}
         {/* set:text evita che l'indentazione del template finisca nel valore:
             il contenuto di un textarea è significativo carattere per carattere. */}
         {field.type === 'textarea' && (

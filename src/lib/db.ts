@@ -110,7 +110,17 @@ export async function saveSettings(entries: Record<string, string>): Promise<voi
 
 // ------------------------------------------------------- contenuti pubblici --
 
-export const CONTENT_TABLES = ['pricing_types', 'pricing_addons', 'reviews', 'faqs', 'works'] as const;
+export const CONTENT_TABLES = [
+  'pricing_types',
+  'pricing_addons',
+  'reviews',
+  'faqs',
+  'works',
+  // L'agenda usa lo stesso CRUD generico dei contenuti: sono righe con sort e
+  // active come le altre, e il pannello non ha bisogno di sapere altro.
+  'agenda_windows',
+  'agenda_closures',
+] as const;
 export type ContentTable = (typeof CONTENT_TABLES)[number];
 
 export interface PricingRow {

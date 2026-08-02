@@ -1169,6 +1169,60 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .lp-chiusa{margin:44px 0 0;padding-top:26px;border-top:1px solid var(--border);
   font-family:'Space Grotesk',sans-serif;color:var(--text)}
 
+/* ---------- prenotazione ---------- */
+/* Misura da lettura come le altre pagine di servizio. Gli orari sono pastiglie
+   in una griglia che si adatta: su telefono ne stanno tre per riga, e restano
+   bersagli grandi abbastanza da centrarli col pollice. */
+.prenota{max-width:760px;padding-top:130px;padding-bottom:80px}
+.prenota .back{display:inline-flex;align-items:center;gap:8px;margin-bottom:30px;
+  color:var(--cyan);font-weight:500}
+.pr-testa h1{font-size:clamp(1.9rem,4.6vw,2.6rem);margin:0 0 10px}
+.pr-sunto{color:var(--muted);font-size:1.02rem;line-height:1.6;margin:0}
+.pr-errore{margin:22px 0 0;padding:13px 17px;border-radius:12px;font-size:.94rem;line-height:1.5;
+  color:#ffb4b4;background:rgba(255,107,107,.10);border:1px solid rgba(255,107,107,.32)}
+.pr-vuoto{margin:30px 0 0;color:var(--muted);line-height:1.7}
+.pr-vuoto a,.pr-nota a,.pr-dettaglio a{color:var(--cyan)}
+.pr-giorni{margin:34px 0 0;display:grid;gap:26px}
+.pr-giorno h2{font-size:1.05rem;margin:0 0 12px;font-family:'Space Grotesk',sans-serif;
+  color:var(--text);font-variation-settings:'wght' 560}
+.pr-giorno ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;
+  grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}
+.pr-giorno li a{display:block;text-align:center;padding:11px 8px;border-radius:12px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92rem;
+  color:var(--text);border:1px solid var(--border);background:var(--surface);
+  transition:border-color .3s,background .3s,transform .3s var(--ease)}
+.pr-giorno li a:hover{border-color:var(--border-2);background:var(--surface-2);transform:translateY(-2px)}
+.pr-giorno li a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.pr-altri{margin:30px 0 0}
+.pr-altri summary{cursor:pointer;color:var(--cyan);font-family:'Space Grotesk',sans-serif;
+  font-size:.94rem;padding:11px 16px;border-radius:999px;display:inline-block;
+  border:1px solid var(--border);background:var(--surface);list-style:none}
+.pr-altri summary::-webkit-details-marker{display:none}
+.pr-altri summary:hover{border-color:var(--border-2);background:var(--surface-2)}
+.pr-altri[open] summary{margin-bottom:8px}
+.pr-form{margin:34px 0 0}
+.pr-form h2{font-size:1.3rem;margin:0 0 6px}
+.pr-dettaglio{color:var(--muted);font-size:.92rem;margin:0 0 22px}
+.pr-form form{display:grid;gap:16px;max-width:520px}
+.pr-form button{justify-self:start}
+.pr-nota{color:var(--muted);font-size:.86rem;line-height:1.6;margin:0}
+/* L'esca per i bot: fuori dallo schermo, non display:none — un campo nascosto
+   così viene compilato dai riempitori automatici e ignorato dagli screen reader
+   grazie all'aria-hidden sul contenitore. */
+.pr-esca{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.pr-scheda{margin:30px 0 0;display:grid;grid-template-columns:auto 1fr;gap:10px 20px;
+  padding:20px 22px;border-radius:var(--radius);background:var(--surface);
+  border:1px solid var(--border)}
+.pr-scheda dt{color:var(--muted);font-size:.82rem;text-transform:uppercase;letter-spacing:.06em;
+  font-family:'Space Grotesk',sans-serif;align-self:center}
+.pr-scheda dd{margin:0;color:var(--text);font-size:.96rem;line-height:1.5}
+.pr-azioni{margin:26px 0 0;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn-disdici{padding:12px 22px;border-radius:999px;font-size:.92rem;cursor:pointer;
+  font-family:'Space Grotesk',sans-serif;color:#ffb4b4;background:rgba(255,107,107,.08);
+  border:1px solid rgba(255,107,107,.32);transition:background .3s,border-color .3s}
+.btn-disdici:hover{background:rgba(255,107,107,.16);border-color:rgba(255,107,107,.5)}
+.btn-disdici:focus-visible{outline:2px solid #ffb4b4;outline-offset:3px}
+
 /* ---------- footer ---------- */
 .footer{padding:48px 0;border-top:1px solid var(--border);background:var(--bg-2)}
 .footer-inner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px}
