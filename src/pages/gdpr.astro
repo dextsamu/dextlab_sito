@@ -10,9 +10,15 @@
  *
  * Quello che resta legato al dato verificabile è la dichiarazione, non l'offerta:
  * senza una qualifica con il suo ente questa pagina descrive il lavoro e non
- * nomina nessuna certificazione. Chi compra un adeguamento privacy compra la
- * competenza di chi lo firma — quindi il titolo, quando c'è, si dichiara con
- * l'ente che l'ha rilasciato e un modo di controllarlo.
+ * dichiara nessun titolo. Chi compra un adeguamento privacy compra la competenza
+ * di chi lo firma — quindi il titolo, quando c'è, si dichiara con l'ente che l'ha
+ * rilasciato e un modo di controllarlo.
+ *
+ * È la pagina più lunga del sito, e volutamente. Chi cerca questo servizio ha
+ * bisogno di capire due cose che nessun elenco di tre righe può dire: cosa
+ * comprerebbe, e se chi la scrive sa di cosa parla. Le sezioni sulla norma
+ * rispondono alla seconda domanda — sono una descrizione degli articoli, citati per
+ * numero perché si possano controllare, con accanto cosa significano su un sito.
  *
  * Cosa NON c'è, scritto qui perché non lo scopra qualcuno per sbaglio:
  *
@@ -24,15 +30,15 @@
  *    esiste.
  *  - nessuna promessa di conformità. Nessuno può garantire che un'azienda «sia a
  *    norma»: si può mettere in ordine ciò che si vede e scrivere cosa manca.
+ *  - nessun parere legale. Le sezioni sulla norma dicono cosa prevede il
+ *    regolamento, non cosa deve fare una certa azienda: quella è una valutazione,
+ *    e dove serve un legale la pagina lo dice.
  *
- * Niente Nav, niente Indice e niente Footer, come la pagina di un lavoro e come
- * le pagine legali: quelle voci sono ancore verso le sezioni della home e da qui
- * porterebbero al nulla. Per la stessa ragione non c'è nessuna classe .reveal —
- * main.js non viene caricato, e le sezioni resterebbero invisibili.
- *
- * Le tre domande in fondo riassumono l'articolo 37 del GDPR. È una descrizione
- * della norma, non un parere legale, e la pagina lo dice: la differenza conta,
- * perché un parere lo dà un avvocato e questa competenza non lo è.
+ * Niente Nav e niente Footer, come la pagina di un lavoro e come le pagine legali:
+ * quelle voci sono ancore verso le sezioni della home e da qui porterebbero al
+ * nulla. L'indice di questa pagina invece è suo, e serve — è lunga. Per la stessa
+ * ragione non c'è nessuna classe .reveal: main.js non viene caricato, e le sezioni
+ * resterebbero invisibili.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getLandingContent } from '../lib/content.ts';
@@ -78,10 +84,33 @@ const azione = content.agendaAttiva ? '/prenota' : '/#contatti';
 const azioneTesto = content.agendaAttiva ? 'Prenota una call' : 'Scrivimi';
 
 /*
-  Cosa comprende l'adeguamento di un sito. Sono le quattro cose che si guardano
-  aprendo un sito qualsiasi, e sono quelle che quasi nessun sito piccolo ha in
-  ordine. Ognuna è verificabile su questo sito prima che su un altro: il banner
-  qui funziona, l'informativa c'è, gli IP nelle statistiche sono troncati.
+  L'indice. Su una pagina di questa lunghezza non è un ornamento: chi arriva
+  cercando una cosa precisa — «devo avere un DPO?», «quanto costa» — deve poterci
+  saltare invece di scorrere tutto. I nomi sono quelli delle sezioni e non
+  riassunti: un indice che chiama le cose in un altro modo è un secondo testo da
+  capire.
+*/
+const indice = [
+  { id: 'sito', nome: 'Adeguamento di un sito' },
+  { id: 'consegne', nome: 'Cosa ti resta in mano' },
+  { id: 'controllo', nome: 'Cosa guardo su un sito' },
+  { id: 'passi', nome: 'Come funziona' },
+  { id: 'perchi', nome: 'Chi mi chiama, e cosa manca di solito' },
+  { id: 'dpo', nome: 'DPO esterno' },
+  { id: 'norma', nome: 'Cosa dice la norma, in pratica' },
+  { id: 'guai', nome: 'Se succede un guaio: 72 ore' },
+  { id: 'prove', nome: "Guarda com'è fatto questo sito" },
+  { id: 'costo', nome: 'Quanto costa' },
+  { id: 'parole', nome: 'Le parole che userò' },
+  { id: 'domande', nome: 'Domande' },
+  { id: 'no', nome: 'Cosa non faccio' },
+];
+
+/*
+  Cosa comprende l'adeguamento di un sito. Le prime quattro cose si vedono; le
+  ultime due no, e sono quelle che decidono se le prime quattro hanno senso — un
+  modulo che chiede dati senza una ragione per averli non si sistema con un banner
+  più bello.
 */
 const compreso = [
   {
@@ -104,6 +133,82 @@ const compreso = [
     testo:
       'Chi ospita il sito, chi manda le email, chi conta le visite: ognuno è un responsabile del trattamento e va nominato per iscritto. È la parte che manca più spesso.',
   },
+  {
+    titolo: 'Una ragione per ogni campo del modulo',
+    testo:
+      'Perché chiedi quel dato: un contratto, un obbligo, un consenso. È la domanda che decide se quel campo può esistere, e viene prima di qualsiasi informativa — un campo senza risposta si toglie, e il modulo converte meglio.',
+  },
+  {
+    titolo: 'Per quanto lo tieni, e poi cosa',
+    testo:
+      'La norma non dà un numero di mesi: lo decidi tu, lo scrivi, e serve che scada davvero. Un archivio che cresce per sempre è la cosa che rende impossibile rispondere a chi chiede la cancellazione.',
+  },
+];
+
+/*
+  Le consegne, per nome. Serve perché «adeguamento privacy» non dice niente: chi
+  paga vuole sapere cosa avrà in mano quando è finito, e cosa potrà mostrare a chi
+  glielo chiede.
+*/
+const consegne = [
+  'Informativa privacy e cookie policy scritte sul tuo sito, non un modello con il nome cambiato.',
+  'Registro dei trattamenti: un foglio per riga, quello che serve avere pronto quando lo chiedono.',
+  'Elenco dei fornitori che toccano i dati, con le nomine a responsabile da firmare.',
+  'Banner dei cookie configurato: niente parte prima del consenso, e il rifiuto vale quanto il sì.',
+  'I tempi di conservazione scritti trattamento per trattamento, e il modo per farli scadere.',
+  'Una pagina di istruzioni per te: cosa fare se qualcuno chiede i suoi dati o li vuole cancellati, e in quanto tempo.',
+  'Dove serve, la valutazione d’impatto: si fa quando il trattamento è a rischio elevato, non per abitudine.',
+];
+
+/*
+  L'analisi, aperta. Ogni riga dice cosa guardo E come lo controlli anche tu: è il
+  modo più diretto di far capire il lavoro senza raccontarlo, e chi preferisce
+  farsele da solo ha il diritto di poterlo fare. Nessuno di questi passaggi
+  richiede strumenti che non siano già nel browser.
+*/
+const controlli = [
+  {
+    titolo: 'Cosa parte prima del «sì»',
+    testo:
+      'Sono le richieste che il sito manda a domini di terzi appena si apre: mappe, video, caratteri, statistiche, pulsanti social.',
+    come:
+      'Strumenti per sviluppatori → scheda Rete, ricarica la pagina senza toccare il banner e ordina per dominio. Ogni nome che non è il tuo è qualcosa da giustificare.',
+  },
+  {
+    titolo: 'Se il rifiuto vale davvero',
+    testo:
+      'Un banner con «Accetta» in evidenza e il rifiuto nascosto in un sottomenu non raccoglie un consenso libero, e lo scorrimento della pagina non è un sì.',
+    come:
+      'Premi «Rifiuta» e ricarica: se i cookie di terzi tornano, il banner è un cartello. Le linee guida del Garante del 2021 dicono che accettare e rifiutare devono costare lo stesso.',
+  },
+  {
+    titolo: 'Cosa chiedono i moduli, e perché',
+    testo:
+      'Campo per campo: nome, telefono, data di nascita, codice fiscale. Ognuno deve avere una ragione, e le spunte già segnate non valgono come consenso.',
+    come:
+      'Compila il tuo modulo e guarda cosa arriva: se un dato non ti serve per rispondere, non serve chiederlo. Le caselle preselezionate si vedono a occhio.',
+  },
+  {
+    titolo: 'Dove finiscono i messaggi',
+    testo:
+      'Un modulo che manda a un servizio esterno oltre che a te: quel servizio tratta dati per conto tuo, quindi è un responsabile e va nominato per iscritto.',
+    come:
+      'Chiediti chi riceve una copia: la casella di posta, il servizio di newsletter, il gestionale, il CRM. Ognuno è un nome da mettere nel registro.',
+  },
+  {
+    titolo: 'Chi conta le visite, e con quale IP',
+    testo:
+      'Le statistiche sono il punto in cui un sito piccolo sbaglia più spesso, perché si installano in un minuto e portano dati fuori.',
+    come:
+      'Cerca lo script delle statistiche nel sorgente della pagina. Se è di un terzo, il consenso viene prima; se è tuo, guarda se l’indirizzo IP viene salvato intero.',
+  },
+  {
+    titolo: 'Backup, archivi e vecchi elenchi',
+    testo:
+      'La cancellazione vale anche sulle copie: un contatto eliminato dal gestionale ma vivo in un backup di due anni non è cancellato.',
+    come:
+      'Chiedi al tuo fornitore quante copie tiene e per quanto tempo. È una domanda a cui deve saper rispondere per iscritto.',
+  },
 ];
 
 /*
@@ -116,12 +221,12 @@ const passi = [
   {
     titolo: 'Una call, gratis',
     testo:
-      'Mezz\'ora per capire cosa raccogli davvero: moduli, prenotazioni, newsletter, gestionali, telecamere. Alla fine sai se il tuo caso è semplice o no, e questo non si paga.',
+      'Mezz’ora per capire cosa raccogli davvero: moduli, prenotazioni, newsletter, gestionali, telecamere. Alla fine sai se il tuo caso è semplice o no, e questo non si paga.',
   },
   {
     titolo: 'Guardo il sito e gli strumenti',
     testo:
-      'Apro le pagine, gli strumenti per sviluppatori e i servizi che usi: quali dati partono, verso chi, e cosa succede prima che qualcuno abbia detto sì.',
+      'Faccio i sei controlli della sezione qui sopra, più quelli che il tuo caso richiede: quali dati partono, verso chi, e cosa succede prima che qualcuno abbia detto sì.',
   },
   {
     titolo: 'Ti mando una lista scritta',
@@ -131,21 +236,124 @@ const passi = [
   {
     titolo: 'Si sistema, e resta sistemato',
     testo:
-      'Banner, informativa, registro, nomine dei fornitori. Poi quando il sito cambia — un modulo nuovo, uno strumento nuovo — si aggiorna quello che va aggiornato.',
+      'Banner, informativa, registro, nomine dei fornitori, tempi di conservazione. Poi quando il sito cambia — un modulo nuovo, uno strumento nuovo — si aggiorna quello che va aggiornato.',
   },
 ];
 
 /*
-  Le consegne, per nome. Serve perché «adeguamento privacy» non dice niente:
-  chi paga vuole sapere cosa avrà in mano quando è finito, e cosa potrà mostrare
-  a chi glielo chiede.
+  Quattro profili, non quattro clienti: sono i trattamenti tipici di quel tipo di
+  attività e le mancanze che si ripetono. Nessuno di questi è un lavoro fatto per
+  qualcuno — se lo fosse, starebbe nella sezione dei lavori con il nome e il link.
 */
-const consegne = [
-  'Informativa privacy e cookie policy scritte sul tuo sito, non un modello con il nome cambiato.',
-  'Registro dei trattamenti: un foglio per riga, quello che serve avere pronto quando lo chiedono.',
-  'Elenco dei fornitori che toccano i dati, con le nomine a responsabile da firmare.',
-  'Banner dei cookie configurato: niente parte prima del consenso, e il rifiuto vale quanto il sì.',
-  'Una pagina di istruzioni per te: cosa fare se qualcuno chiede i suoi dati o li vuole cancellati.',
+const perChi = [
+  {
+    chi: 'Ristoranti, bar, locali',
+    cosa:
+      'Prenotazioni per modulo o messaggio, newsletter delle serate, wifi per i clienti, telecamere, foto pubblicate sui social.',
+    manca:
+      'Di solito manca il collegamento fra il modulo e l’informativa, il cartello delle telecamere fatto come si deve, e il permesso per pubblicare le foto in cui si riconoscono i clienti.',
+  },
+  {
+    chi: 'Negozi online',
+    cosa: 'Ordini, pagamenti, spedizioni, carrelli abbandonati, recensioni, resi.',
+    manca:
+      'Le nomine dei fornitori che toccano i dati — piattaforma, corriere, chi manda le email — e la ragione per cui si fa marketing: per un ordine la base è il contratto, per la pubblicità serve altro.',
+  },
+  {
+    chi: 'Associazioni, sagre, feste',
+    cosa:
+      'Elenco dei soci, volontari, iscrizioni alle attività, foto della festa, cassa e prevendite.',
+    manca:
+      'Quasi tutto, e non per cattiva volontà: l’elenco dei soci è un trattamento come gli altri, e il permesso dei genitori per le foto dei minori è la cosa più dimenticata in assoluto.',
+  },
+  {
+    chi: 'Studi e professionisti',
+    cosa: 'Appuntamenti, schede dei clienti, referti, note, fatture.',
+    manca:
+      'Qui il quadro cambia: se ci sono dati sulla salute sono dati particolari, servono misure più serie e spesso una valutazione d’impatto. È il caso in cui conviene parlarne prima di toccare qualsiasi cosa.',
+  },
+];
+
+/*
+  Cosa dice la norma, con accanto cosa significa su un sito. È la sezione che
+  risponde alla domanda vera di chi legge — «questo sa di cosa parla?» — e per
+  questo gli articoli sono citati per numero: si possono controllare.
+
+  Resta una descrizione del regolamento. Non dice cosa deve fare una certa
+  azienda: quella è una valutazione, e si fa guardando quella azienda.
+*/
+const norma = [
+  {
+    art: 'Art. 5',
+    dice: 'Principi: raccogli il minimo, per uno scopo dichiarato, e non tenerlo per sempre.',
+    pratica:
+      'Ogni campo in più su un modulo è un dato da proteggere, spiegare e cancellare. Toglierlo è gratis.',
+  },
+  {
+    art: 'Art. 6',
+    dice:
+      'Sei basi giuridiche possibili, e il consenso è solo una: contratto, obbligo di legge, interesse legittimo, e le altre.',
+    pratica:
+      'Per gestire un ordine il consenso non serve: la base è il contratto. Chiederlo dove non serve non è uno scrupolo in più, è un errore — perché il consenso si revoca.',
+  },
+  {
+    art: 'Art. 12-13',
+    dice: 'L’informativa va data al momento della raccolta, in forma comprensibile.',
+    pratica: 'Una pagina scritta sul tuo sito, e un link accanto al modulo — non solo in fondo alla home.',
+  },
+  {
+    art: 'Art. 15-22',
+    dice: 'I diritti: accesso, rettifica, cancellazione, limitazione, portabilità, opposizione.',
+    pratica:
+      'Vanno soddisfatti entro un mese, prorogabile di due. Per farlo devi sapere dove sono i dati: è il motivo per cui il registro serve a te prima che al Garante.',
+  },
+  {
+    art: 'Art. 28',
+    dice: 'Chi tratta dati per conto tuo è un responsabile, e serve un atto scritto con contenuti minimi.',
+    pratica: 'Hosting, servizio email, gestionale, agenzia: ognuno firma. Quasi tutti hanno già il modulo pronto.',
+  },
+  {
+    art: 'Art. 30',
+    dice:
+      'Registro delle attività di trattamento. L’esenzione sotto i 250 dipendenti non vale se il trattamento non è occasionale o se ci sono dati particolari.',
+    pratica: 'Per un’attività con clienti abituali e un sito, in pratica va tenuto.',
+  },
+  {
+    art: 'Art. 32',
+    dice: 'Misure tecniche e organizzative adeguate al rischio.',
+    pratica:
+      'HTTPS, un accesso per persona, password non condivise, aggiornamenti, e un backup che qualcuno ha provato a ripristinare almeno una volta.',
+  },
+  {
+    art: 'Art. 33-34',
+    dice:
+      'Violazione dei dati: notifica al Garante entro 72 ore quando c’è un rischio, e avviso alle persone se il rischio è elevato.',
+    pratica: 'Le 72 ore partono da quando te ne accorgi. La differenza la fa averlo deciso prima: vedi la sezione dopo.',
+  },
+  {
+    art: 'Art. 35',
+    dice: 'Valutazione d’impatto quando il trattamento presenta un rischio elevato.',
+    pratica:
+      'Non serve per un modulo contatti. Serve per profilazione su larga scala, dati sulla salute, sorveglianza sistematica.',
+  },
+  {
+    art: 'Art. 37-39',
+    dice: 'Quando il DPO è obbligatorio, la sua posizione e i suoi compiti.',
+    pratica: 'I tre casi sono nelle domande qui sotto, i compiti nella sezione del DPO esterno.',
+  },
+];
+
+/*
+  Le 72 ore. Non è allarmismo: è l'unica parte del regolamento con un cronometro, e
+  l'unica cosa che si può preparare adesso invece di improvvisare quel giorno.
+  Cinque righe, tutte azioni, nessuna tecnologia.
+*/
+const guai = [
+  'Chi si accorge del guaio, e a chi lo dice. Un nome, non «l’ufficio».',
+  'Cosa è successo, quando, quanti dati e quali persone: senza questo la notifica non si può nemmeno scrivere.',
+  'Dove sono i log che lo dimostrano, e per quanto tempo restano.',
+  'Chi decide se c’è un rischio e quindi se si notifica: la decisione va motivata per iscritto anche quando è «no».',
+  'Cosa si scrive alle persone coinvolte, se il rischio è elevato — e in che ordine si avvisano.',
 ];
 
 /*
@@ -158,7 +366,7 @@ const prove = [
   {
     titolo: 'Nessun cookie di analisi. Nemmeno dopo il consenso.',
     testo:
-      'Le visite si contano sul server e l\'indirizzo IP viene troncato prima di essere salvato. La scelta sul banner sta nel tuo browser, non in un cookie che gira.',
+      'Le visite si contano sul server e l’indirizzo IP viene troncato prima di essere salvato. La scelta sul banner sta nel tuo browser, non in un cookie che gira.',
   },
   {
     titolo: 'Nessuno script di terze parti',
@@ -168,17 +376,53 @@ const prove = [
   {
     titolo: 'La prenotazione delle call è dentro il sito',
     testo:
-      'Nessun servizio esterno con i suoi cookie e i suoi trasferimenti: l\'appuntamento finisce nello stesso database del resto.',
+      'Nessun servizio esterno con i suoi cookie e i suoi trasferimenti: l’appuntamento finisce nello stesso database del resto.',
   },
   {
     titolo: 'Anche la pubblicità si misura senza tracciare',
     testo:
-      'Da dove arriva un contatto si legge dal link e resta sulla riga della visita. Nessun identificativo che segue una persona da un giorno all\'altro.',
+      'Da dove arriva un contatto si legge dal link e resta sulla riga della visita. Nessun identificativo che segue una persona da un giorno all’altro.',
   },
   {
     titolo: 'Un contatto si cancella con un clic',
     testo:
-      'I messaggi ricevuti stanno in un database nostro e si eliminano dal pannello: il diritto alla cancellazione è una cosa che si fa, non una frase in un\'informativa.',
+      'I messaggi ricevuti stanno in un database nostro e si eliminano dal pannello: il diritto alla cancellazione è una cosa che si fa, non una frase in un’informativa.',
+  },
+];
+
+/*
+  Il vocabolario minimo. Sta in fondo e non in cima perché chi conosce queste
+  parole non deve attraversarle per arrivare al servizio; chi non le conosce le
+  trova quando gli servono. Sono quelle che uso in una call, sempre in questo senso.
+*/
+const parole = [
+  {
+    t: 'Titolare del trattamento',
+    d: 'Chi decide perché e come i dati vengono usati: la tua azienda. La responsabilità resta qui, e non si delega a nessuno.',
+  },
+  {
+    t: 'Responsabile del trattamento',
+    d: 'Chi tratta i dati per conto tuo seguendo le tue istruzioni: l’hosting, il servizio email, il gestionale. Va nominato per iscritto.',
+  },
+  {
+    t: 'Trattamento',
+    d: 'Qualunque cosa si faccia con un dato: raccoglierlo, salvarlo, guardarlo, mandarlo a qualcuno, cancellarlo. Anche solo conservarlo è un trattamento.',
+  },
+  {
+    t: 'Base giuridica',
+    d: 'La ragione per cui puoi usare quel dato. Sono sei e il consenso è solo una: spesso quella giusta è il contratto o un obbligo di legge.',
+  },
+  {
+    t: 'Dati particolari',
+    d: 'Salute, convinzioni religiose o politiche, orientamento sessuale, dati biometrici, appartenenza sindacale. Cambiano il quadro: più misure, più attenzione.',
+  },
+  {
+    t: 'Registro dei trattamenti',
+    d: 'L’elenco di cosa fai con i dati, una riga per attività: perché, quali dati, chi li vede, per quanto, dove stanno. È il documento che rende possibile tutto il resto.',
+  },
+  {
+    t: 'Valutazione d’impatto (DPIA)',
+    d: 'Un’analisi scritta dei rischi, obbligatoria quando il trattamento è a rischio elevato. Non serve per un modulo contatti.',
   },
 ];
 
@@ -192,17 +436,52 @@ const domande = [
     r: "No, e chi lo lascia credere fa un favore a nessuno. Il DPO informa, sorveglia, dà pareri e fa da punto di contatto con il Garante (articoli 38 e 39). La responsabilità del trattamento resta del titolare, cioè dell'azienda. Un DPO serve a sapere prima quello che altrimenti si scopre dopo.",
   },
   {
+    d: 'Serve sempre il consenso?',
+    r: "No, ed è l'equivoco più diffuso. Le basi giuridiche sono sei (articolo 6): per gestire un ordine basta il contratto, per conservare le fatture c'è un obbligo di legge. Il consenso serve dove non c'è altra base — la newsletter promozionale, i cookie non tecnici — e ha una caratteristica scomoda: si può revocare quando si vuole. Chiederlo dove non serviva significa rendere revocabile una cosa che poteva stare in piedi da sola.",
+  },
+  {
+    d: 'Posso mandare la newsletter ai clienti che ho già?',
+    r: "A certe condizioni sì, ed è una delle poche scorciatoie legittime: il Codice privacy italiano (articolo 130, comma 4) permette di scrivere a chi ti ha già comprato qualcosa per proporgli prodotti o servizi analoghi, se glielo hai detto quando hai raccolto l'indirizzo e se in ogni messaggio può dire basta. Fuori da lì serve il consenso. Vale la pena guardarlo caso per caso invece di applicarlo a memoria.",
+  },
+  {
+    d: 'Per quanto tempo devo tenere i dati?',
+    r: "Non c'è un numero uguale per tutti: la norma dice che il tempo lo decidi tu in base allo scopo, lo scrivi, e poi lo rispetti. Su alcune cose sono altri obblighi a decidere — le fatture, per esempio. La parte difficile non è scegliere il termine: è fare in modo che scada davvero, backup compresi.",
+  },
+  {
+    d: 'Quanto tempo ci vuole?',
+    r: "L'analisi di un sito piccolo è questione di un paio di giorni, e la lista scritta arriva prima del preventivo. I documenti dipendono da quanti trattamenti ci sono davvero: un modulo contatti e una newsletter sono una cosa, un gestionale con le schede dei clienti è un'altra. L'incarico di DPO invece non è un lavoro che finisce: è continuativo per definizione.",
+  },
+  {
+    d: 'Devo cambiare gestionale, hosting o piattaforma?',
+    r: "Quasi mai. Si guarda cosa c'è e si mette in ordine intorno. Ci sono due casi in cui invece bisogna dirlo: se un fornitore non firma la nomina a responsabile, e se porta i dati fuori dallo Spazio economico europeo senza garanzie valide. In quei due casi il problema è il fornitore, e continuare a far finta che vada bene costa più che cambiarlo.",
+  },
+  {
+    d: 'Cosa succede se arriva un controllo?',
+    r: "Chiedono i documenti: registro dei trattamenti, informative, nomine dei responsabili, misure di sicurezza, e la dimostrazione che le cose scritte corrispondono a quelle fatte. Averli pronti è metà del lavoro. L'altra metà è che descrivano il tuo lavoro vero: un registro copiato da un altro settore è peggio di un registro corto.",
+  },
+  {
     d: 'Fai anche consulenza legale?',
     r: "No: non sono un avvocato, non scrivo pareri legali e non assisto in giudizio. Quello che faccio è tecnico e organizzativo — guardare come funziona un sito o un processo, dire cosa non torna, scrivere i documenti che lo descrivono e sistemare la parte tecnica. Dove serve un legale lo dico, invece di improvvisare.",
   },
+];
+
+/*
+  Cosa non faccio, esplicito. Non è un disclaimer: è la parte che fa risparmiare
+  tempo a entrambi, perché chi cerca una di queste cose la cerca altrove invece di
+  scoprirlo alla seconda call.
+*/
+const nonFaccio = [
+  'Pareri legali, contratti da avvocato, assistenza in giudizio o davanti al Garante come difensore.',
+  'Bollini di conformità: non esiste un timbro che «mette a norma» un’azienda, e chi lo vende sta vendendo un’altra cosa.',
+  'Garanzie di risultato. Si mette in ordine quello che si vede e si scrive per iscritto cosa resta aperto.',
+  'L’incarico di DPO solo per avere un nome nel registro: un DPO che non guarda niente peggiora la posizione dell’azienda invece di migliorarla.',
+  'Copie dei tuoi archivi sul mio computer: guardo quello che serve, dove sta, e non mi porto via niente.',
 ];
 ---
 
 <BaseLayout
   title={
-    attivo
-      ? 'Privacy e protezione dei dati — Dext Lab'
-      : 'Pagina non disponibile — Dext Lab'
+    attivo ? 'Privacy e protezione dei dati — Dext Lab' : 'Pagina non disponibile — Dext Lab'
   }
   description={attivo ? DESCRIZIONE : 'Questa pagina non è pubblicata.'}
   path="/gdpr"
@@ -220,9 +499,9 @@ const domande = [
           <h1>Privacy e protezione dei dati</h1>
           <p class="lp-sunto">
             Due cose diverse, e conviene distinguerle subito. La prima è mettere in ordine un sito:
-            cookie, informativa, registro dei trattamenti, fornitori. La seconda è l'incarico di
-            <strong> DPO esterno</strong> per chi deve nominarlo o vuole comunque qualcuno che se ne
-            occupi.
+            cookie, informativa, registro dei trattamenti, fornitori, tempi di conservazione. La
+            seconda è l'incarico di <strong>DPO esterno</strong> per chi deve nominarlo o vuole
+            comunque qualcuno che se ne occupi.
           </p>
           <p class="lp-azioni">
             <a class="btn btn-primary" href={azione}>{azioneTesto}</a>
@@ -235,44 +514,56 @@ const domande = [
           prima di leggere il resto. Con l'indirizzo di verifica, quando c'è.
 
           La sezione esiste solo se una qualifica è compilata con il suo ente.
-          Senza, la pagina descrive il lavoro e NON nomina nessuna certificazione:
-          offrire un servizio è una cosa, dichiarare un titolo è un'altra, e la
-          seconda resta legata al dato verificabile. Un'intestazione «Su cosa si
-          basa» seguita dal vuoto sarebbe peggio della sua assenza.
+          Senza, la pagina descrive il lavoro e NON dichiara nessun titolo: offrire
+          un servizio è una cosa, affermare una qualifica è un'altra, e la seconda
+          resta legata al dato verificabile. Un'intestazione «Su cosa si basa»
+          seguita dal vuoto sarebbe peggio della sua assenza.
         */}
         {qualifiche.length > 0 && (
-        <section class="gd-qual">
-          <h2>Su cosa si basa</h2>
-          <ul>
-            {qualifiche.map((q) => {
-              const link = verifica(q.url);
-              return (
-                <li>
-                  <b>{q.title}</b>
-                  <span class="qual-ente">
-                    {q.issuer}
-                    {q.scheme && <> · {q.scheme}</>}
-                    {q.year && <> · {q.year}</>}
-                  </span>
-                  {q.code && <span class="qual-codice">{q.code}</span>}
-                  {link && (
-                    <a href={link} target="_blank" rel="noopener noreferrer">
-                      Verifica ↗
-                    </a>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-          <p class="lp-nota">
-            Quello che c'è scritto qui è controllabile: l'ente che ha rilasciato la qualifica lo
-            dichiara, e dove c'è un link porta alla sua pagina. Nessun altro titolo, nessuna sigla
-            in più.
-          </p>
-        </section>
+          <section class="gd-qual">
+            <h2>Su cosa si basa</h2>
+            <ul>
+              {qualifiche.map((q) => {
+                const link = verifica(q.url);
+                return (
+                  <li>
+                    <b>{q.title}</b>
+                    <span class="qual-ente">
+                      {q.issuer}
+                      {q.scheme && <> · {q.scheme}</>}
+                      {q.year && <> · {q.year}</>}
+                    </span>
+                    {q.code && <span class="qual-codice">{q.code}</span>}
+                    {link && (
+                      <a href={link} target="_blank" rel="noopener noreferrer">
+                        Verifica ↗
+                      </a>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            <p class="lp-nota">
+              Quello che c'è scritto qui è controllabile: l'ente che l'ha rilasciata lo dichiara, e
+              dove c'è un link porta alla sua pagina. Nessun altro titolo, nessuna sigla in più.
+            </p>
+          </section>
         )}
 
-        <section class="gd-blocco">
+        {/* Indice: la pagina è lunga, e chi cerca una cosa precisa deve poterci
+            saltare invece di scorrere tutto. */}
+        <nav class="gd-indice" aria-label="In questa pagina">
+          <p>In questa pagina</p>
+          <ol>
+            {indice.map((v) => (
+              <li>
+                <a href={`#${v.id}`}>{v.nome}</a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+
+        <section class="gd-blocco" id="sito">
           <h2>Adeguamento di un sito</h2>
           <div class="gd-griglia">
             {compreso.map((c) => (
@@ -289,7 +580,7 @@ const domande = [
           </p>
         </section>
 
-        <section class="gd-blocco">
+        <section class="gd-blocco" id="consegne">
           <h2>Cosa ti resta in mano</h2>
           <ul class="gd-consegne">
             {consegne.map((c) => (
@@ -298,7 +589,29 @@ const domande = [
           </ul>
         </section>
 
-        <section class="gd-blocco">
+        <section class="gd-blocco" id="controllo">
+          <h2>Cosa guardo su un sito</h2>
+          <p class="gd-testo">
+            Sei controlli, sempre gli stessi, in questo ordine. Accanto a ognuno c'è come farlo da
+            solo: non serve niente che non sia già nel tuo browser, e se dopo averli fatti scopri che
+            il tuo sito è in ordine, hai risparmiato una call.
+          </p>
+          <ol class="gd-audit">
+            {controlli.map((c) => (
+              <li>
+                <div>
+                  <b>{c.titolo}</b>
+                  <span>{c.testo}</span>
+                  <span class="gd-come">
+                    <em>Come lo controlli:</em> {c.come}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section class="gd-blocco" id="passi">
           <h2>Come funziona</h2>
           <ol class="gd-passi">
             {/* Titolo e testo dentro un contenitore: la riga è una griglia di due
@@ -315,7 +628,25 @@ const domande = [
           </ol>
         </section>
 
-        <section class="gd-blocco">
+        <section class="gd-blocco" id="perchi">
+          <h2>Chi mi chiama, e cosa manca di solito</h2>
+          <p class="gd-testo">
+            Quattro tipi di attività, con i trattamenti che hanno quasi sempre e le mancanze che si
+            ripetono. Non sono lavori fatti per qualcuno: se lo fossero, starebbero nella
+            <a href="/#portfolio"> sezione dei lavori</a> con il nome e il link.
+          </p>
+          <div class="gd-profili">
+            {perChi.map((p) => (
+              <article>
+                <b>{p.chi}</b>
+                <p class="gd-profilo-cosa">{p.cosa}</p>
+                <p class="gd-profilo-manca">{p.manca}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section class="gd-blocco" id="dpo">
           <h2>DPO esterno</h2>
           <p class="gd-testo">
             L'incarico si valuta caso per caso, perché dipende da cosa tratta l'azienda: prima una
@@ -325,6 +656,13 @@ const domande = [
             trattati — e nient'altro presentato come di più.
           </p>
           <p class="gd-testo">
+            In concreto, su un anno di incarico: un'analisi iniziale scritta, la revisione dei
+            documenti quando qualcosa cambia, la disponibilità per le domande che arrivano durante
+            l'anno, l'indirizzo pubblicato come punto di contatto, e la gestione delle richieste delle
+            persone insieme a chi le riceve. Se c'è una violazione, si lavora sulle 72 ore della
+            sezione qui sotto.
+          </p>
+          <p class="gd-testo">
             Una cosa detta prima di cominciare: se l'incarico serve solo per avere un nome da
             scrivere nel registro, non sono la persona giusta. Un DPO che non guarda niente è un
             costo che peggiora la posizione dell'azienda invece di migliorarla, perché documenta che
@@ -332,16 +670,66 @@ const domande = [
           </p>
         </section>
 
+        <section class="gd-blocco" id="norma">
+          <h2>Cosa dice la norma, in pratica</h2>
+          <p class="gd-testo">
+            Gli articoli che tornano in ogni discorso, con accanto cosa significano su un sito vero.
+            Sono citati per numero perché si possano controllare: è una descrizione del regolamento,
+            non un parere sul tuo caso.
+          </p>
+          <div class="gd-tabellone">
+            <table class="gd-norma">
+              <thead>
+                <tr>
+                  <th>Articolo</th>
+                  <th>Cosa dice</th>
+                  <th>Cosa vuol dire per te</th>
+                </tr>
+              </thead>
+              <tbody>
+                {norma.map((n) => (
+                  <tr>
+                    <td class="gd-art">{n.art}</td>
+                    <td>{n.dice}</td>
+                    <td class="gd-pratica">{n.pratica}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="gd-blocco" id="guai">
+          <h2>Se succede un guaio: 72 ore</h2>
+          <p class="gd-testo">
+            È l'unica parte del regolamento con un cronometro: quando c'è una violazione dei dati e
+            comporta un rischio, la notifica al Garante va fatta entro <strong>72 ore</strong> da
+            quando te ne accorgi. Non è una scadenza che si rispetta improvvisando, ed è anche
+            l'unica cosa che si può preparare adesso, quando non serve.
+          </p>
+          <ul class="gd-consegne">
+            {guai.map((g) => (
+              <li>{g}</li>
+            ))}
+          </ul>
+          <p class="lp-nota">
+            Le cinque righe qui sopra sono un foglio di due pagine, non un progetto. Farlo prima
+            costa un'ora; farlo dopo significa scrivere una notifica mentre si cerca ancora di capire
+            cosa è successo.
+          </p>
+        </section>
+
         {/*
-          La prova più forte che questa pagina può portare non è un attestato: è
-          il sito su cui si trova. Ogni riga qui sotto si controlla adesso, con gli
+          La prova più forte che questa pagina può portare non è un attestato: è il
+          sito su cui si trova. Ogni riga qui sotto si controlla adesso, con gli
           strumenti del browser, senza credermi sulla parola.
         */}
-        <section class="gd-blocco">
+        <section class="gd-blocco" id="prove">
           <h2>Guarda com'è fatto questo sito</h2>
           <p class="gd-testo">
             Il modo più rapido di capire come lavoro è controllare come è fatto il posto in cui stai
-            leggendo. Sono cinque cose, tutte verificabili in un minuto.
+            leggendo. Sono cinque cose, tutte verificabili in un minuto con i controlli della sezione
+            di sopra.
           </p>
           <div class="gd-griglia">
             {prove.map((p) => (
@@ -353,7 +741,7 @@ const domande = [
           </div>
         </section>
 
-        <section class="gd-blocco">
+        <section class="gd-blocco" id="costo">
           <h2>Quanto costa</h2>
           <p class="gd-testo">
             Se il sito lo faccio io, l'adeguamento è una voce del preventivo e la cifra la vedi da
@@ -367,8 +755,24 @@ const domande = [
           </p>
         </section>
 
-        <section class="gd-blocco">
-          <h2>Tre domande</h2>
+        <section class="gd-blocco" id="parole">
+          <h2>Le parole che userò</h2>
+          <p class="gd-testo">
+            Sette termini che tornano in ogni discussione su questo tema. Li uso sempre in questo
+            senso, e se in una call te ne dico uno che non è qui dentro, fermami.
+          </p>
+          <dl class="gd-parole">
+            {parole.map((p) => (
+              <>
+                <dt>{p.t}</dt>
+                <dd>{p.d}</dd>
+              </>
+            ))}
+          </dl>
+        </section>
+
+        <section class="gd-blocco" id="domande">
+          <h2>Domande</h2>
           <dl class="gd-domande">
             {domande.map((q) => (
               <>
@@ -377,6 +781,15 @@ const domande = [
               </>
             ))}
           </dl>
+        </section>
+
+        <section class="gd-blocco" id="no">
+          <h2>Cosa non faccio</h2>
+          <ul class="gd-no">
+            {nonFaccio.map((n) => (
+              <li>{n}</li>
+            ))}
+          </ul>
         </section>
 
         <p class="lp-chiusa">

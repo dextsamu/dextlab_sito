@@ -1597,13 +1597,28 @@ jobs:
           esegui "UPDATE settings SET v='1' WHERE k='dpo_attiva';"
           uguale 'il servizio acceso pubblica la pagina' "$(codice /gdpr)" '200'
           pagina=$(curl -s http://127.0.0.1:4321/gdpr)
-          # Le sezioni che spiegano il servizio: senza queste la pagina è
-          # un'insegna, e chi arriva non capisce cosa comprerebbe.
-          for atteso in 'DPO esterno' 'Cosa ti resta in mano' 'Come funziona' \
-                        "Guarda com'è fatto questo sito" 'Quanto costa' 'Tre domande'; do
-            if grep -qF "$atteso" <<<"$pagina"; then echo "  ok    la pagina spiega: $atteso"
+          # Le sezioni si cercano per ANCORAGGIO e non per titolo: i titoli
+          # compaiono anche nell'indice, quindi togliendo una sezione il testo
+          # resterebbe e il controllo passerebbe. Provato — cancellando la sezione
+          # della norma, la ricerca del titolo la trovava ancora nell'indice.
+          for sez in sito consegne controllo passi perchi dpo norma guai prove costo \
+                     parole domande no; do
+            if grep -qF "id=\"$sez\"" <<<"$pagina"; then echo "  ok    c'è la sezione: $sez"
+            else echo "::error::manca la sezione: $sez"; fail=1; fi
+          done
+          # Due frasi che devono restare quelle: il servizio venduto e il limite
+          # dichiarato. Sono il senso della pagina, non un titolo.
+          for atteso in 'DPO esterno' 'non sono un avvocato'; do
+            if grep -qF "$atteso" <<<"$pagina"; then echo "  ok    la pagina dice: $atteso"
             else echo "::error::manca dalla pagina: $atteso"; fail=1; fi
           done
+          # Gli articoli citati per numero sono la parte controllabile della
+          # sezione sulla norma: se la tabella non viene resa, questi spariscono.
+          uguale 'gli articoli del regolamento sono citati' \
+            "$(grep -o 'Art\. [0-9]' <<<"$pagina" | wc -l | tr -d ' ')" '10'
+          # L'indice serve perché la pagina è lunga: una voce per sezione.
+          uguale "l'indice ha una voce per sezione" \
+            "$(grep -o 'href=\"#[a-z]*\"' <<<"$pagina" | wc -l | tr -d ' ')" '13'
           uguale 'senza qualifiche non c-e la sezione delle qualifiche' "$(dice 'Su cosa si basa')" '0'
           uguale 'senza qualifiche non nomina certificazioni' "$(dice 'certificat\|certificaz')" '0'
           uguale 'niente qualifiche nei dati strutturati' "$(ld)" '[]'
