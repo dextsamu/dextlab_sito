@@ -14,6 +14,13 @@
  */
 import { inLineaDa, versione } from '../lib/stato.ts';
 
+interface Props {
+  /** Vero quando la pagina del servizio protezione dati è pubblicata. */
+  mostraDpo?: boolean;
+}
+
+const { mostraDpo = false } = Astro.props;
+
 const su = inLineaDa();
 const ver = versione();
 ---
@@ -54,6 +61,7 @@ const ver = versione();
         <a href="#servizi">Servizi</a>
         <a href="#portfolio">Caso reale</a>
         <a href="#contatti">Contatti</a>
+        {mostraDpo && <a href="/gdpr">Protezione dati</a>}
         <a href="/privacy">Privacy</a>
         <a href="/termini">Termini</a>
       </nav>

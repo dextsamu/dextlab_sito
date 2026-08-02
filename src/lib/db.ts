@@ -116,12 +116,36 @@ export const CONTENT_TABLES = [
   'reviews',
   'faqs',
   'works',
+  // Le qualifiche: stessa forma delle altre righe di contenuto, e per questo
+  // passano dallo stesso CRUD. Cosa non si può fare da lì: mostrarne una senza
+  // l'ente che l'ha rilasciata — quel filtro sta in content.ts, non nel pannello,
+  // perché deve valere anche per una riga attivata per sbaglio.
+  'credentials',
   // L'agenda usa lo stesso CRUD generico dei contenuti: sono righe con sort e
   // active come le altre, e il pannello non ha bisogno di sapere altro.
   'agenda_windows',
   'agenda_closures',
 ] as const;
 export type ContentTable = (typeof CONTENT_TABLES)[number];
+
+/**
+ * Una qualifica: cosa attesta, chi l'ha rilasciata, e dove si controlla.
+ *
+ * `type` e non `interface`, come AppuntamentoRow: le interfacce non soddisfano
+ * `Record<string, unknown>`, che è il vincolo di contentRows nel pannello.
+ */
+export type CredentialRow = {
+  id: number;
+  title: string;
+  issuer: string;
+  scheme: string;
+  /** Anno, come testo: «2026» o «giugno 2026». Nessuna aritmetica. */
+  year: string;
+  code: string;
+  url: string;
+  sort: number;
+  active: boolean;
+};
 
 export interface PricingRow {
   id: number;

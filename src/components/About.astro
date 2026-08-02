@@ -30,6 +30,33 @@
  * scritto da nessuna parte in questo sito, non so se è la sua politica, e
  * inventare una garanzia contrattuale è peggio che inventare una recensione.
  */
+import type { CredentialItem } from '../lib/content.ts';
+
+interface Props {
+  /**
+   * Formazione e certificazioni, già filtrate: una riga senza l'ente che l'ha
+   * rilasciata non arriva qui. Vuoto significa che la parte non esiste — non che
+   * si ripiega su qualcosa.
+   */
+  qualifiche?: CredentialItem[];
+  /** Vero quando la pagina del servizio protezione dati è pubblicata. */
+  dpoAttivo?: boolean;
+}
+
+const { qualifiche = [], dpoAttivo = false } = Astro.props;
+
+/** Solo indirizzi web: il valore arriva dal pannello e finisce in un href. */
+function verifica(url: string): string | null {
+  const v = url.trim();
+  if (v === '') return null;
+  try {
+    const u = new URL(v);
+    return u.protocol === 'https:' || u.protocol === 'http:' ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 const impegni = [
   {
     titolo: 'Prezzo fisso, prima di iniziare',
@@ -85,6 +112,50 @@ const impegni = [
         </p>
       </div>
     </div>
+
+    {/*
+      Formazione e certificazioni. Sta qui e non in una sezione sua per una
+      ragione di misura: sono poche righe, e una sezione intera dedicata a due
+      attestati pesa più di quello che dicono. Sta in fondo a «L'approccio» perché
+      è la stessa domanda — perché fidarsi — e la risposta verificabile viene dopo
+      quella argomentata.
+
+      Ogni voce dice chi l'ha rilasciata, e quando c'è un indirizzo di verifica è
+      un link: è la differenza fra una qualifica e una parola scritta accanto al
+      proprio nome. Senza qualifiche compilate questo blocco non esiste.
+    */}
+    {qualifiche.length > 0 && (
+      <div class="qualifiche reveal">
+        <p class="qualifiche-cap">Formazione e certificazioni</p>
+        <ul>
+          {qualifiche.map((q) => {
+            const link = verifica(q.url);
+            return (
+              <li>
+                <b>{q.title}</b>
+                <span class="qual-ente">
+                  {q.issuer}
+                  {q.scheme && <> · {q.scheme}</>}
+                  {q.year && <> · {q.year}</>}
+                </span>
+                {q.code && <span class="qual-codice">{q.code}</span>}
+                {link && (
+                  <a href={link} target="_blank" rel="noopener noreferrer">
+                    Verifica ↗
+                  </a>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        {dpoAttivo && (
+          <p class="qualifiche-piu">
+            Da qui nasce un servizio a sé: <a href="/gdpr">privacy e protezione dei dati</a> —
+            adeguamento dei siti e incarico di DPO esterno.
+          </p>
+        )}
+      </div>
+    )}
 
     <div class="impegni reveal">
       <p class="impegni-cap">Quattro cose che ti prometto per iscritto</p>

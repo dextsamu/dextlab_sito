@@ -277,6 +277,9 @@ jobs:
           # per la pagina Marketing, che mostra da dove arrivano i contatti.
           check /admin/lead      303
           check /admin/marketing 303
+          # La pagina del servizio protezione dati parte spenta: 404 è lo stato
+          # giusto appena migrato, e la guardia dedicata prova l'accensione.
+          check /gdpr            404
           # L'endpoint di backup resta chiuso senza BACKUP_KEY.
           check /api/backup  403
           exit $fail
@@ -1537,6 +1540,96 @@ jobs:
             if grep -qF "$atteso" <<<"$mkt"; then echo "  ok    la pagina Marketing contiene $atteso"
             else echo "::error::la pagina Marketing non contiene $atteso"; fail=1; fi
           done
+
+          exit $fail
+
+      # Una qualifica è un'affermazione su una persona, come una recensione: la
+      # differenza è che qui l'affermazione è su di sé, e nessuno la smentisce per
+      # noi. Da qui le due regole che questa guardia protegge — una qualifica senza
+      # l'ente che l'ha rilasciata non si mostra (non è verificabile, quindi è
+      # indistinguibile da una inventata), e la pagina che vende il servizio esiste
+      # solo se una qualifica c'è davvero. La seconda regola serve a rendere
+      # impossibile la sequenza sbagliata: pubblicare la pagina e compilare la
+      # qualifica il giorno dopo.
+      - name: Una qualifica si dichiara solo se c'è
+        run: |
+          fail=0
+          sql() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -tAc "$1"; }
+          esegui() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -qc "$1"; }
+          uguale() {
+            if [ "$2" = "$3" ]; then echo "  ok    $1: $2"
+            else echo "::error::$1: atteso «$3», trovato «$2»"; fail=1; fi
+          }
+          codice() { curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:4321$1"; }
+          # I dati strutturati della home: le qualifiche dichiarate, in JSON.
+          # Su una riga sola perché dentro un blocco YAML ogni riga porta la sua
+          # rientratura, e Python la leggerebbe come indentazione sbagliata.
+          ld() {
+            curl -s http://127.0.0.1:4321/ | python3 -c "import sys,re,json;h=sys.stdin.read();m=re.search(r'ld[+]json\">(.*?)</script>',h,re.S);d=json.loads(m.group(1)) if m else {};o=d.get('@graph',[d]);a=next((x for x in o if x.get('@type')=='ProfessionalService'),{});print(json.dumps(a.get('hasCredential',[]),ensure_ascii=False))"
+          }
+
+          # 1. Stato di partenza: interruttore spento e nessuna qualifica.
+          esegui "DELETE FROM credentials;"
+          esegui "UPDATE settings SET v='' WHERE k='dpo_attiva';"
+          uguale 'la pagina del servizio non esiste' "$(codice /gdpr)" '404'
+          # Le occorrenze, non le righe: grep -c conta le righe che contengono un
+          # match, e l'HTML reso mette più link sulla stessa riga.
+          conta() { curl -s http://127.0.0.1:4321/ | grep -o 'href="/gdpr"' | wc -l | tr -d ' '; }
+          uguale 'la home non la nomina' "$(conta)" '0'
+          uguale 'la sitemap non la promette' \
+            "$(curl -s http://127.0.0.1:4321/sitemap.xml | grep -c gdpr || true)" '0'
+          uguale 'nessuna qualifica nei dati strutturati' "$(ld)" '[]'
+
+          # 2. Solo l'interruttore: non basta. È la regola che conta più delle altre.
+          esegui "UPDATE settings SET v='1' WHERE k='dpo_attiva';"
+          uguale "l'interruttore da solo non pubblica la pagina" "$(codice /gdpr)" '404'
+
+          # 3. Qualifica senza ente: non è verificabile, quindi non esiste.
+          esegui "INSERT INTO credentials (title, issuer, active) VALUES ('Data Protection Officer', '', true);"
+          uguale 'una qualifica senza ente non pubblica la pagina' "$(codice /gdpr)" '404'
+          uguale 'una qualifica senza ente non entra nei dati strutturati' "$(ld)" '[]'
+
+          # 4. Qualifica completa: adesso sì, e la pagina dice chi l'ha rilasciata.
+          esegui "UPDATE credentials SET issuer='Ente di prova CI', scheme='UNI 11697:2017', year='2026', code='CI-1';"
+          uguale 'con la qualifica la pagina esiste' "$(codice /gdpr)" '200'
+          pagina=$(curl -s http://127.0.0.1:4321/gdpr)
+          for atteso in 'Ente di prova CI' 'UNI 11697:2017' 'CI-1' 'DPO esterno'; do
+            if grep -qF "$atteso" <<<"$pagina"; then echo "  ok    la pagina contiene $atteso"
+            else echo "::error::la pagina non contiene $atteso"; fail=1; fi
+          done
+          uguale 'la sitemap la dichiara' \
+            "$(curl -s http://127.0.0.1:4321/sitemap.xml | grep -c '/gdpr' || true)" '1'
+          # Quattro: menu, card dei servizi, riga delle qualifiche, piè di pagina.
+          uguale 'la home porta alla pagina' "$(conta)" '4'
+          uguale 'i dati strutturati dicono chi ha rilasciato la qualifica' \
+            "$(ld | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0]['recognizedBy']['name'])")" \
+            'Ente di prova CI'
+          uguale "l'anno è dichiarato" \
+            "$(ld | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0].get('dateCreated','(assente)'))")" \
+            '2026'
+
+          # 5. Un anno che non è un anno non diventa una data: il campo è testo
+          #    libero, e «giugno 2026» in un dateCreated è un dato non valido —
+          #    peggio di un dato in meno.
+          esegui "UPDATE credentials SET year='giugno 2026';"
+          uguale 'un anno scritto a parole non diventa una data' \
+            "$(ld | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0].get('dateCreated','(assente)'))")" \
+            '(assente)'
+
+          # 6. L'indirizzo di verifica arriva dal pannello e finisce in un href:
+          #    solo http(s), come per i link dei lavori.
+          esegui "UPDATE credentials SET url='javascript:alert(1)';"
+          if curl -s http://127.0.0.1:4321/gdpr | grep -q 'javascript:alert'; then
+            echo "::error::un indirizzo javascript: è finito in pagina"; fail=1
+          else
+            echo "  ok    un indirizzo non web viene scartato"
+          fi
+
+          # Si rimette come si è trovato: le guardie dopo questa leggono la home, e
+          # una pagina in più cambierebbe il conto dei link.
+          esegui "DELETE FROM credentials;"
+          esegui "UPDATE settings SET v='' WHERE k='dpo_attiva';"
+          uguale 'lo stato torna quello di prima' "$(codice /gdpr)" '404'
 
           exit $fail
 

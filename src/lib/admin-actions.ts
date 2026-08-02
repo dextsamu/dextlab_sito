@@ -15,7 +15,12 @@ import {
   deleteLead,
 } from './admin.ts';
 import { saveSettings, CONTENT_TABLES, query } from './db.ts';
-import { settingsFromForm, agendaSettingsFromForm, localeSettingsFromForm } from './admin.ts';
+import {
+  settingsFromForm,
+  agendaSettingsFromForm,
+  localeSettingsFromForm,
+  dpoSettingsFromForm,
+} from './admin.ts';
 import { runBackup, deleteBackup } from './backup.ts';
 import { randomBytes } from 'node:crypto';
 
@@ -109,6 +114,20 @@ export async function handleAdminPost(context: APIContext, redirectTo: string): 
       case 'save_locale': {
         await saveSettings(localeSettingsFromForm(form));
         setFlash(cookies, 'Dati della zona salvati.');
+        break;
+      }
+      case 'save_dpo': {
+        /*
+          L'interruttore da solo non pubblica niente: la pagina /gdpr chiede anche
+          almeno una qualifica mostrabile (vedi content.ts). Il messaggio lo dice,
+          perché altrimenti l'unico modo di scoprirlo sarebbe spuntare la casella e
+          trovare un 404.
+        */
+        await saveSettings(dpoSettingsFromForm(form));
+        setFlash(
+          cookies,
+          'Servizio protezione dati aggiornato. La pagina compare solo con almeno una qualifica compilata in Contenuti.'
+        );
         break;
       }
       case 'agenda_chiave': {

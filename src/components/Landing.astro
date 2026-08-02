@@ -79,6 +79,7 @@ const structuredData = graficoJsonLd([
       'Realizzazione e-commerce',
       'Consulenza informatica',
     ],
+    qualifiche: content.credenziali,
   }, base),
   faqJsonLd(content.faqs, base),
 ]);
@@ -99,10 +100,10 @@ const structuredData = graficoJsonLd([
   <Chrome />
   {/* La voce «Recensioni» nel menu esiste solo se la sezione esiste: un'ancora
       che porta a niente è peggio di una voce in meno. */}
-  <Nav mostraRecensioni={content.reviews.length > 0} />
+  <Nav mostraRecensioni={content.reviews.length > 0} mostraDpo={content.dpoAttivo} />
   <Indice voci={sezioni} />
   <Hero types={content.types} />
-  <Servizi />
+  <Servizi mostraDpo={content.dpoAttivo} />
   <Showcase />
   <Portfolio lavori={content.works} />
   <Processo />
@@ -110,7 +111,7 @@ const structuredData = graficoJsonLd([
   {/* Perche.astro non esiste più: le sue righe erano le stesse di About dette
       un'altra volta, e la tabella di confronto parlava di terzi senza prove.
       Vedi il commento in About.astro. */}
-  <About />
+  <About qualifiche={content.credenziali} dpoAttivo={content.dpoAttivo} />
   {content.reviews.length > 0 && <Recensioni reviews={content.reviews} />}
   <Configuratore types={content.types} addons={content.addons} />
   <Faq faqs={content.faqs} />
@@ -121,7 +122,7 @@ const structuredData = graficoJsonLd([
     zone={locali.zone}
     visitToken={Astro.locals.visitToken}
   />
-  <Footer />
+  <Footer mostraDpo={content.dpoAttivo} />
   <WhatsAppFloat href={content.whatsappLink} />
   <ChatWidget />
   <CookieBanner />

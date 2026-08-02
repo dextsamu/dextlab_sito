@@ -2,8 +2,9 @@
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { guardAdmin, handleAdminPost } from '../../lib/admin-actions.ts';
 import { csrfToken } from '../../lib/auth.ts';
-import { leadStats } from '../../lib/admin.ts';
-import { getSettings, setting, settingOn } from '../../lib/db.ts';
+import { leadStats, contentRows } from '../../lib/admin.ts';
+import { qualificaMostrabile } from '../../lib/content.ts';
+import { getSettings, setting, settingOn, type CredentialRow } from '../../lib/db.ts';
 import { siteUrl } from '../../lib/env.ts';
 import { previewToken } from '../../lib/preview.ts';
 
@@ -14,7 +15,20 @@ const { response } = await handleAdminPost(Astro, '/admin/impostazioni');
 if (response) return response;
 
 const csrf = csrfToken(Astro.cookies);
-const [s, leads] = await Promise.all([getSettings(), leadStats()]);
+const [s, leads, qualifiche] = await Promise.all([
+  getSettings(),
+  leadStats(),
+  contentRows<CredentialRow>('credentials'),
+]);
+
+/*
+  Le qualifiche mostrabili si contano qui perché l'interruttore da solo non basta:
+  la pagina /gdpr vuole entrambe le cose. Mostrare la casella senza dire quante
+  qualifiche ci sono lascerebbe come unico modo di scoprirlo l'apertura della
+  pagina e un 404.
+*/
+const qualificheOk = qualifiche.filter((c) => c.active && qualificaMostrabile(c)).length;
+const dpoOn = settingOn(s, 'dpo_attiva');
 
 const maintenanceOn = settingOn(s, 'maintenance');
 // Token derivato, non APP_SECRET: questo valore finisce in un href.
@@ -190,6 +204,53 @@ const secretHint = (key: string) =>
 
     <button type="submit" name="action" value="save_locale" class="btn-save">
       Salva i dati della zona
+    </button>
+  </form>
+
+  <form method="post" class="settings-form" style="margin-top:26px">
+    <input type="hidden" name="csrf" value={csrf} />
+
+    <h2>Servizio protezione dati</h2>
+    <p class="hint">
+      Accende la voce «Protezione dati» nel menu e la pagina <code>/gdpr</code>, dove si racconta
+      l'adeguamento privacy dei siti e l'incarico di DPO esterno.
+    </p>
+    <div class:list={['maint-box', { on: dpoOn }]}>
+      <label class="ck big" for="dpo_attiva">
+        <input type="checkbox" id="dpo_attiva" name="dpo_attiva" checked={dpoOn} />
+        Pubblica la pagina del servizio
+        {dpoOn && qualificheOk > 0 && <strong>attiva</strong>}
+      </label>
+      <p class="hint" style="margin-top:0">
+        {
+          qualificheOk === 0 ? (
+            <>
+              Nessuna qualifica compilata: la pagina risponde <strong>404</strong> anche con la
+              casella spuntata. Servono titolo ed ente in{' '}
+              <a href="/admin/contenuti">Contenuti → Formazione e certificazioni</a>. Non è un
+              impedimento burocratico: una pagina che vende conformità senza una qualifica
+              dimostrabile è esattamente ciò che questo sito non fa.
+            </>
+          ) : (
+            <>
+              {qualificheOk === 1
+                ? '1 qualifica compilata e mostrabile.'
+                : `${qualificheOk} qualifiche compilate e mostrabili.`}{' '}
+              {dpoOn ? (
+                <>
+                  La pagina è pubblica: <a href="/gdpr" target="_blank" rel="noopener">apri /gdpr</a>.
+                </>
+              ) : (
+                'Spunta la casella per pubblicare la pagina.'
+              )}
+            </>
+          )
+        }
+      </p>
+    </div>
+
+    <button type="submit" name="action" value="save_dpo" class="btn-save">
+      Salva il servizio
     </button>
   </form>
 </AdminLayout>

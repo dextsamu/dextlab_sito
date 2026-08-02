@@ -88,6 +88,43 @@ interface Contenuti {
   email: string;
   descrizione: string;
   servizi: string[];
+  /**
+   * Formazione e certificazioni, già filtrate da qualificaMostrabile: qui dentro
+   * arriva solo ciò che ha un titolo e un ente.
+   */
+  qualifiche?: {
+    title: string;
+    issuer: string;
+    scheme: string;
+    year: string;
+    code: string;
+    url: string;
+  }[];
+}
+
+/**
+ * Una qualifica come oggetto schema.org.
+ *
+ * `recognizedBy` è la parte che conta: senza l'ente che l'ha rilasciata questa
+ * dichiarazione sarebbe «mi attesto da me», e infatti una qualifica senza ente
+ * non arriva nemmeno fin qui (vedi qualificaMostrabile in content.ts).
+ *
+ * L'anno si dichiara solo se è un anno: il campo è testo libero, e «giugno 2026»
+ * scritto in una data ISO produrrebbe un dato non valido invece di un dato in
+ * meno. Stessa regola delle coordinate qui sopra.
+ */
+function qualificaJsonLd(q: NonNullable<Contenuti['qualifiche']>[number]): Record<string, unknown> {
+  const o: Record<string, unknown> = {
+    '@type': 'EducationalOccupationalCredential',
+    name: q.title,
+    recognizedBy: { '@type': 'Organization', name: q.issuer },
+  };
+  if (q.scheme) o.credentialCategory = q.scheme;
+  if (q.code) o.identifier = q.code;
+  const web = soloWeb(q.url);
+  if (web) o.url = web;
+  if (/^\d{4}$/.test(q.year.trim())) o.dateCreated = q.year.trim();
+  return o;
 }
 
 /**
@@ -112,6 +149,15 @@ export function attivitaJsonLd(d: DatiLocali, c: Contenuti, base: string): Recor
     knowsLanguage: ['it'],
     serviceType: c.servizi,
   };
+
+  /*
+    Le qualifiche. Non c'è nessun `knowsAbout` accanto, e l'assenza è deliberata:
+    dedurre «conosce il GDPR» dal titolo di un attestato sarebbe una deduzione mia
+    scritta come se fosse un dato. La qualifica dice chi l'ha rilasciata e dove si
+    verifica; il resto lo giudica chi legge.
+  */
+  const qualifiche = (c.qualifiche ?? []).filter((q) => q.title.trim() !== '' && q.issuer.trim() !== '');
+  if (qualifiche.length > 0) o.hasCredential = qualifiche.map(qualificaJsonLd);
 
   if (d.telefono) o.telephone = d.telefono;
   if (d.partitaIva) o.vatID = d.partitaIva;
@@ -187,6 +233,39 @@ export function faqJsonLd(
       acceptedAnswer: { '@type': 'Answer', text: f.answer },
     })),
   };
+}
+
+/**
+ * Un servizio offerto, come oggetto schema.org.
+ *
+ * Serve alla pagina dedicata: dice che quello è un servizio, chi lo fornisce e
+ * dove. Il prezzo NON c'è, e non per dimenticanza — un `offers` con una cifra
+ * dichiarata a un motore di ricerca è un impegno che il sito deve poter
+ * mantenere, e questo servizio si preventiva dopo una call.
+ */
+export function servizioJsonLd(
+  nome: string,
+  descrizione: string,
+  percorso: string,
+  d: DatiLocali,
+  base: string
+): Record<string, unknown> {
+  const o: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    name: nome,
+    description: descrizione,
+    url: new URL(percorso, base + '/').href,
+    provider: { '@id': `${base}/#attivita` },
+  };
+  if (d.zone.length > 0) {
+    o.areaServed = d.zone.map((z) => ({ '@type': 'AdministrativeArea', name: z }));
+  } else if (d.regione) {
+    o.areaServed = { '@type': 'AdministrativeArea', name: d.regione };
+  } else {
+    o.areaServed = { '@type': 'Country', name: 'Italia' };
+  }
+  return o;
 }
 
 /** Il filo di briciole della pagina di un lavoro: Home › Lavori › nome. */

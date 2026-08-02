@@ -6,7 +6,7 @@
  * risponde il sito pubblico resta comunque completo e navigabile, invece di
  * mostrare sezioni vuote o una pagina d'errore.
  */
-import { rowsActive, getSettings, setting, settingOn, type Settings, type PricingRow, type ReviewRow, type FaqRow, type WorkRow } from './db.ts';
+import { rowsActive, getSettings, setting, settingOn, type Settings, type PricingRow, type ReviewRow, type FaqRow, type WorkRow, type CredentialRow } from './db.ts';
 import { slugLavoro } from './assets.ts';
 
 export type PricingItem = Pick<PricingRow, 'label' | 'price' | 'weeks'>;
@@ -15,6 +15,10 @@ export type FaqItem = Pick<FaqRow, 'question' | 'answer'>;
 export type WorkItem = Pick<
   WorkRow,
   'title' | 'url' | 'summary' | 'tags' | 'proprio' | 'story' | 'links' | 'shots'
+>;
+export type CredentialItem = Pick<
+  CredentialRow,
+  'title' | 'issuer' | 'scheme' | 'year' | 'code' | 'url'
 >;
 
 const FALLBACK_TYPES: PricingItem[] = [
@@ -79,6 +83,10 @@ export interface LandingContent {
   reviews: ReviewItem[];
   works: WorkItem[];
   faqs: FaqItem[];
+  /** Formazione e certificazioni, già filtrate: vedi qualificaMostrabile. */
+  credenziali: CredentialItem[];
+  /** La pagina /gdpr è accesa E c'è una qualifica da mostrare. */
+  dpoAttivo: boolean;
   contactEmail: string;
   calendly: string;
   /** L'agenda del sito è accesa: la sezione contatti prenota qui, non su Calendly. */
@@ -147,6 +155,27 @@ function lavoroMostrabile(w: { title: string; url: string }): boolean {
     // pubblicare una scheda rotta, e non deve far cadere la home.
     return false;
   }
+}
+
+/**
+ * Una qualifica si mostra solo se si può controllare.
+ *
+ * Servono il titolo e l'ente che l'ha rilasciata, e la seconda condizione è
+ * quella che conta: «Data Protection Officer» da solo è una parola che chiunque
+ * può scrivere accanto al proprio nome, mentre «rilasciata da X» è una frase che
+ * X può smentire. È la differenza fra una qualifica e un'affermazione, e questo
+ * sito non pubblica affermazioni su di sé che chi legge non possa verificare.
+ *
+ * Il filtro sta qui e non nel pannello per la stessa ragione dei lavori: i valori
+ * arrivano dal database dopo il deploy, quindi la regola deve valere al momento
+ * in cui la pagina si costruisce — anche per una riga spuntata come attiva prima
+ * di essere compilata.
+ *
+ * L'indirizzo di verifica, quando c'è, passa dal filtro degli schemi: finisce in
+ * un href, e Astro sfugge il testo ma non giudica lo schema.
+ */
+export function qualificaMostrabile(c: { title: string; issuer: string }): boolean {
+  return c.title.trim() !== '' && c.issuer.trim() !== '';
 }
 
 /**
@@ -246,13 +275,23 @@ export function whatsappLink(rawNumber: string, message = 'Ciao Dext Lab, vorrei
 
 export async function getLandingContent(settings?: Settings): Promise<LandingContent> {
   const s = settings ?? (await getSettings());
-  const [types, addons, reviews, works, faqs] = await Promise.all([
+  const [types, addons, reviews, works, faqs, credenziali] = await Promise.all([
     rowsActive<PricingRow>('pricing_types'),
     rowsActive<PricingRow>('pricing_addons'),
     rowsActive<ReviewRow>('reviews'),
     rowsActive<WorkRow>('works'),
     rowsActive<FaqRow>('faqs'),
+    rowsActive<CredentialRow>('credentials'),
   ]);
+
+  /*
+    La pagina /gdpr ha due condizioni, non una. L'interruttore dice «voglio
+    vendere questo servizio», le qualifiche dicono «posso dimostrarlo»: la
+    pagina esiste solo con entrambe. Serve a rendere impossibile la sequenza
+    sbagliata, cioè pubblicare la pagina di un servizio di conformità e
+    compilare la qualifica il giorno dopo.
+  */
+  const qualifiche = credenziali.filter(qualificaMostrabile);
 
   return {
     types: types.length > 0 ? types : FALLBACK_TYPES,
@@ -268,6 +307,10 @@ export async function getLandingContent(settings?: Settings): Promise<LandingCon
        compilarle, qui non passerebbero comunque. */
     works: works.filter(lavoroMostrabile),
     faqs: faqs.length > 0 ? faqs : FALLBACK_FAQS,
+    // Nessun ripiego nemmeno qui, e per il motivo più stretto di tutti: un
+    // attestato d'esempio è un'affermazione falsa su una persona.
+    credenziali: qualifiche,
+    dpoAttivo: settingOn(s, 'dpo_attiva') && qualifiche.length > 0,
     contactEmail: setting(s, 'contact_email', 'info@dextlab.it'),
     calendly: setting(s, 'calendly', 'https://calendly.com/dextlab/call'),
     agendaAttiva: settingOn(s, 'agenda_attiva'),

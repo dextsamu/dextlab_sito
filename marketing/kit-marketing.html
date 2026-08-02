@@ -473,11 +473,16 @@
     .indice {
       display: none;
     }
+    /* Niente break-inside sulle sezioni: quelle lunghe non entrano in una pagina,
+       e chiedere di non spezzarle le spinge tutte a pagina nuova lasciando mezzi
+       fogli bianchi. Restano indivisibili le cose piccole — un riquadro, una riga
+       di annuncio con il suo conteggio, una settimana del piano — dove lo stacco
+       separerebbe un testo dal numero che lo qualifica. */
     section {
-      break-inside: avoid;
       gap: 10px;
     }
-    h2 {
+    h2,
+    h3 {
       break-after: avoid;
     }
     .scheda,
@@ -521,6 +526,7 @@
       <li><a href="#ads">Google Ads: testi pronti</a></li>
       <li><a href="#meta">Meta: testi pronti</a></li>
       <li><a href="#scheda">Scheda Google e recensioni</a></li>
+      <li><a href="#privacy">Privacy e GDPR: il servizio nuovo</a></li>
       <li><a href="#link">I link tracciati</a></li>
       <li><a href="#piano">Il piano delle prime 4 settimane</a></li>
       <li><a href="#misura">Come si misura</a></li>
@@ -718,9 +724,15 @@
       <h3>4. La pagina privacy ha ancora i segnaposto</h3>
       <p>
         Sulla pagina pubblica si legge <code>[Ragione sociale / Nome e Cognome]</code>,
-        <code>[indirizzo]</code>, <code>P.IVA [numero]</code>. Chi valuta se fidarsi la apre. Va
-        scritto almeno nome e cognome come titolare del trattamento; la partita IVA resta fuori
-        finché non c'è.
+        <code>[indirizzo]</code>, <code>P.IVA [numero]</code>. Va scritto almeno nome e cognome come
+        titolare del trattamento; la partita IVA resta fuori finché non c'è.
+      </p>
+      <p>
+        Con una certificazione DPO da dichiarare questo punto cambia di peso: passa da svista a
+        contraddizione. La prima cosa che farà un cliente interessato al servizio privacy è aprire
+        <code>/privacy</code> di questo sito, e trovarci un modello non compilato dice più di
+        qualunque attestato in cima alla pagina. Va sistemato <strong>prima</strong> di accendere il
+        servizio, non dopo.
       </p>
     </div>
 
@@ -978,6 +990,154 @@ Se preferisci lasciar perdere nessun problema, e se invece c'è qualcosa che non
     </p>
   </section>
 
+  <section id="privacy">
+    <span class="occhiello">Servizio nuovo</span>
+    <h2>Privacy e GDPR: il servizio nuovo</h2>
+    <p>
+      C'è una certificazione da <strong>Data Protection Officer</strong>, e cambia il quadro:
+      è la prima cosa in questo sito che nessun concorrente locale può copiare in una settimana.
+      Non è un titolo da mettere in un elenco di parole chiave — è la ragione per cui un cliente
+      sceglie chi gli fa il sito invece di chi gli fa il prezzo.
+    </p>
+
+    <div class="avviso">
+      <span class="occhiello">Prima di scrivere qualsiasi cosa</span>
+      <h3>Le parole esatte, e quelle vietate</h3>
+      <p>
+        Un titolo su una qualifica non è marketing: è una dichiarazione. Nel pannello, in
+        <em>Contenuti → Formazione e certificazioni</em>, va scritto <strong>come è scritto
+        sull'attestato</strong> — ente, schema, anno, estremi — e da lì compare sul sito, nei dati
+        strutturati e in cima alla pagina del servizio. Negli annunci si usano le stesse parole, non
+        una versione più forte.
+      </p>
+      <ul>
+        <li>
+          <strong>Si può dire</strong> «certificazione DPO» con lo schema e l'ente accanto, se
+          l'esame c'è stato. «Formazione da DPO» se è solo un corso frequentato. Le due frasi non
+          sono sinonimi e chi compra la differenza la conosce.
+        </li>
+        <li>
+          <strong>Non si può dire</strong> «a norma garantito», «zero sanzioni», «conformità
+          garantita». Nessuno può garantire che un'azienda sia conforme: si mette in ordine ciò che
+          si vede e si scrive cosa manca.
+        </li>
+        <li>
+          <strong>Non si vende con la paura.</strong> «Sanzioni fino a 20 milioni» è vero ed è il
+          modo più rapido di attirare chi cerca un timbro invece di un lavoro.
+        </li>
+        <li>
+          <strong>Non è consulenza legale.</strong> Sulla pagina c'è scritto, e negli annunci non va
+          suggerito il contrario: la competenza è tecnica e organizzativa.
+        </li>
+      </ul>
+    </div>
+
+    <h3>Titoli — massimo 30 caratteri</h3>
+    <ul class="righe">
+      <li><code class="copia">Sito conforme al GDPR</code>
+      <span class="conta" data-limite="30">21/30</span></li>
+      <li><code class="copia">Cookie banner fatto bene</code>
+      <span class="conta" data-limite="30">24/30</span></li>
+      <li><code class="copia">Informativa privacy vera</code>
+      <span class="conta" data-limite="30">24/30</span></li>
+      <li><code class="copia">Adeguamento privacy sito</code>
+      <span class="conta" data-limite="30">24/30</span></li>
+      <li><code class="copia">Registro dei trattamenti</code>
+      <span class="conta" data-limite="30">24/30</span></li>
+      <li><code class="copia">DPO esterno certificato</code>
+      <span class="conta" data-limite="30">23/30</span></li>
+    </ul>
+
+    <h3>Descrizioni — massimo 90 caratteri</h3>
+    <ul class="righe">
+      <li><code class="copia">Cookie, informativa e registro dei trattamenti messi in ordine. Certificazione DPO.</code>
+      <span class="conta" data-limite="90">83/90</span></li>
+      <li><code class="copia">Un banner con il solo «Accetta» non è un consenso. Sistemiamo il tuo sito davvero.</code>
+      <span class="conta" data-limite="90">82/90</span></li>
+      <li><code class="copia">DPO esterno per aziende e associazioni: prima una call per capire se serve.</code>
+      <span class="conta" data-limite="90">75/90</span></li>
+    </ul>
+    <p class="nota">
+      La prima descrizione dice «Certificazione DPO»: si può usare solo dopo aver compilato la
+      qualifica nel pannello, perché è da lì che la pagina la mostra a chi clicca. Un annuncio che
+      la dichiara e una pagina di arrivo che non la nomina è la contraddizione più facile da notare.
+    </p>
+
+    <h3>Parole chiave</h3>
+    <p>
+      A frase ed esatta, come le altre. Sono ricerche di chi ha già capito di avere un problema:
+      poche, ma è il traffico più vicino a un lavoro pagato che questo sito possa comprare.
+    </p>
+    <ul class="righe">
+      <li><code class="copia">"adeguamento gdpr sito web"</code>
+      <span class="conta">27 caratteri</span></li>
+      <li><code class="copia">"cookie banner a norma"</code>
+      <span class="conta">23 caratteri</span></li>
+      <li><code class="copia">"informativa privacy sito web"</code>
+      <span class="conta">30 caratteri</span></li>
+      <li><code class="copia">"registro dei trattamenti"</code>
+      <span class="conta">26 caratteri</span></li>
+      <li><code class="copia">"dpo esterno [provincia]"</code>
+      <span class="conta">25 caratteri</span></li>
+      <li><code class="copia">"consulente privacy [città]"</code>
+      <span class="conta">28 caratteri</span></li>
+    </ul>
+
+    <h3>Parole da escludere, in aggiunta alle altre</h3>
+    <code class="copia">corso dpo, corsi privacy, master privacy, modello informativa, generatore informativa, informativa gratis, esempio informativa, fac simile, avvocato, studio legale, sanzioni, ricorso, garante privacy contatti</code>
+    <p class="nota">
+      <code>corso dpo</code> e <code>master privacy</code> sono le ricerche di chi vuole diventare
+      DPO, non di chi ne cerca uno: sono anche le più costose del settore, e porterebbero clic da
+      pagare a chi non compra niente.
+    </p>
+
+    <h3>Dove va detto sul sito, e dove no</h3>
+    <ul>
+      <li>
+        <strong>Pagina dedicata:</strong> <code>/gdpr</code>. Si accende in
+        <em>Impostazioni → Servizio protezione dati</em>, e compare solo se c'è una qualifica
+        compilata: senza, risponde 404 di proposito. Da lì passano anche la voce «Protezione dati»
+        nel menu, la card nei servizi e il piè di pagina.
+      </li>
+      <li>
+        <strong>Configuratore:</strong> l'opzione «Adeguamento privacy e cookie» è già nel listino,
+        spenta e a zero. Metti il prezzo e attivala: è la voce che trasforma la competenza in una
+        riga di preventivo invece che in una frase.
+      </li>
+      <li>
+        <strong>Scheda Google:</strong> aggiungi la categoria secondaria che corrisponde
+        («Consulente informatico» resta la principale) e una riga nella descrizione. Non cambiare il
+        nome dell'attività per infilarci «GDPR»: quello è il modo più rapido di far sospendere una
+        scheda.
+      </li>
+      <li>
+        <strong>Dove no:</strong> nell'hero della home. La prima frase del sito è ancora «siti e web
+        app»: chi arriva cerca quello, e un titolo che promette due mestieri diversi non ne vende
+        nessuno.
+      </li>
+    </ul>
+
+    <div class="scheda">
+      <h3>Le due cose da chiarire prima di vendere un incarico DPO</h3>
+      <p>
+        Sono amministrative e non si risolvono con un testo di annuncio, ma un incarico venduto
+        senza averle chiarite diventa un problema al primo pagamento.
+      </p>
+      <ul>
+        <li>
+          <strong>La fatturazione.</strong> Un incarico di DPO è un rapporto continuativo: senza
+          partita IVA va capito con chi tiene i conti come si inquadra. Vale per il servizio, non
+          per la pagina — la pagina si può pubblicare comunque.
+        </li>
+        <li>
+          <strong>Il contratto.</strong> L'incarico si formalizza per iscritto, con i compiti
+          dell'articolo 39 e i limiti scritti dentro. È anche l'occasione per mettere nero su bianco
+          quello che la pagina già dice: la responsabilità del trattamento resta del titolare.
+        </li>
+      </ul>
+    </div>
+  </section>
+
   <section id="link">
     <span class="occhiello">Misurazione</span>
     <h2>I link tracciati</h2>
@@ -1004,6 +1164,11 @@ Se preferisci lasciar perdere nessun problema, e se invece c'è qualcosa che non
           <tr>
             <td><strong>Scheda Google</strong><br /><span class="nota">pulsante «Sito web»</span></td>
             <td><code>https://dextlab.it/?utm_source=google&amp;utm_medium=scheda</code></td>
+          </tr>
+          <tr>
+            <td><strong>Annunci sulla privacy</strong><br /><span class="nota">gruppo separato: la
+              pagina di arrivo è /gdpr, non la home</span></td>
+            <td><code>https://dextlab.it/gdpr?utm_source=google&amp;utm_medium=cpc&amp;utm_campaign=privacy-1</code></td>
           </tr>
           <tr>
             <td><strong>Bio Instagram</strong></td>

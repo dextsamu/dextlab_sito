@@ -4,9 +4,16 @@
 interface Props {
   /** Falso quando non ci sono recensioni vere: la voce di menu sparisce con la sezione. */
   mostraRecensioni?: boolean;
+  /**
+   * Vero quando la pagina del servizio protezione dati è pubblicata. È l'unica
+   * voce del menu che porta fuori dalla home, quindi esiste solo se la pagina
+   * esiste: le altre sono ancore, e un'ancora rotta si nota subito — un link a
+   * una pagina 404 no.
+   */
+  mostraDpo?: boolean;
 }
 
-const { mostraRecensioni = true } = Astro.props;
+const { mostraRecensioni = true, mostraDpo = false } = Astro.props;
 ---
 
 <header class="nav" id="nav">
@@ -19,6 +26,7 @@ const { mostraRecensioni = true } = Astro.props;
       <a href="#portfolio">Caso reale</a>
       <a href="#perche">Perché me</a>
       {mostraRecensioni && <a href="#recensioni">Recensioni</a>}
+      {mostraDpo && <a href="/gdpr">Protezione dati</a>}
       <span class="lang-switch" role="group" aria-label="Lingua">
         <button type="button" class="lang-btn active" data-lang="it">IT</button>
         <button type="button" class="lang-btn" data-lang="en">EN</button>
