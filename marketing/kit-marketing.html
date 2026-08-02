@@ -1,0 +1,1299 @@
+<!--
+  Kit pubblicità e marketing di Dext Lab.
+
+  Questo file NON è servito dal sito: sta in marketing/ e non in public/. È il
+  documento operativo da cui si copiano i testi degli annunci, e sta nel
+  repository per un motivo preciso — cita prezzi, servizi e lavori che vivono nel
+  database, e quando quelli cambiano questo deve cambiare con loro. Un kit in una
+  cartella condivisa invecchia senza che nessuno se ne accorga.
+
+  I caratteri sono richiamati da /fonts/: scripts/kit-marketing.mjs li incorpora
+  come data URI quando produce la copia da pubblicare o da stampare in PDF, così
+  quella versione non dipende da nessun host esterno.
+
+  Regola di questo documento, la stessa del sito: non c'è dentro nessun numero e
+  nessuna affermazione che non si possa verificare aprendo dextlab.it o il
+  pannello. Dove un dato manca, c'è scritto che manca.
+-->
+<title>Kit pubblicità e marketing — Dext Lab</title>
+
+<style>
+  /* I due caratteri del sito: è materiale di marca, e un kit che parla del sito
+     scritto con un altro carattere sembra di qualcun altro. */
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400 600;
+    font-display: swap;
+    src: url(/fonts/inter-latin.woff2) format('woff2');
+  }
+  @font-face {
+    font-family: 'Space Grotesk';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url(/fonts/space-grotesk-latin.woff2) format('woff2');
+  }
+
+  /* I colori stanno tutti qui: i componenti sotto usano solo i token, così i due
+     temi si definiscono una volta e non si rincorrono a vicenda. */
+  :root {
+    --blu: #3fa9d6;
+    --ciano: #54c9c8;
+    --verde: #8bd89e;
+    --ambra: #d99413;
+    --carta: #f2f6fa;
+    --carta-2: #ffffff;
+    --inchiostro: #101a28;
+    --inchiostro-2: #3d4c61;
+    --bordo: rgba(16, 26, 40, 0.14);
+    --bordo-forte: rgba(16, 26, 40, 0.26);
+    --codice-fondo: #eef3f8;
+    --avviso-fondo: rgba(217, 148, 19, 0.09);
+    --ombra: 0 1px 2px rgba(16, 26, 40, 0.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ambra: #f0b429;
+      --carta: #080d1a;
+      --carta-2: #0d1524;
+      --inchiostro: #e7eef7;
+      --inchiostro-2: #98a7bd;
+      --bordo: rgba(255, 255, 255, 0.1);
+      --bordo-forte: rgba(255, 255, 255, 0.22);
+      --codice-fondo: #111b2c;
+      --avviso-fondo: rgba(240, 180, 41, 0.08);
+      --ombra: none;
+    }
+  }
+
+  :root[data-theme='dark'] {
+    --ambra: #f0b429;
+    --carta: #080d1a;
+    --carta-2: #0d1524;
+    --inchiostro: #e7eef7;
+    --inchiostro-2: #98a7bd;
+    --bordo: rgba(255, 255, 255, 0.1);
+    --bordo-forte: rgba(255, 255, 255, 0.22);
+    --codice-fondo: #111b2c;
+    --avviso-fondo: rgba(240, 180, 41, 0.08);
+    --ombra: none;
+  }
+
+  :root[data-theme='light'] {
+    --ambra: #d99413;
+    --carta: #f2f6fa;
+    --carta-2: #ffffff;
+    --inchiostro: #101a28;
+    --inchiostro-2: #3d4c61;
+    --bordo: rgba(16, 26, 40, 0.14);
+    --bordo-forte: rgba(16, 26, 40, 0.26);
+    --codice-fondo: #eef3f8;
+    --avviso-fondo: rgba(217, 148, 19, 0.09);
+    --ombra: 0 1px 2px rgba(16, 26, 40, 0.06);
+  }
+
+  body {
+    background: var(--carta);
+    color: var(--inchiostro);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .foglio {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+    display: flex;
+    flex-direction: column;
+    gap: 46px;
+  }
+
+  /* ------------------------------------------------------------- testata -- */
+
+  .testata {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-bottom: 26px;
+    border-bottom: 2px solid transparent;
+    border-image: linear-gradient(90deg, var(--blu), var(--ciano), var(--verde)) 1;
+  }
+
+  h1 {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.9rem, 4.6vw, 2.6rem);
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  .sottotesta {
+    max-width: 62ch;
+    color: var(--inchiostro-2);
+  }
+
+  .meta-doc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    font-size: 0.8rem;
+    color: var(--inchiostro-2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* --------------------------------------------------------------- indice -- */
+
+  .indice {
+    background: var(--carta-2);
+    border: 1px solid var(--bordo);
+    border-radius: 10px;
+    padding: 20px 24px;
+    box-shadow: var(--ombra);
+  }
+
+  .indice h2 {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--inchiostro-2);
+    margin-bottom: 12px;
+  }
+
+  .indice ol {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 6px 26px;
+    counter-reset: voce;
+    font-size: 0.92rem;
+  }
+
+  .indice li {
+    counter-increment: voce;
+  }
+
+  .indice li::before {
+    content: counter(voce, decimal-leading-zero);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 0.72rem;
+    color: var(--inchiostro-2);
+    margin-right: 9px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .indice a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid var(--bordo);
+  }
+
+  .indice a:hover,
+  .indice a:focus-visible {
+    border-bottom-color: var(--ciano);
+  }
+
+  /* -------------------------------------------------------------- sezioni -- */
+
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  h2 {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 1.42rem;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    text-wrap: balance;
+    padding-top: 6px;
+    border-top: 1px solid var(--bordo);
+  }
+
+  h3 {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-top: 8px;
+  }
+
+  .occhiello {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--inchiostro-2);
+  }
+
+  p,
+  li {
+    max-width: 74ch;
+  }
+
+  strong {
+    font-weight: 600;
+  }
+
+  a {
+    color: inherit;
+    text-decoration-color: var(--ciano);
+    text-underline-offset: 3px;
+  }
+
+  ul,
+  ol {
+    padding-left: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .nota {
+    color: var(--inchiostro-2);
+    font-size: 0.9rem;
+  }
+
+  /* ------------------------------------------- blocchi da copiare e tabelle -- */
+
+  .copia {
+    font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    font-size: 0.86rem;
+    background: var(--codice-fondo);
+    border: 1px solid var(--bordo);
+    border-radius: 7px;
+    padding: 9px 12px;
+    display: block;
+    word-break: break-word;
+  }
+
+  /* Gli annunci si scrivono contro un limite di caratteri, e il limite è la
+     parte che si dimentica: il conteggio sta accanto a ogni riga, così una
+     modifica fatta di fretta si vede subito se sfora. */
+  .righe {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .righe li {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: center;
+    max-width: none;
+  }
+
+  .conta {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 0.72rem;
+    color: var(--inchiostro-2);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .conta.stretto {
+    color: var(--ambra);
+  }
+
+  .tabellone {
+    overflow-x: auto;
+    border: 1px solid var(--bordo);
+    border-radius: 10px;
+    background: var(--carta-2);
+    box-shadow: var(--ombra);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  th,
+  td {
+    text-align: left;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--bordo);
+    vertical-align: top;
+  }
+
+  th {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--inchiostro-2);
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  td.num {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* I link tracciati sono lunghi e devono stare interi in una cella: si spezzano
+     solo quando non entrano (overflow-wrap) invece che sempre (word-break), così
+     un nome di dominio corto non viene tagliato a metà per abitudine. */
+  td code {
+    font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+    overflow-wrap: anywhere;
+  }
+
+  /* ------------------------------------------------------------- riquadri -- */
+
+  .scheda {
+    background: var(--carta-2);
+    border: 1px solid var(--bordo);
+    border-radius: 10px;
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: var(--ombra);
+  }
+
+  .scheda h3 {
+    margin: 0;
+  }
+
+  .avviso {
+    background: var(--avviso-fondo);
+    border: 1px solid var(--ambra);
+    border-radius: 10px;
+    padding: 18px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .avviso .occhiello {
+    color: var(--ambra);
+  }
+
+  /* Le settimane del piano sono una sequenza vera: il numero dice l'ordine in
+     cui vanno fatte, e non è un ornamento. */
+  .piano {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    counter-reset: settimana;
+  }
+
+  .piano > li {
+    counter-increment: settimana;
+    display: grid;
+    grid-template-columns: 78px 1fr;
+    gap: 18px;
+    align-items: start;
+    max-width: none;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--bordo);
+  }
+
+  .piano > li:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .piano > li::before {
+    content: 'Sett. ' counter(settimana);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--inchiostro-2);
+    padding-top: 3px;
+  }
+
+  .piano ul {
+    padding-left: 18px;
+  }
+
+  .chiusa {
+    color: var(--inchiostro-2);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--bordo);
+    padding-top: 18px;
+  }
+
+  @media (max-width: 620px) {
+    .piano > li {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+    .righe li {
+      grid-template-columns: 1fr;
+      gap: 4px;
+    }
+  }
+
+  /* --------------------------------------------------------------- stampa -- */
+
+  /* Su carta il fondo scuro non si stampa e i colori chiari sparirebbero: la
+     stampa torna nera su bianco, e l'indice — che serve per cliccare — esce. */
+  @media print {
+    :root {
+      --carta: #ffffff;
+      --carta-2: #ffffff;
+      --inchiostro: #101a28;
+      --inchiostro-2: #48586e;
+      --bordo: rgba(16, 26, 40, 0.28);
+      --bordo-forte: rgba(16, 26, 40, 0.45);
+      --codice-fondo: #f2f4f7;
+      --avviso-fondo: #fdf6e6;
+      --ambra: #9a6a05;
+      --ombra: none;
+    }
+    body {
+      font-size: 10.5pt;
+      line-height: 1.5;
+    }
+    .foglio {
+      max-width: none;
+      padding: 0;
+      gap: 26px;
+    }
+    .indice {
+      display: none;
+    }
+    /* Niente break-inside sulle sezioni: quelle lunghe non entrano in una pagina,
+       e chiedere di non spezzarle le spinge tutte a pagina nuova lasciando mezzi
+       fogli bianchi. Restano indivisibili le cose piccole — un riquadro, una riga
+       di annuncio con il suo conteggio, una settimana del piano — dove lo stacco
+       separerebbe un testo dal numero che lo qualifica. */
+    section {
+      gap: 10px;
+    }
+    h2,
+    h3 {
+      break-after: avoid;
+    }
+    .scheda,
+    .avviso,
+    .tabellone,
+    .righe li,
+    .piano > li {
+      break-inside: avoid;
+    }
+    a {
+      text-decoration: none;
+    }
+  }
+</style>
+
+<div class="foglio">
+  <header class="testata">
+    <span class="occhiello">Dext Lab · documento operativo</span>
+    <h1>Kit pubblicità e marketing</h1>
+    <p class="sottotesta">
+      I testi pronti per gli annunci, i link tracciati, e l'ordine in cui conviene fare le cose.
+      Tutto quello che c'è qui dentro è verificabile aprendo <strong>dextlab.it</strong> o il
+      pannello: prezzi, lavori e servizi sono quelli pubblicati, non una versione migliorata per
+      l'occasione.
+    </p>
+    <p class="meta-doc">
+      <span>Aggiornato al 2 agosto 2026</span>
+      <span>Fonte: contenuti del sito e database</span>
+      <span>Sorgente: <code>marketing/kit-marketing.html</code></span>
+    </p>
+  </header>
+
+  <nav class="indice" aria-label="Indice">
+    <h2>In questo documento</h2>
+    <ol>
+      <li><a href="#regole">Le regole del kit</a></li>
+      <li><a href="#posizionamento">Posizionamento e prove</a></li>
+      <li><a href="#chi">A chi parlare</a></li>
+      <li><a href="#prezzi">I prezzi pubblicati</a></li>
+      <li><a href="#prima">Prima di spendere</a></li>
+      <li><a href="#ads">Google Ads: testi pronti</a></li>
+      <li><a href="#meta">Meta: testi pronti</a></li>
+      <li><a href="#scheda">Scheda Google e recensioni</a></li>
+      <li><a href="#privacy">Privacy e GDPR: il servizio nuovo</a></li>
+      <li><a href="#link">I link tracciati</a></li>
+      <li><a href="#piano">Il piano delle prime 4 settimane</a></li>
+      <li><a href="#misura">Come si misura</a></li>
+    </ol>
+  </nav>
+
+  <section id="regole">
+    <span class="occhiello">Come si usa</span>
+    <h2>Le regole del kit</h2>
+    <p>
+      Un annuncio dice una cosa in dieci parole, e la tentazione è di dire la più grossa. Qui non
+      si può, per un motivo pratico e non morale: chi clicca arriva sul sito, e il sito non ha
+      niente da mostrare oltre a quello che c'è. Un annuncio che promette più della pagina di
+      arrivo compra clic che se ne vanno.
+    </p>
+    <ul>
+      <li>
+        <strong>Nessun numero inventato.</strong> Non «oltre 50 clienti», non «10 anni di
+        esperienza», non «+300% di visite». Le prove disponibili sono tre siti online e un
+        gestionale con demo pubblica: sono poche e sono vere.
+      </li>
+      <li>
+        <strong>Nessuna identità che non esiste.</strong> Niente indirizzo, niente partita IVA,
+        niente «sede» finché non ci sono. Le piattaforme li chiedono: dove non c'è, si lascia
+        vuoto e si usa l'area servita.
+      </li>
+      <li>
+        <strong>Nessuna recensione scritta in casa.</strong> Ci sono due clienti reali a cui si
+        può chiedere: il testo del messaggio è al punto 8.
+      </li>
+      <li>
+        <strong>Ogni frase deve reggere a un clic.</strong> Se un testo qui sotto smette di essere
+        vero perché il sito cambia, va cambiato anche qui — è per questo che il documento sta nel
+        repository e non in una cartella condivisa.
+      </li>
+    </ul>
+  </section>
+
+  <section id="posizionamento">
+    <span class="occhiello">Una frase</span>
+    <h2>Posizionamento e prove</h2>
+    <div class="scheda">
+      <h3>La frase</h3>
+      <p>
+        Siti e web app scritti a mano, veloci, con un preventivo chiaro prima di iniziare. Non
+        un'agenzia: la persona che scrive il codice è la stessa con cui parli.
+      </p>
+    </div>
+    <p>
+      Tre cose la sostengono, e sono tutte verificabili in meno di un minuto da chi legge. Vanno
+      usate come argomento negli annunci, non come vanto:
+    </p>
+    <ul>
+      <li>
+        <strong>I prezzi sono pubblici e il preventivo si fa da soli.</strong> Sul sito c'è il
+        configuratore: si scelgono tipo e opzioni e si vede la cifra. È l'unica cosa che nessun
+        concorrente locale fa, ed è il motivo più forte per cui uno scrive.
+      </li>
+      <li>
+        <strong>I lavori sono online e si aprono.</strong> Tre schede, ognuna con il link al sito
+        vero. Chi vende siti senza mostrarne uno è la norma: mostrarne tre è la differenza.
+      </li>
+      <li>
+        <strong>La call si prenota sul sito, con conferma immediata.</strong> Nessun rimpallo di
+        email per trovare un orario, nessun servizio esterno.
+      </li>
+    </ul>
+    <p class="nota">
+      Cosa <em>non</em> mettere nel posizionamento: la tecnologia. «Astro», «PostgreSQL» e «SSR»
+      sono veri e stanno sul sito, ma a chi cerca un sito per il proprio ristorante non dicono
+      niente. Restano dove sono: nella sezione tecnica, per chi la cerca.
+    </p>
+  </section>
+
+  <section id="chi">
+    <span class="occhiello">Segmenti</span>
+    <h2>A chi parlare</h2>
+    <p>
+      Non a «tutti quelli che vogliono un sito». I tre gruppi qui sotto non sono un'ipotesi di
+      mercato: sono i lavori che esistono già, e per ognuno c'è una pagina da mostrare.
+    </p>
+    <div class="tabellone">
+      <table>
+        <thead>
+          <tr>
+            <th>Chi</th>
+            <th>Cosa gli serve</th>
+            <th>Cosa mostrargli</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Ristoranti e locali</strong></td>
+            <td>Menu con i prezzi sempre aggiornato, due lingue, orari, mappa. Niente PDF da
+              scaricare.</td>
+            <td>Atena Bistrò — <code>ristoranteatena.it</code></td>
+          </tr>
+          <tr>
+            <td><strong>Cantine e aziende agricole</strong></td>
+            <td>Schede dei prodotti, il territorio raccontato, contatti in italiano e inglese.</td>
+            <td>Podere Lavandaro — <code>poderelavandaro.it</code></td>
+          </tr>
+          <tr>
+            <td><strong>Sagre, feste, associazioni</strong></td>
+            <td>Cassa, comande in cucina, menu con QR, magazzino. Un gestionale, non un sito.</td>
+            <td>SagraGO — <code>sagrago.it</code>, demo aperta</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Il terzo gruppo è il più difendibile e il meno affollato: SagraGO è un prodotto proprio con
+      una demo che si prova senza chiedere niente a nessuno. Una sagra si convince mostrandogliela,
+      non spiegandola. È anche il segmento con una stagione precisa — le sagre si organizzano nei
+      mesi che precedono l'estate, e la pubblicità va fatta allora, non a settembre.
+    </p>
+  </section>
+
+  <section id="prezzi">
+    <span class="occhiello">Offerta</span>
+    <h2>I prezzi pubblicati</h2>
+    <p>
+      Questi numeri sono quelli che il configuratore mostra oggi. Vanno usati negli annunci
+      <strong>esattamente così</strong>: un prezzo diverso fra annuncio e sito è il modo più
+      rapido di perdere la fiducia di chi è appena arrivato.
+    </p>
+    <div class="tabellone">
+      <table>
+        <thead>
+          <tr>
+            <th>Tipo di lavoro</th>
+            <th class="num">Da</th>
+            <th class="num">Tempi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Landing page</td><td class="num">490 €</td><td class="num">1 settimana</td></tr>
+          <tr><td>Sito vetrina</td><td class="num">990 €</td><td class="num">2 settimane</td></tr>
+          <tr><td>E-commerce</td><td class="num">2.500 €</td><td class="num">4 settimane</td></tr>
+          <tr><td>Web app su misura</td><td class="num">4.500 €</td><td class="num">8 settimane</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="nota">
+      Opzioni, sempre dal configuratore: multilingua 400 €, SEO avanzata 350 €, blog/CMS 500 €,
+      area riservata 800 €, copywriting 300 €. Nota per gli annunci: il pannello per aggiornare i
+      contenuti da soli <strong>non è compreso di serie</strong> — è l'opzione blog/CMS. Scrivere
+      «lo aggiorni da solo, incluso» sarebbe falso.
+    </p>
+  </section>
+
+  <section id="prima">
+    <span class="occhiello">Sei cose</span>
+    <h2>Prima di spendere</h2>
+    <p>
+      Ogni euro di pubblicità moltiplica quello che il sito già fa, compresi i buchi. Queste sei
+      cose costano zero e vanno chiuse prima del primo annuncio: sono tutte verificate, non
+      ipotesi.
+    </p>
+
+    <div class="avviso">
+      <span class="occhiello">Bloccante</span>
+      <h3>1. L'SMTP punta al server sbagliato</h3>
+      <p>
+        In <em>Impostazioni</em> l'host è <code>imaps.aruba.it</code>, che è il server per
+        <strong>leggere</strong> la posta. Per spedire serve <code>smtps.aruba.it</code>, porta
+        <strong>465</strong>, SSL. Finché resta così non partono né le risposte ai contatti né le
+        conferme delle call — e l'agenda è accesa, quindi qualcuno può prenotare e non ricevere
+        niente. Prima cosa da sistemare, prima di qualunque annuncio.
+      </p>
+    </div>
+
+    <div class="scheda">
+      <h3>2. I dati locali sono vuoti</h3>
+      <p>
+        <em>Impostazioni → Zona e ricerca locale</em>: nome, telefono, città, provincia e zone
+        servite sono vuoti, quindi il sito non dichiara nessun dato locale e la scheda Google non
+        trova conferma sul sito. Senza sede pubblica si compilano città, provincia e zone — non la
+        via. I comuni dei due lavori sono Fosdinovo (MS) e Castelnuovo Magra (SP): un elenco
+        coerente da confermare è <em>La Spezia, Sarzana, Castelnuovo Magra, Fosdinovo, Aulla,
+        Massa, Carrara</em>.
+      </p>
+    </div>
+
+    <div class="scheda">
+      <h3>3. L'agenda è accesa con le fasce predefinite</h3>
+      <p>
+        Le fasce arrivate con la migrazione sono un ripiego, non un orario vero. In
+        <em>Agenda</em> vanno messe le ore in cui si risponde davvero, con le chiusure. Un orario
+        libero in cui non si è disponibili produce una call mancata, che è peggio di nessuna call.
+      </p>
+    </div>
+
+    <div class="scheda">
+      <h3>4. La pagina privacy ha ancora i segnaposto</h3>
+      <p>
+        Sulla pagina pubblica si legge <code>[Ragione sociale / Nome e Cognome]</code>,
+        <code>[indirizzo]</code>, <code>P.IVA [numero]</code>. Va scritto almeno nome e cognome come
+        titolare del trattamento; la partita IVA resta fuori finché non c'è.
+      </p>
+      <p>
+        Con una certificazione DPO da dichiarare questo punto cambia di peso: passa da svista a
+        contraddizione. La prima cosa che farà un cliente interessato al servizio privacy è aprire
+        <code>/privacy</code> di questo sito, e trovarci un modello non compilato dice più di
+        qualunque attestato in cima alla pagina. Va sistemato <strong>prima</strong> di accendere il
+        servizio, non dopo.
+      </p>
+    </div>
+
+    <div class="scheda">
+      <h3>5. Zero recensioni</h3>
+      <p>
+        La sezione recensioni del sito non compare perché non ce n'è nessuna vera — ed è giusto
+        così. Due clienti reali possono lasciarne una: il messaggio da mandare è al punto 8. Una
+        recensione vera sul sito e sulla scheda Google conta più di qualsiasi testo di annuncio in
+        questo documento.
+      </p>
+    </div>
+
+    <div class="scheda">
+      <h3>6. Una svista sul sito di un cliente</h3>
+      <p>
+        Su <code>ristoranteatena.it</code> gli orari scrivono «Mercoledi» senza accento, e la
+        pagina dei contatti dice una cosa diversa dalla pagina di prenotazione. È un sito mostrato
+        nel portfolio: chi lo apre da un annuncio vede prima quello. Va segnalato al cliente e
+        sistemato.
+      </p>
+    </div>
+
+    <p class="nota">
+      Un punto amministrativo, da verificare con chi tiene i conti e non con questo documento:
+      Google e Meta fatturano con IVA e chiedono dati di fatturazione. Senza partita IVA quelle
+      fatture arrivano come privato. Prima di impostare un budget continuativo conviene chiarire
+      come vanno gestite.
+    </p>
+  </section>
+
+  <section id="ads">
+    <span class="occhiello">Rete di ricerca</span>
+    <h2>Google Ads: testi pronti</h2>
+    <p>
+      Una sola campagna, un solo gruppo di annunci, una sola pagina di arrivo. È noioso ed è il
+      motivo per cui funziona: con un budget piccolo, due gruppi significano metà dei dati per
+      ognuno e nessuna conclusione possibile su nessuno dei due.
+    </p>
+
+    <h3>Titoli — massimo 30 caratteri</h3>
+    <ul class="righe">
+      <li><code class="copia">Siti web fatti a mano</code>
+      <span class="conta" data-limite="30">21/30</span></li>
+      <li><code class="copia">Preventivo chiaro e fisso</code>
+      <span class="conta" data-limite="30">25/30</span></li>
+      <li><code class="copia">Sito vetrina da 990 €</code>
+      <span class="conta" data-limite="30">21/30</span></li>
+      <li><code class="copia">Landing page da 490 €</code>
+      <span class="conta" data-limite="30">21/30</span></li>
+      <li><code class="copia">Web app su misura</code>
+      <span class="conta" data-limite="30">17/30</span></li>
+      <li><code class="copia">E-commerce da 2.500 €</code>
+      <span class="conta" data-limite="30">21/30</span></li>
+      <li><code class="copia">Il prezzo lo vedi sul sito</code>
+      <span class="conta" data-limite="30">26/30</span></li>
+      <li><code class="copia">Sviluppatore, non agenzia</code>
+      <span class="conta" data-limite="30">25/30</span></li>
+      <li><code class="copia">Sito bilingue per ristoranti</code>
+      <span class="conta" data-limite="30">28/30</span></li>
+      <li><code class="copia">Siti per cantine e agriturismi</code>
+      <span class="conta" data-limite="30">30/30</span></li>
+      <li><code class="copia">Gestionale per sagre</code>
+      <span class="conta" data-limite="30">20/30</span></li>
+      <li><code class="copia">Consegna in 1-2 settimane</code>
+      <span class="conta" data-limite="30">25/30</span></li>
+      <li><code class="copia">Prenoti una call in due clic</code>
+      <span class="conta" data-limite="30">28/30</span></li>
+      <li><code class="copia">Guarda i lavori online</code>
+      <span class="conta" data-limite="30">22/30</span></li>
+      <li><code class="copia">Parli con chi scrive il codice</code>
+      <span class="conta" data-limite="30">30/30</span></li>
+    </ul>
+
+    <h3>Descrizioni — massimo 90 caratteri</h3>
+    <ul class="righe">
+      <li><code class="copia">Landing da 490 €, sito vetrina da 990 €. Il preventivo lo fai sul sito, in un minuto.</code>
+      <span class="conta" data-limite="90">85/90</span></li>
+      <li><code class="copia">Siti veloci, scritti a mano, senza canoni nascosti. I lavori si aprono e si guardano.</code>
+      <span class="conta" data-limite="90">85/90</span></li>
+      <li><code class="copia">Scegli tu l'orario della call: conferma immediata, senza scambi di email.</code>
+      <span class="conta" data-limite="90">73/90</span></li>
+      <li><code class="copia">Ristoranti, cantine, sagre: menu, schede prodotto, due lingue, gestionale su misura.</code>
+      <span class="conta" data-limite="90">84/90</span></li>
+    </ul>
+
+    <h3>Parole chiave</h3>
+    <p>
+      In corrispondenza <strong>a frase</strong> ed <strong>esatta</strong>, non generica: la
+      generica su un budget piccolo si mangia il giorno in una mattina. Dove c'è
+      <code>[città]</code> va il comune vero, una riga per comune, partendo dai due più grossi.
+    </p>
+    <ul class="righe">
+      <li><code class="copia">"creazione siti web [città]"</code>
+      <span class="conta">28 caratteri</span></li>
+      <li><code class="copia">"realizzazione siti web [provincia]"</code>
+      <span class="conta">36 caratteri</span></li>
+      <li><code class="copia">"sviluppatore siti web [città]"</code>
+      <span class="conta">31 caratteri</span></li>
+      <li><code class="copia">"preventivo sito web"</code>
+      <span class="conta">21 caratteri</span></li>
+      <li><code class="copia">"sito web per ristorante"</code>
+      <span class="conta">25 caratteri</span></li>
+      <li><code class="copia">"sito web cantina vini"</code>
+      <span class="conta">23 caratteri</span></li>
+      <li><code class="copia">"sito web bilingue"</code>
+      <span class="conta">19 caratteri</span></li>
+      <li><code class="copia">"web app su misura"</code>
+      <span class="conta">19 caratteri</span></li>
+      <li><code class="copia">"gestionale per sagre"</code>
+      <span class="conta">22 caratteri</span></li>
+      <li><code class="copia">"cassa e comande sagra"</code>
+      <span class="conta">23 caratteri</span></li>
+    </ul>
+
+    <h3>Parole da escludere</h3>
+    <p>
+      Da mettere il primo giorno, non dopo la prima bolletta. Sono le ricerche che assomigliano
+      alle nostre e non porteranno mai un cliente:
+    </p>
+    <code class="copia">gratis, free, gratuito, corso, corsi, tutorial, come fare, esempi, template, tema, plugin, download, lavoro, offerte lavoro, stipendio, stage, wix, squarespace, wordpress, shopify, hosting, dominio, prezzi hosting</code>
+    <p class="nota">
+      <code>wordpress</code> fra le escluse è una scelta, non una dimenticanza: chi cerca
+      «sito wordpress» sta cercando una cosa diversa da quella che facciamo, e il clic si paga
+      comunque.
+    </p>
+
+    <h3>Il conto del budget, senza previsioni</h3>
+    <p>
+      Nessuno può dire prima quanto costerà un clic o quanti contatti porterà: dipende dalla zona,
+      dal momento e dalla pagina. Quello che si può fare è tenere la formula in mano e riempirla
+      con i numeri veri dopo i primi giorni:
+    </p>
+    <code class="copia">clic al giorno = budget giornaliero ÷ costo per clic
+contatti al mese = clic al giorno × 30 × tasso di conversione</code>
+    <p>
+      Il costo per clic lo dice Google Ads dopo tre o quattro giorni. Il tasso di conversione lo
+      dice la pagina <em>Marketing</em> del pannello, colonna «Tasso», sulla riga
+      <code>google / cpc</code>. Finché quei due numeri non ci sono, qualsiasi cifra su questo
+      foglio sarebbe inventata. Due soglie per decidere, invece:
+    </p>
+    <ul>
+      <li>
+        <strong>Dopo 100 clic senza nemmeno un contatto</strong> il problema non è il budget: è la
+        parola chiave o la pagina di arrivo. Si cambia una cosa sola e si guarda.
+      </li>
+      <li>
+        <strong>Quando un contatto costa più di quanto rende il lavoro medio</strong>, si spegne. Il
+        lavoro più piccolo del listino è 490 €: è quello il metro, non il fatturato sperato.
+      </li>
+    </ul>
+  </section>
+
+  <section id="meta">
+    <span class="occhiello">Facebook e Instagram</span>
+    <h2>Meta: testi pronti</h2>
+    <p>
+      Su Meta nessuno sta cercando un sito: si interrompe qualcuno che guarda altro. Quindi la
+      prima riga non descrive il servizio, mostra un problema che chi legge riconosce. Le immagini
+      esistono già e sono vere: sono le anteprime dei lavori in
+      <code>public/assets/lavori/</code>.
+    </p>
+
+    <h3>Testo principale — le prime 125 lettere sono quelle che si leggono</h3>
+    <ul class="righe">
+      <li><code class="copia">Il menu del tuo locale è ancora un PDF che nessuno riesce ad aprire dal telefono? Ne faccio uno che si apre in un secondo, in due lingue, con i prezzi che aggiorni quando vuoi. Guarda quello che ho fatto per un ristorante qui vicino.</code>
+      <span class="conta" data-limite="125" data-modo="taglio">233 caratteri · si legge fino a 125</span></li>
+      <li><code class="copia">Quanto costa un sito? Sul mio lo scopri da solo in un minuto: scegli cosa ti serve e vedi la cifra, prima di scrivermi. Landing da 490 €, sito vetrina da 990 €, senza canoni nascosti.</code>
+      <span class="conta" data-limite="125" data-modo="taglio">183 caratteri · si legge fino a 125</span></li>
+      <li><code class="copia">Organizzi una sagra? Cassa, comande in cucina, menu con QR e magazzino, in un gestionale fatto per le feste di paese. La demo è aperta a tutti: provala prima di parlarne con me.</code>
+      <span class="conta" data-limite="125" data-modo="taglio">177 caratteri · si legge fino a 125</span></li>
+    </ul>
+    <p class="nota">
+      Il conteggio accanto a ogni riga è sulle prime 125 lettere, il punto in cui Facebook taglia
+      con «Altro»: se la frase che convince sta dopo, non è stata letta.
+    </p>
+
+    <h3>Titolo e pulsante</h3>
+    <ul class="righe">
+      <li><code class="copia">Il prezzo lo vedi prima di scrivermi</code>
+      <span class="conta" data-limite="40">36/40</span></li>
+      <li><code class="copia">Siti e web app su misura</code>
+      <span class="conta" data-limite="40">24/40</span></li>
+      <li><code class="copia">Guarda i lavori, poi decidi</code>
+      <span class="conta" data-limite="40">27/40</span></li>
+    </ul>
+    <p>
+      Pulsante: <strong>Scopri di più</strong> verso il sito. Non «Invia messaggio»: la
+      conversazione su Messenger salta il sito, e con il sito salta il preventivo, la scheda dei
+      lavori e la prenotazione — cioè tutto quello che convince al posto nostro.
+    </p>
+
+    <h3>Come impostarla</h3>
+    <ul>
+      <li><strong>Zona:</strong> le province servite, non l'Italia. Un raggio di 30-40 km dai
+        comuni serviti è più che sufficiente.</li>
+      <li><strong>Età:</strong> 28-65. Chi decide la spesa di un locale o di un'azienda non ha
+        vent'anni.</li>
+      <li><strong>Interessi:</strong> nessuno, o pochissimi. Con un pubblico locale piccolo, ogni
+        filtro in più lo riduce fino a farlo sparire.</li>
+      <li><strong>Creatività:</strong> l'anteprima di un lavoro vero, non un'immagine di
+        repertorio. Con il nome del locale visibile: è la prova.</li>
+    </ul>
+  </section>
+
+  <section id="scheda">
+    <span class="occhiello">Ricerca locale</span>
+    <h2>Scheda Google e recensioni</h2>
+    <p>
+      La scheda dell'attività esiste già. È il canale più conveniente che c'è — non si paga, e chi
+      cerca «sviluppatore siti web» più un nome di città la vede prima di qualsiasi annuncio.
+      Tre cose la rendono utile invece che presente.
+    </p>
+
+    <h3>1. Che i dati combacino con il sito</h3>
+    <p>
+      Nome, telefono e zone devono essere <strong>identici</strong> a quelli scritti in
+      <em>Impostazioni → Zona e ricerca locale</em>. Google confronta: se non combaciano il
+      segnale si perde. Senza sede pubblica la scheda va impostata come attività
+      <strong>con area servita</strong>, senza indirizzo — è la forma prevista per chi lavora da
+      remoto o a domicilio, non una scorciatoia.
+    </p>
+    <p class="nota">
+      Categoria principale suggerita: <em>Progettista di siti web</em>. Secondarie:
+      <em>Consulente informatico</em>, <em>Programmatore</em>. Il campo del sito web va compilato
+      con il link tracciato del punto 9, non con il dominio nudo.
+    </p>
+
+    <h3>2. La descrizione — massimo 750 caratteri</h3>
+    <code class="copia">Realizzo siti web, e-commerce e web app su misura per attività, professionisti e associazioni. Scrivo il codice a mano: i siti che consegno si aprono in un attimo anche da telefono, sono in ordine per i motori di ricerca e non dipendono da un tema comprato. Lavoro su due lingue quando serve, dal menu di un ristorante alle schede dei vini di una cantina, fino ai gestionali — come SagraGO, il mio programma per la cassa e le comande delle sagre, con demo aperta a tutti. Il prezzo lo vedi prima di scrivermi: sul sito c'è il configuratore del preventivo, e da lì si prenota anche una call gratuita scegliendo l'orario. Rispondo entro 24 ore. Parli sempre con me, non con un centralino.</code>
+      <span class="conta" data-limite="750" data-per="precedente">686/750</span>
+
+    <h3>3. Un post al mese, non uno al giorno</h3>
+    <ul class="righe">
+      <li><code class="copia">Nuovo lavoro online: il sito di un ristorante qui vicino, con il menu e i prezzi aggiornabili e la versione in inglese. Si apre in meno di un secondo anche da telefono. Il link nei commenti.</code>
+      <span class="conta">190 caratteri</span></li>
+      <li><code class="copia">Quanto costa un sito? Sul mio sito lo scopri da solo: scegli cosa ti serve e vedi la cifra, senza scrivere a nessuno. Landing da 490 €, sito vetrina da 990 €.</code>
+      <span class="conta">158 caratteri</span></li>
+      <li><code class="copia">Organizzi una sagra? SagraGO gestisce cassa, comande in cucina, menu con QR e magazzino. La demo è aperta: provala prima di parlarne con me.</code>
+      <span class="conta">140 caratteri</span></li>
+    </ul>
+
+    <h3>4. Il messaggio per chiedere una recensione</h3>
+    <p>
+      Da mandare ai due clienti, uno per volta e non in copia. Niente sconti in cambio e nessuna
+      insistenza: una recensione comprata si riconosce, e sul sito si vedrebbe.
+    </p>
+    <code class="copia">Ciao [nome], ti scrivo per una cosa piccola. Sto sistemando la scheda Google di Dext Lab e, se il sito che ti ho fatto ti sta servendo, una tua recensione mi aiuterebbe davvero: sono due minuti, da questo link → [link recensione della scheda]
+
+Se preferisci lasciar perdere nessun problema, e se invece c'è qualcosa che non va dimmelo prima a me: lo sistemo.</code>
+    <p class="nota">
+      Quando arriva, la stessa frase — con il permesso di chi l'ha scritta — va anche in
+      <em>Contenuti → Recensioni</em> nel pannello: la sezione sul sito compare solo quando ce n'è
+      almeno una vera.
+    </p>
+  </section>
+
+  <section id="privacy">
+    <span class="occhiello">Servizio nuovo</span>
+    <h2>Privacy e GDPR: il servizio nuovo</h2>
+    <p>
+      C'è una certificazione da <strong>Data Protection Officer</strong>, e cambia il quadro:
+      è la prima cosa in questo sito che nessun concorrente locale può copiare in una settimana.
+      Non è un titolo da mettere in un elenco di parole chiave — è la ragione per cui un cliente
+      sceglie chi gli fa il sito invece di chi gli fa il prezzo.
+    </p>
+
+    <div class="avviso">
+      <span class="occhiello">Prima di scrivere qualsiasi cosa</span>
+      <h3>Le parole esatte, e quelle vietate</h3>
+      <p>
+        Un titolo su una qualifica non è marketing: è una dichiarazione. Nel pannello, in
+        <em>Contenuti → Formazione e certificazioni</em>, va scritto <strong>come è scritto
+        sull'attestato</strong> — ente, schema, anno, estremi — e da lì compare sul sito, nei dati
+        strutturati e in cima alla pagina del servizio. Negli annunci si usano le stesse parole, non
+        una versione più forte.
+      </p>
+      <ul>
+        <li>
+          <strong>Si può dire</strong> «certificazione DPO» con lo schema e l'ente accanto, se
+          l'esame c'è stato. «Formazione da DPO» se è solo un corso frequentato. Le due frasi non
+          sono sinonimi e chi compra la differenza la conosce.
+        </li>
+        <li>
+          <strong>Non si può dire</strong> «a norma garantito», «zero sanzioni», «conformità
+          garantita». Nessuno può garantire che un'azienda sia conforme: si mette in ordine ciò che
+          si vede e si scrive cosa manca.
+        </li>
+        <li>
+          <strong>Non si vende con la paura.</strong> «Sanzioni fino a 20 milioni» è vero ed è il
+          modo più rapido di attirare chi cerca un timbro invece di un lavoro.
+        </li>
+        <li>
+          <strong>Non è consulenza legale.</strong> Sulla pagina c'è scritto, e negli annunci non va
+          suggerito il contrario: la competenza è tecnica e organizzativa.
+        </li>
+      </ul>
+    </div>
+
+    <h3>Titoli — massimo 30 caratteri</h3>
+    <ul class="righe">
+      <li><code class="copia">Sito conforme al GDPR</code>
+      <span class="conta" data-limite="30">21/30</span></li>
+      <li><code class="copia">Cookie banner fatto bene</code>
+      <span class="conta" data-limite="30">24/30</span></li>
+      <li><code class="copia">Informativa privacy vera</code>
+      <span class="conta" data-limite="30">24/30</span></li>
+      <li><code class="copia">Adeguamento privacy sito</code>
+      <span class="conta" data-limite="30">24/30</span></li>
+      <li><code class="copia">Registro dei trattamenti</code>
+      <span class="conta" data-limite="30">24/30</span></li>
+      <li><code class="copia">DPO esterno certificato</code>
+      <span class="conta" data-limite="30">23/30</span></li>
+    </ul>
+
+    <h3>Descrizioni — massimo 90 caratteri</h3>
+    <ul class="righe">
+      <li><code class="copia">Cookie, informativa e registro dei trattamenti messi in ordine. Certificazione DPO.</code>
+      <span class="conta" data-limite="90">83/90</span></li>
+      <li><code class="copia">Un banner con il solo «Accetta» non è un consenso. Sistemiamo il tuo sito davvero.</code>
+      <span class="conta" data-limite="90">82/90</span></li>
+      <li><code class="copia">DPO esterno per aziende e associazioni: prima una call per capire se serve.</code>
+      <span class="conta" data-limite="90">75/90</span></li>
+    </ul>
+    <p class="nota">
+      La prima descrizione dice «Certificazione DPO»: si può usare solo dopo aver compilato la
+      qualifica nel pannello, perché è da lì che la pagina la mostra a chi clicca. Un annuncio che
+      la dichiara e una pagina di arrivo che non la nomina è la contraddizione più facile da notare.
+    </p>
+
+    <h3>Parole chiave</h3>
+    <p>
+      A frase ed esatta, come le altre. Sono ricerche di chi ha già capito di avere un problema:
+      poche, ma è il traffico più vicino a un lavoro pagato che questo sito possa comprare.
+    </p>
+    <ul class="righe">
+      <li><code class="copia">"adeguamento gdpr sito web"</code>
+      <span class="conta">27 caratteri</span></li>
+      <li><code class="copia">"cookie banner a norma"</code>
+      <span class="conta">23 caratteri</span></li>
+      <li><code class="copia">"informativa privacy sito web"</code>
+      <span class="conta">30 caratteri</span></li>
+      <li><code class="copia">"registro dei trattamenti"</code>
+      <span class="conta">26 caratteri</span></li>
+      <li><code class="copia">"dpo esterno [provincia]"</code>
+      <span class="conta">25 caratteri</span></li>
+      <li><code class="copia">"consulente privacy [città]"</code>
+      <span class="conta">28 caratteri</span></li>
+    </ul>
+
+    <h3>Parole da escludere, in aggiunta alle altre</h3>
+    <code class="copia">corso dpo, corsi privacy, master privacy, modello informativa, generatore informativa, informativa gratis, esempio informativa, fac simile, avvocato, studio legale, sanzioni, ricorso, garante privacy contatti</code>
+    <p class="nota">
+      <code>corso dpo</code> e <code>master privacy</code> sono le ricerche di chi vuole diventare
+      DPO, non di chi ne cerca uno: sono anche le più costose del settore, e porterebbero clic da
+      pagare a chi non compra niente.
+    </p>
+
+    <h3>Dove va detto sul sito, e dove no</h3>
+    <ul>
+      <li>
+        <strong>Pagina dedicata:</strong> <code>/gdpr</code>. Si accende in
+        <em>Impostazioni → Servizio protezione dati</em>, e compare solo se c'è una qualifica
+        compilata: senza, risponde 404 di proposito. Da lì passano anche la voce «Protezione dati»
+        nel menu, la card nei servizi e il piè di pagina.
+      </li>
+      <li>
+        <strong>Configuratore:</strong> l'opzione «Adeguamento privacy e cookie» è già nel listino,
+        spenta e a zero. Metti il prezzo e attivala: è la voce che trasforma la competenza in una
+        riga di preventivo invece che in una frase.
+      </li>
+      <li>
+        <strong>Scheda Google:</strong> aggiungi la categoria secondaria che corrisponde
+        («Consulente informatico» resta la principale) e una riga nella descrizione. Non cambiare il
+        nome dell'attività per infilarci «GDPR»: quello è il modo più rapido di far sospendere una
+        scheda.
+      </li>
+      <li>
+        <strong>Dove no:</strong> nell'hero della home. La prima frase del sito è ancora «siti e web
+        app»: chi arriva cerca quello, e un titolo che promette due mestieri diversi non ne vende
+        nessuno.
+      </li>
+    </ul>
+
+    <div class="scheda">
+      <h3>Le due cose da chiarire prima di vendere un incarico DPO</h3>
+      <p>
+        Sono amministrative e non si risolvono con un testo di annuncio, ma un incarico venduto
+        senza averle chiarite diventa un problema al primo pagamento.
+      </p>
+      <ul>
+        <li>
+          <strong>La fatturazione.</strong> Un incarico di DPO è un rapporto continuativo: senza
+          partita IVA va capito con chi tiene i conti come si inquadra. Vale per il servizio, non
+          per la pagina — la pagina si può pubblicare comunque.
+        </li>
+        <li>
+          <strong>Il contratto.</strong> L'incarico si formalizza per iscritto, con i compiti
+          dell'articolo 39 e i limiti scritti dentro. È anche l'occasione per mettere nero su bianco
+          quello che la pagina già dice: la responsabilità del trattamento resta del titolare.
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="link">
+    <span class="occhiello">Misurazione</span>
+    <h2>I link tracciati</h2>
+    <p>
+      <strong>Regola unica: il dominio nudo non si pubblica mai.</strong> Ogni posto in cui finisce
+      un link a questo sito ha il suo, e la differenza fra i due si vede un mese dopo, quando si
+      deve decidere dove spendere. Questi arrivano dal costruttore in
+      <em>pannello → Marketing</em>, che è anche il posto dove cambiarne la destinazione.
+    </p>
+    <div class="tabellone">
+      <table>
+        <thead>
+          <tr><th>Dove va</th><th>Link</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Google Ads</strong><br /><span class="nota">campo «URL finale»</span></td>
+            <td><code>https://dextlab.it/?utm_source=google&amp;utm_medium=cpc&amp;utm_campaign=lancio-1</code></td>
+          </tr>
+          <tr>
+            <td><strong>Inserzioni Meta</strong><br /><span class="nota">campo «URL sito web»</span></td>
+            <td><code>https://dextlab.it/?utm_source=facebook&amp;utm_medium=paid&amp;utm_campaign=lancio-1</code></td>
+          </tr>
+          <tr>
+            <td><strong>Scheda Google</strong><br /><span class="nota">pulsante «Sito web»</span></td>
+            <td><code>https://dextlab.it/?utm_source=google&amp;utm_medium=scheda</code></td>
+          </tr>
+          <tr>
+            <td><strong>Annunci sulla privacy</strong><br /><span class="nota">gruppo separato: la
+              pagina di arrivo è /gdpr, non la home</span></td>
+            <td><code>https://dextlab.it/gdpr?utm_source=google&amp;utm_medium=cpc&amp;utm_campaign=privacy-1</code></td>
+          </tr>
+          <tr>
+            <td><strong>Bio Instagram</strong></td>
+            <td><code>https://dextlab.it/?utm_source=instagram&amp;utm_medium=bio</code></td>
+          </tr>
+          <tr>
+            <td><strong>Profilo LinkedIn</strong></td>
+            <td><code>https://dextlab.it/?utm_source=linkedin&amp;utm_medium=profilo</code></td>
+          </tr>
+          <tr>
+            <td><strong>Firma delle email</strong></td>
+            <td><code>https://dextlab.it/?utm_source=firma&amp;utm_medium=email</code></td>
+          </tr>
+          <tr>
+            <td><strong>Biglietto da visita e QR</strong></td>
+            <td><code>https://dextlab.it/?utm_source=biglietto&amp;utm_medium=offline</code></td>
+          </tr>
+          <tr>
+            <td><strong>Passaparola</strong><br /><span class="nota">da dare a un cliente che ti presenta</span></td>
+            <td><code>https://dextlab.it/?utm_source=passaparola&amp;utm_medium=referral</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="nota">
+      Il nome della campagna (<code>lancio-1</code>) cambia a ogni iniziativa nuova; origine e
+      mezzo restano quelli. Tutto minuscolo e con i trattini: «Google Ads» e «google-ads» sono due
+      canali diversi per qualsiasi strumento di misura, compreso il pannello.
+    </p>
+  </section>
+
+  <section id="piano">
+    <span class="occhiello">Ordine delle cose</span>
+    <h2>Il piano delle prime 4 settimane</h2>
+    <p>
+      Le settimane sono numerate perché l'ordine conta: la seconda non funziona se la prima non è
+      fatta. Il budget entra in gioco solo alla terza.
+    </p>
+    <ol class="piano">
+      <li>
+        <div>
+          <h3>Chiudere i buchi. Spesa: zero.</h3>
+          <ul>
+            <li>SMTP su <code>smtps.aruba.it</code>, porta 465, e una prova di invio.</li>
+            <li>Dati locali compilati nel pannello, identici a quelli della scheda Google.</li>
+            <li>Fasce vere nell'agenda, con le chiusure.</li>
+            <li>Nome e cognome nella pagina privacy, al posto dei segnaposto.</li>
+            <li>Messaggio per la recensione mandato ai due clienti.</li>
+          </ul>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Mettere i link giusti dove già passa qualcuno. Spesa: zero.</h3>
+          <ul>
+            <li>Scheda Google: descrizione, categorie, area servita, link tracciato.</li>
+            <li>Bio Instagram, profilo LinkedIn, firma delle email: i loro link.</li>
+            <li>Un post sulla scheda Google.</li>
+            <li>Alla fine della settimana: aprire <em>Marketing</em> e guardare se compaiono righe
+              diverse da «Diretto». Se non compaiono, un link è sbagliato.</li>
+          </ul>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Il primo annuncio, piccolo. Spesa: bassa e decisa in anticipo.</h3>
+          <ul>
+            <li>Una campagna sulla ricerca, un gruppo, le parole chiave a frase ed esatta, le
+              escluse messe subito.</li>
+            <li>Pagina di arrivo: la home. Il configuratore è la cosa che converte.</li>
+            <li>Budget giornaliero deciso prima e non ritoccato per sette giorni: cambiarlo ogni
+              giorno rende i dati illeggibili.</li>
+            <li>Ogni due giorni: costo per clic reale e termini di ricerca; ogni termine fuori
+              bersaglio va fra le escluse.</li>
+          </ul>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Decidere con i numeri, non con l'impressione.</h3>
+          <ul>
+            <li>Pagina <em>Marketing</em>, periodo 30 giorni: visite, contatti e tasso per canale.</li>
+            <li>Contatti a zero dopo un centinaio di clic: si cambia una cosa sola — la parola
+              chiave o il titolo — e si riparte da lì.</li>
+            <li>Contatti sì: si alza il budget del canale che li ha portati, non di tutti.</li>
+            <li>Un canale gratuito che ha portato contatti vale più di uno a pagamento che ne ha
+              portati altrettanti: quello si tiene comunque.</li>
+          </ul>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section id="misura">
+    <span class="occhiello">Il pannello</span>
+    <h2>Come si misura</h2>
+    <p>
+      In <em>pannello → Marketing</em> ogni riga è un canale e le colonne sono l'imbuto: visite,
+      persone (chi ha eseguito JavaScript, cioè il conteggio senza bot), contatti, call. Il tasso
+      è contatti su persone.
+    </p>
+    <p>
+      Due cose vanno sapute per non leggere male quei numeri, e sono scritte anche nella pagina:
+    </p>
+    <ul>
+      <li>
+        <strong>Non c'è nessun cookie di tracciamento.</strong> L'origine si legge dal link, resta
+        sulla riga della visita e il modulo la porta con sé. Il limite è dichiarato: chi arriva
+        dall'annuncio oggi e scrive fra due giorni risulta «Diretto». Il conto dei contatti da
+        campagna è quindi <em>prudente</em> — mai gonfiato.
+      </li>
+      <li>
+        <strong>«Diretto» non è un errore.</strong> È chi ha scritto l'indirizzo, chi arriva da un
+        segnalibro, e chi è arrivato da un link senza tracciamento. Se quella riga cresce mentre
+        si fa pubblicità, di solito manca un utm da qualche parte.
+      </li>
+    </ul>
+    <p>
+      L'export CSV dei lead porta le stesse colonne: origine, mezzo, campagna e pagina di
+      partenza. Serve per rifare i conti su un foglio quando i canali diventano più di tre.
+    </p>
+    <p class="chiusa">
+      Ultima cosa, che vale più di tutto il resto di questo documento: con tre lavori all'attivo, il
+      contatto che chiude non arriva da un annuncio ma da qualcuno che ti ha visto lavorare. La
+      pubblicità serve a non dipendere solo da quello — non a sostituirlo.
+    </p>
+  </section>
+</div>

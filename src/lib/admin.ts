@@ -232,6 +232,12 @@ export interface LeadRow {
   source: string;
   status: string;
   created_at: Date;
+  /** Origine del contatto: vuota per i lead diretti e per quelli di prima. */
+  camp_source: string;
+  camp_medium: string;
+  camp_name: string;
+  /** Pagina da cui è partito il contatto. */
+  pagina: string;
 }
 
 export const LEAD_STATUSES = [
@@ -273,6 +279,7 @@ export const TABLE_FIELDS = {
   reviews: ['quote', 'author', 'role', 'stars', 'sort', 'active'],
   faqs: ['question', 'answer', 'sort', 'active'],
   works: ['title', 'url', 'summary', 'tags', 'proprio', 'story', 'links', 'shots', 'sort', 'active'],
+  credentials: ['title', 'issuer', 'scheme', 'year', 'code', 'url', 'sort', 'active'],
   agenda_windows: ['weekday', 'from_time', 'to_time', 'sort', 'active'],
   agenda_closures: ['day', 'from_time', 'to_time', 'reason', 'sort', 'active'],
 } as const satisfies Record<ContentTable, readonly string[]>;
@@ -365,6 +372,18 @@ export const AGENDA_SETTING_KEYS = [
 const AGENDA_TOGGLES = new Set(['agenda_attiva']);
 
 /**
+ * L'interruttore del servizio protezione dati, da solo e con la sua azione.
+ *
+ * Stessa ragione delle liste sopra: un form manda solo ciò che mostra, e una
+ * casella assente vale «spenta». Se questa chiave stesse nell'elenco principale,
+ * salvare dalle impostazioni la spegnerebbe ogni volta che quel form non la
+ * contiene — e viceversa.
+ */
+export const DPO_SETTING_KEYS = ['dpo_attiva'] as const;
+
+const DPO_TOGGLES = new Set(['dpo_attiva']);
+
+/**
  * I dati per la ricerca locale, in un elenco loro come quelli dell'agenda e per la
  * stessa ragione: ogni form salva solo i campi che mostra.
  */
@@ -432,6 +451,15 @@ export function agendaSettingsFromForm(form: FormData): Record<string, string> {
     // spegnerebbe il calendario di chi l'ha già sottoscritto senza dirlo.
     if (key === 'agenda_ics_key' && value === '') continue;
     out[key] = value;
+  }
+  return out;
+}
+
+/** L'interruttore del servizio protezione dati: solo quello che questo form mostra. */
+export function dpoSettingsFromForm(form: FormData): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const key of DPO_TOGGLES) {
+    out[key] = form.get(key) !== null ? '1' : '';
   }
   return out;
 }

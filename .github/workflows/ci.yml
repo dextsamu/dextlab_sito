@@ -161,6 +161,21 @@ jobs:
       - name: Le email dicono la stessa cosa in HTML e in testo
         run: npm run --silent mail -- --verifica
 
+      # Google Ads rifiuta un titolo di 31 caratteri e Meta taglia il testo a 125:
+      # i conteggi accanto a ogni riga del kit non sono un ornamento, sono la sola
+      # cosa che dice se un testo è pubblicabile. Qui si ricontano — e si verifica
+      # anche che quelli scritti nel file siano ancora veri, perché un testo
+      # modificato senza rieseguire lo script si porta dietro il numero di prima,
+      # che è peggio di nessun numero.
+      - name: I testi degli annunci stanno nei limiti
+        run: |
+          npm run --silent kit -- --verifica
+          npm run --silent kit
+          git diff --exit-code marketing/kit-marketing.html || {
+            echo "::error::conteggi del kit stantii: esegui «npm run kit» e committa il file"
+            exit 1
+          }
+
       - name: Build
         run: npm run build
 
@@ -258,8 +273,13 @@ jobs:
           check /fonts/inter-latin.woff2          200
           check /fonts/space-grotesk-latin.woff2  200
           check /admin       200
-          # Il pannello non deve essere raggiungibile senza sessione.
-          check /admin/lead  303
+          # Il pannello non deve essere raggiungibile senza sessione. Vale anche
+          # per la pagina Marketing, che mostra da dove arrivano i contatti.
+          check /admin/lead      303
+          check /admin/marketing 303
+          # La pagina del servizio protezione dati parte spenta: 404 è lo stato
+          # giusto appena migrato, e la guardia dedicata prova l'accensione.
+          check /gdpr            404
           # L'endpoint di backup resta chiuso senza BACKUP_KEY.
           check /api/backup  403
           exit $fail
@@ -1416,6 +1436,203 @@ jobs:
           else echo "::error::atteso 403 per un host che solo somiglia al nostro, ricevuto $code"; fail=1; fi
           exit $fail
 
+      # L'attribuzione è la sola cosa che rende la pubblicità misurabile: se il
+      # contatto non porta con sé la campagna, dopo un mese di annunci l'unica
+      # frase possibile è «mi pare che vada meglio». Questa guardia prova le due
+      # direzioni, perché sbagliano in modi opposti e ugualmente costosi: la
+      # campagna dichiarata deve arrivare intera fino al lead, e un contatto
+      # senza campagna deve restare senza — mai ereditarne una a caso, mai
+      # accettarne una da un campo nascosto manomesso.
+      - name: Un contatto sa da dove arriva
+        run: |
+          fail=0
+          sql() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -tAc "$1"; }
+          esegui() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -qc "$1"; }
+          uguale() {
+            if [ "$2" = "$3" ]; then echo "  ok    $1: $2"
+            else echo "::error::$1: atteso «$3», trovato «$2»"; fail=1; fi
+          }
+
+          # I passi precedenti hanno consumato il limite del form contatti: senza
+          # azzerarlo questa guardia fallirebbe con 429, cioè per il motivo
+          # sbagliato. Vale anche per le riesecuzioni sullo stesso database.
+          # Il limite dell'accesso conta anche i tentativi riusciti (5 ogni 10
+          # minuti per utente): l'ultimo passo di questa guardia entra nel
+          # pannello, e su una riesecuzione ravvicinata prenderebbe «Troppi
+          # tentativi» invece di guardare la pagina.
+          esegui "DELETE FROM rate_limits WHERE rl_key LIKE 'contact:%' OR rl_key LIKE 'login%';"
+
+          UA='Mozilla/5.0 (X11; Linux x86_64) GuardiaCampagne/1.0'
+          ALTRO='Mozilla/5.0 (Macintosh; Intel Mac OS X) AltroBrowser/1.0'
+
+          # 1. Arrivo dall'annuncio. Le maiuscole del link devono sparire: se
+          #    «Google» e «google» restano distinti, un canale si spezza in due.
+          home=$(curl -s -A "$UA" \
+            'http://127.0.0.1:4321/?utm_source=Google&utm_medium=CPC&utm_campaign=Guardia-CI')
+          vt=$(grep -o 'name="vt" value="[a-f0-9]\{16\}"' <<<"$home" | head -1 | grep -o '[a-f0-9]\{16\}')
+          if [ -z "$vt" ]; then echo "::error::il modulo contatti non porta il token della visita"; exit 1; fi
+          echo "  ok    il modulo porta il token della visita"
+          uguale 'la visita registra la campagna' \
+            "$(sql "select camp_source||'/'||camp_medium||'/'||camp_name from visits where token='$vt'")" \
+            'google/cpc/guardia-ci'
+
+          # 2. Seconda pagina della stessa visita: i parametri non ci sono più, e
+          #    l'origine si eredita. Senza questo passaggio ogni contatto scritto
+          #    dopo aver girato il sito risulterebbe diretto.
+          curl -s -o /dev/null -A "$UA" -H 'Referer: http://127.0.0.1:4321/' http://127.0.0.1:4321/prenota
+          uguale 'la pagina successiva eredita la campagna' \
+            "$(sql "select camp_source||'/'||camp_medium||'/'||camp_name from visits where path='/prenota' order by id desc limit 1")" \
+            'google/cpc/guardia-ci'
+
+          # 3. Il contatto eredita l'origine dalla visita che ha reso il modulo.
+          curl -s -o /dev/null -A "$UA" -H 'Origin: http://127.0.0.1:4321' -X POST \
+            http://127.0.0.1:4321/api/contact \
+            -F 'name=Guardia' -F 'email=guardia@esempio.it' -F 'message=Prova attribuzione.' -F "vt=$vt"
+          uguale 'il lead porta la campagna e la pagina' \
+            "$(sql "select camp_source||'/'||camp_medium||'/'||camp_name||' da '||pagina from leads where email='guardia@esempio.it' order by id desc limit 1")" \
+            'google/cpc/guardia-ci da /'
+
+          # 4. Controprova: senza token il contatto è diretto. L'assenza del dato
+          #    si registra come assenza, non come ipotesi.
+          curl -s -o /dev/null -H 'Origin: http://127.0.0.1:4321' -X POST \
+            http://127.0.0.1:4321/api/contact \
+            -F 'name=Diretto' -F 'email=diretto@esempio.it' -F 'message=Nessun token.'
+          uguale 'un contatto senza token resta diretto' \
+            "$(sql "select coalesce(nullif(camp_source,''),'(vuoto)') from leads where email='diretto@esempio.it' order by id desc limit 1")" \
+            '(vuoto)'
+
+          # 5. Controprova: un token inventato non trova nessuna visita, quindi
+          #    non può scrivere valori arbitrari nelle statistiche.
+          curl -s -o /dev/null -H 'Origin: http://127.0.0.1:4321' -X POST \
+            http://127.0.0.1:4321/api/contact \
+            -F 'name=Falso' -F 'email=falso@esempio.it' -F 'message=Token inventato.' \
+            -F 'vt=ffffffffffffffff'
+          uguale 'un token inventato non porta origine' \
+            "$(sql "select coalesce(nullif(camp_source,''),'(vuoto)') from leads where email='falso@esempio.it' order by id desc limit 1")" \
+            '(vuoto)'
+
+          # 6. Ricerca organica: il referer di un motore vale «organico», non
+          #    «cpc». Confonderli significa non sapere quale traffico si paga.
+          curl -s -o /dev/null -A "$ALTRO" -H 'Referer: https://www.google.com/search?q=siti+web' \
+            http://127.0.0.1:4321/
+          uguale 'una visita dalla ricerca è organica' \
+            "$(sql "select camp_source||'/'||camp_medium from visits where ua like '%AltroBrowser%' order by id desc limit 1")" \
+            'google/organico'
+
+          # 7. Controprova dell'ereditarietà: un altro browser sulla stessa
+          #    macchina NON deve prendersi la campagna del primo. L'IP è
+          #    troncato per il GDPR, quindi da solo non identifica nessuno.
+          curl -s -o /dev/null -A 'TerzoBrowser/1.0' http://127.0.0.1:4321/
+          uguale "l'origine non passa a un altro browser" \
+            "$(sql "select coalesce(nullif(camp_source,''),'(vuoto)') from visits where ua like 'TerzoBrowser%' order by id desc limit 1")" \
+            '(vuoto)'
+
+          # 8. La pagina del pannello mostra il canale e costruisce i link con la
+          #    stessa normalizzazione della lettura: un link che esce da lì deve
+          #    produrre righe che quella pagina sa raggruppare.
+          jar=/tmp/mkt.jar
+          csrf=$(curl -s -c $jar http://127.0.0.1:4321/admin | grep -oE '[a-f0-9]{64}' | head -1)
+          curl -s -b $jar -c $jar -o /dev/null -H 'Origin: http://127.0.0.1:4321' \
+            -X POST http://127.0.0.1:4321/admin \
+            -d "csrf=$csrf&username=ci_admin&password=password-ci-molto-lunga"
+          mkt=$(curl -s -b $jar 'http://127.0.0.1:4321/admin/marketing?src=Google%20Ads&med=CPC&camp=Guardia%20CI&dest=/prenota')
+          for atteso in 'guardia-ci' '>Google<' 'utm_source=google+ads' 'utm_medium=cpc' 'utm_campaign=guardia+ci' '/prenota'; do
+            if grep -qF "$atteso" <<<"$mkt"; then echo "  ok    la pagina Marketing contiene $atteso"
+            else echo "::error::la pagina Marketing non contiene $atteso"; fail=1; fi
+          done
+
+          exit $fail
+
+      # Una qualifica è un'affermazione su una persona, come una recensione: la
+      # differenza è che qui l'affermazione è su di sé, e nessuno la smentisce per
+      # noi. Da qui le due regole che questa guardia protegge — una qualifica senza
+      # l'ente che l'ha rilasciata non si mostra (non è verificabile, quindi è
+      # indistinguibile da una inventata), e la pagina che vende il servizio esiste
+      # solo se una qualifica c'è davvero. La seconda regola serve a rendere
+      # impossibile la sequenza sbagliata: pubblicare la pagina e compilare la
+      # qualifica il giorno dopo.
+      - name: Una qualifica si dichiara solo se c'è
+        run: |
+          fail=0
+          sql() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -tAc "$1"; }
+          esegui() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -qc "$1"; }
+          uguale() {
+            if [ "$2" = "$3" ]; then echo "  ok    $1: $2"
+            else echo "::error::$1: atteso «$3», trovato «$2»"; fail=1; fi
+          }
+          codice() { curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:4321$1"; }
+          # I dati strutturati della home: le qualifiche dichiarate, in JSON.
+          # Su una riga sola perché dentro un blocco YAML ogni riga porta la sua
+          # rientratura, e Python la leggerebbe come indentazione sbagliata.
+          ld() {
+            curl -s http://127.0.0.1:4321/ | python3 -c "import sys,re,json;h=sys.stdin.read();m=re.search(r'ld[+]json\">(.*?)</script>',h,re.S);d=json.loads(m.group(1)) if m else {};o=d.get('@graph',[d]);a=next((x for x in o if x.get('@type')=='ProfessionalService'),{});print(json.dumps(a.get('hasCredential',[]),ensure_ascii=False))"
+          }
+
+          # 1. Stato di partenza: interruttore spento e nessuna qualifica.
+          esegui "DELETE FROM credentials;"
+          esegui "UPDATE settings SET v='' WHERE k='dpo_attiva';"
+          uguale 'la pagina del servizio non esiste' "$(codice /gdpr)" '404'
+          # Le occorrenze, non le righe: grep -c conta le righe che contengono un
+          # match, e l'HTML reso mette più link sulla stessa riga.
+          conta() { curl -s http://127.0.0.1:4321/ | grep -o 'href="/gdpr"' | wc -l | tr -d ' '; }
+          uguale 'la home non la nomina' "$(conta)" '0'
+          uguale 'la sitemap non la promette' \
+            "$(curl -s http://127.0.0.1:4321/sitemap.xml | grep -c gdpr || true)" '0'
+          uguale 'nessuna qualifica nei dati strutturati' "$(ld)" '[]'
+
+          # 2. Solo l'interruttore: non basta. È la regola che conta più delle altre.
+          esegui "UPDATE settings SET v='1' WHERE k='dpo_attiva';"
+          uguale "l'interruttore da solo non pubblica la pagina" "$(codice /gdpr)" '404'
+
+          # 3. Qualifica senza ente: non è verificabile, quindi non esiste.
+          esegui "INSERT INTO credentials (title, issuer, active) VALUES ('Data Protection Officer', '', true);"
+          uguale 'una qualifica senza ente non pubblica la pagina' "$(codice /gdpr)" '404'
+          uguale 'una qualifica senza ente non entra nei dati strutturati' "$(ld)" '[]'
+
+          # 4. Qualifica completa: adesso sì, e la pagina dice chi l'ha rilasciata.
+          esegui "UPDATE credentials SET issuer='Ente di prova CI', scheme='UNI 11697:2017', year='2026', code='CI-1';"
+          uguale 'con la qualifica la pagina esiste' "$(codice /gdpr)" '200'
+          pagina=$(curl -s http://127.0.0.1:4321/gdpr)
+          for atteso in 'Ente di prova CI' 'UNI 11697:2017' 'CI-1' 'DPO esterno'; do
+            if grep -qF "$atteso" <<<"$pagina"; then echo "  ok    la pagina contiene $atteso"
+            else echo "::error::la pagina non contiene $atteso"; fail=1; fi
+          done
+          uguale 'la sitemap la dichiara' \
+            "$(curl -s http://127.0.0.1:4321/sitemap.xml | grep -c '/gdpr' || true)" '1'
+          # Quattro: menu, card dei servizi, riga delle qualifiche, piè di pagina.
+          uguale 'la home porta alla pagina' "$(conta)" '4'
+          uguale 'i dati strutturati dicono chi ha rilasciato la qualifica' \
+            "$(ld | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0]['recognizedBy']['name'])")" \
+            'Ente di prova CI'
+          uguale "l'anno è dichiarato" \
+            "$(ld | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0].get('dateCreated','(assente)'))")" \
+            '2026'
+
+          # 5. Un anno che non è un anno non diventa una data: il campo è testo
+          #    libero, e «giugno 2026» in un dateCreated è un dato non valido —
+          #    peggio di un dato in meno.
+          esegui "UPDATE credentials SET year='giugno 2026';"
+          uguale 'un anno scritto a parole non diventa una data' \
+            "$(ld | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0].get('dateCreated','(assente)'))")" \
+            '(assente)'
+
+          # 6. L'indirizzo di verifica arriva dal pannello e finisce in un href:
+          #    solo http(s), come per i link dei lavori.
+          esegui "UPDATE credentials SET url='javascript:alert(1)';"
+          if curl -s http://127.0.0.1:4321/gdpr | grep -q 'javascript:alert'; then
+            echo "::error::un indirizzo javascript: è finito in pagina"; fail=1
+          else
+            echo "  ok    un indirizzo non web viene scartato"
+          fi
+
+          # Si rimette come si è trovato: le guardie dopo questa leggono la home, e
+          # una pagina in più cambierebbe il conto dei link.
+          esegui "DELETE FROM credentials;"
+          esegui "UPDATE settings SET v='' WHERE k='dpo_attiva';"
+          uguale 'lo stato torna quello di prima' "$(codice /gdpr)" '404'
+
+          exit $fail
+
       - name: Backup e ripristino su database vuoto
         run: |
           # Il numero atteso viene letto dal database di partenza, non scritto a
@@ -1507,7 +1724,16 @@ jobs:
           }
           expect "tipi progetto"      "select count(*) from pricing_types" 3
           expect "tipi attivi"        "select count(*) from pricing_types where active" 2
-          expect "addon"              "select count(*) from pricing_addons" 2
+          # Non il numero di righe: quello che deve sopravvivere sono i DUE addon
+          # reali. La 014 ne aggiunge uno suo — «Adeguamento privacy e cookie»,
+          # spento e a zero — e contare le righe farebbe fallire questa guardia
+          # per una riga in più invece che per un dato perduto, che è la cosa che
+          # deve controllare. Le due righe si verificano per nome, e la nuova si
+          # verifica per come deve entrare: spenta, così il configuratore non la
+          # mostra finché nessuno le ha dato un prezzo.
+          expect "addon reali"        "select count(*) from pricing_addons where label in ('Multilingua','SEO locale')" 2
+          expect "prezzi addon reali" "select sum(price) from pricing_addons where label in ('Multilingua','SEO locale')" 840
+          expect "addon della 014"    "select count(*) from pricing_addons where label = 'Adeguamento privacy e cookie' and not active and price = 0" 1
           expect "recensioni"         "select count(*) from reviews" 2
           expect "lead"               "select count(*) from leads" 2
           expect "lead senza data"    "select count(*) from leads where created_at is null" 0

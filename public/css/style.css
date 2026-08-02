@@ -1428,3 +1428,43 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   .js .reveal h2{-webkit-mask-image:none;mask-image:none;animation:none}
   .js .reveal h2 .grad{opacity:1;transform:none;animation:none}
 }
+
+/* ---------- qualifiche e pagina protezione dati ---------- */
+/* Le qualifiche in fondo a «L'approccio»: righe, non card. Sono due o tre voci
+   con dentro un nome di ente e una data — una griglia di riquadri le farebbe
+   sembrare più di quello che sono, e il numero è la parte onesta. */
+.qualifiche{margin:44px 0 0;padding-top:26px;border-top:1px solid var(--border)}
+.qualifiche-cap{font-size:.82rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+  margin:0 0 16px}
+.qualifiche ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+.qualifiche li{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
+.qualifiche li b{font-size:1rem}
+.qual-ente{color:var(--muted);font-size:.9rem}
+.qual-codice{color:var(--muted);font-size:.8rem;font-family:ui-monospace,monospace;
+  padding:2px 8px;border:1px solid var(--border);border-radius:999px}
+.qualifiche li a,.gd-qual li a{color:var(--cyan);font-size:.86rem;font-weight:500}
+.qualifiche-piu{margin:20px 0 0;color:var(--muted);font-size:.9rem}
+.qualifiche-piu a{color:var(--cyan)}
+/* La quinta card dei servizi sta su due colonne: una riga a metà si nota più di
+   una card larga, e la forma larga fa spazio al link che le altre non hanno. */
+@media(min-width:900px){.card-larga{grid-column:1 / -1}}
+.card-vai{margin:16px 0 0}
+.card-vai a{color:var(--cyan);font-weight:500}
+/* Pagina /gdpr: riusa .lavoro-pagina e .lp-* , qui c'è solo ciò che le è proprio. */
+.gd-qual{margin:38px 0 0;padding:24px;border:1px solid var(--border-2);border-radius:var(--radius);
+  background:var(--surface)}
+.gd-qual h2,.gd-blocco h2{font-size:1.25rem;margin:0 0 16px}
+.gd-qual ul{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:12px}
+.gd-qual li{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
+.gd-blocco{margin:44px 0 0}
+.gd-griglia{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:760px){.gd-griglia{grid-template-columns:repeat(2,1fr)}}
+.gd-griglia article{padding:20px;border:1px solid var(--border);border-radius:14px;
+  background:var(--surface)}
+.gd-griglia b{display:block;margin-bottom:8px}
+.gd-griglia p{color:var(--muted);font-size:.92rem;line-height:1.6;margin:0}
+.gd-testo{color:var(--muted);line-height:1.75;margin:0 0 16px}
+.gd-domande{margin:0}
+.gd-domande dt{font-weight:600;margin:0 0 8px}
+.gd-domande dd{margin:0 0 22px;color:var(--muted);line-height:1.7}
+.gd-blocco .lp-nota{margin-top:16px}

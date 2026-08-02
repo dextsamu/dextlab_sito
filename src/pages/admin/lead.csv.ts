@@ -28,7 +28,22 @@ export const GET: APIRoute = async ({ cookies, redirect }) => {
 
   const leads = await allLeadsForExport();
   const lines = [
-    csvRow(['id', 'data', 'nome', 'email', 'oggetto', 'messaggio', 'fonte', 'stato']),
+    // L'origine sta anche qui: chi esporta i lead per fare due conti su un
+    // foglio ha bisogno soprattutto di questa colonna.
+    csvRow([
+      'id',
+      'data',
+      'nome',
+      'email',
+      'oggetto',
+      'messaggio',
+      'fonte',
+      'stato',
+      'origine',
+      'mezzo',
+      'campagna',
+      'pagina',
+    ]),
     ...leads.map((l) =>
       csvRow([
         l.id,
@@ -39,6 +54,10 @@ export const GET: APIRoute = async ({ cookies, redirect }) => {
         l.message,
         l.source,
         l.status,
+        l.camp_source,
+        l.camp_medium,
+        l.camp_name,
+        l.pagina,
       ])
     ),
   ];

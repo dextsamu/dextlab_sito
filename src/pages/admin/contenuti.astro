@@ -35,6 +35,17 @@ const workFields: FieldSpec[] = [
   { name: 'active', type: 'check', placeholder: '' },
 ];
 
+const credentialFields: FieldSpec[] = [
+  { name: 'title', type: 'text', placeholder: 'Cosa attesta — es. Data Protection Officer', label: 'Titolo' },
+  { name: 'issuer', type: 'text', placeholder: "Ente che l'ha rilasciata, per nome esatto", label: 'Rilasciata da' },
+  { name: 'scheme', type: 'text', placeholder: 'Schema o norma — es. UNI 11697:2017', label: 'Schema' },
+  { name: 'year', type: 'text', placeholder: '2026, oppure «giugno 2026»', label: 'Anno' },
+  { name: 'code', type: 'text', placeholder: 'Numero di attestato o certificato, se pubblico', label: 'Estremi' },
+  { name: 'url', type: 'text', placeholder: 'https://… pagina dove si verifica', label: 'Verifica' },
+  { name: 'sort', type: 'number', placeholder: 'ordine' },
+  { name: 'active', type: 'check', placeholder: '' },
+];
+
 const faqFields: FieldSpec[] = [
   { name: 'question', type: 'text', placeholder: 'Domanda' },
   { name: 'answer', type: 'textarea', placeholder: 'Risposta' },
@@ -42,9 +53,10 @@ const faqFields: FieldSpec[] = [
   { name: 'active', type: 'check', placeholder: '' },
 ];
 
-const [reviews, works, faqs, leads] = await Promise.all([
+const [reviews, works, credentials, faqs, leads] = await Promise.all([
   contentRows('reviews'),
   contentRows('works'),
+  contentRows('credentials'),
   contentRows('faqs'),
   leadStats(),
 ]);
@@ -88,6 +100,36 @@ const [reviews, works, faqs, leads] = await Promise.all([
       <code>esempio-1.jpg</code>, <code>esempio-2.jpg</code>… La ricerca si ferma al primo numero
       che manca. In «didascalie» scrivi una riga per schermata, nello stesso ordine: le righe in più
       non si vedono, quelle in meno lasciano la schermata senza didascalia.
+    </p>
+  </section>
+
+  <section class="block">
+    <h2>Formazione e certificazioni</h2>
+    {
+      credentials.map((row) => (
+        <CrudRow table="credentials" fields={credentialFields} row={row} csrf={csrf} />
+      ))
+    }
+    <h3>+ Nuova qualifica</h3>
+    <CrudRow table="credentials" fields={credentialFields} row={null} csrf={csrf} />
+    <p class="hint">
+      Servono <strong>titolo</strong> e <strong>ente che l'ha rilasciata</strong>: una riga senza
+      l'ente non viene mostrata da nessuna parte, nemmeno se è spuntata come attiva. Il motivo non è
+      tecnico — «Data Protection Officer» da solo è una parola che chiunque può scriversi accanto al
+      nome, mentre «rilasciata da X» è una frase che X può smentire. È quello che la rende una
+      qualifica invece di un'affermazione.
+    </p>
+    <p class="hint">
+      Scrivi il titolo <strong>come è scritto sull'attestato</strong>. «Corso per DPO» e «DPO
+      certificato» non sono la stessa cosa: la seconda vale solo se c'è stato un esame, e in quel
+      caso va indicato lo schema (per i DPO in Italia è la UNI 11697:2017). Gli estremi e il link di
+      verifica sono facoltativi, ma sono la parte che chi legge può controllare davvero.
+    </p>
+    <p class="hint">
+      Queste righe compaiono nella sezione «L'approccio» della home e nei dati strutturati
+      (<code>hasCredential</code>). Attivano anche la voce «Protezione dati» nel menu e la pagina
+      <code>/gdpr</code>, che però resta spenta finché non accendi il servizio in
+      <a href="/admin/impostazioni">Impostazioni</a>.
     </p>
   </section>
 

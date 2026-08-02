@@ -6,9 +6,11 @@ interface Props {
   agendaAttiva: boolean;
   /** Zone servite, dalle impostazioni. Vuoto significa che non si dice niente. */
   zone?: string[];
+  /** Token della visita: dice da quale campagna arriva chi scrive. */
+  visitToken?: string | null;
 }
 
-const { contactEmail, calendly, agendaAttiva, zone = [] } = Astro.props;
+const { contactEmail, calendly, agendaAttiva, zone = [], visitToken = null } = Astro.props;
 
 /*
   Con l'agenda accesa il pulsante resta dentro il sito: il link a Calendly
@@ -98,6 +100,16 @@ const prenotaFuori = !agendaAttiva;
         autocomplete="off"
         aria-hidden="true"
       />
+      {/*
+        Il token di questa visita. È il modo in cui il contatto sa da dove
+        arriva: la riga della visita porta già la campagna, e il server la
+        ricopia sul lead. Al posto di un cookie di tracciamento, che
+        sopravviverebbe alla visita ed è la cosa che la pagina privacy dice di
+        non fare. Se il tracciamento non ha prodotto un token (database giù) il
+        campo non esce e il contatto resta senza origine: mai un errore per
+        questo.
+      */}
+      {visitToken && <input type="hidden" name="vt" value={visitToken} />}
       {/*
         DUE etichette, entrambe rese dal server, e il JavaScript non scrive testo
         da nessuna parte: cambia solo una classe.

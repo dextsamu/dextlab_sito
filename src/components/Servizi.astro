@@ -1,4 +1,15 @@
 ---
+interface Props {
+  /**
+   * Vero quando la pagina del servizio protezione dati è pubblicata: la quinta
+   * card esiste solo allora, perché è la sola che porta a un'altra pagina e una
+   * card che promette un servizio senza la pagina che lo spiega è un vicolo cieco.
+   */
+  mostraDpo?: boolean;
+}
+
+const { mostraDpo = false } = Astro.props;
+
 // Quattro card con icona SVG propria: restano scritte per esteso perché non
 // sono varianti di un unico modello, e un ciclo costringerebbe a scegliere
 // l'icona in base al titolo.
@@ -94,6 +105,30 @@
         </p>
         <ul class="card-tags"><li>Architettura</li><li>Security</li><li>DevOps</li><li>Audit</li></ul>
       </article>
+
+      {/*
+        La quinta card sta su due colonne invece di lasciare una riga a metà, e la
+        forma larga le dà il posto per l'unica cosa che le altre non hanno: un link.
+        Le altre quattro descrivono cosa si costruisce, questa un servizio che ha
+        una pagina sua da leggere prima di scrivere.
+      */}
+      {mostraDpo && (
+        <article class="card card-larga reveal" style="--acc:139,216,158">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path d="M12 3l7 3v5.5c0 4.2-2.9 7.6-7 8.5-4.1-.9-7-4.3-7-8.5V6l7-3Z" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+          </div>
+          <h3>Privacy e protezione dati</h3>
+          <p>
+            Cookie banner che funziona davvero, informativa scritta sul serio, registro dei
+            trattamenti del sito. E, per chi ne ha bisogno, l'incarico di DPO esterno.
+          </p>
+          <ul class="card-tags"><li>GDPR</li><li>Cookie</li><li>Informative</li><li>DPO esterno</li></ul>
+          <p class="card-vai"><a href="/gdpr">Come funziona →</a></p>
+        </article>
+      )}
     </div>
   </div>
 </section>

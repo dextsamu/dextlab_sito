@@ -17,7 +17,7 @@
  * istante, ed è lì che due persone che premono insieme si incontrano.
  */
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getSettings, query, rateLimit } from '../../lib/db.ts';
+import { getSettings, query, rateLimit, origineDaVisita } from '../../lib/db.ts';
 import { agendaPubblica, slotAmmesso, quandoPerEsteso, dataItaliana } from '../../lib/agenda.ts';
 import { mailConfig, sendAppointmentMails } from '../../lib/mail.ts';
 import { telegramConfig, notifyAppointment } from '../../lib/telegram.ts';
@@ -88,10 +88,14 @@ if (Astro.request.method === 'POST' && cfg.attiva) {
       scelto = '';
     } else {
       const token = randomBytes(16).toString('hex');
+      // Da dove arriva chi prenota: la campagna sta sulla riga della visita che
+      // ha reso il modulo, e si ricopia qui. Senza token resta «diretto».
+      const origine = await origineDaVisita(campo('vt').trim());
       try {
         await query(
-          `INSERT INTO appointments (name, email, phone, note, starts_at, minutes, status, token, ip)
-           VALUES ($1, $2, $3, $4, $5, $6, 'confermato', $7, $8)`,
+          `INSERT INTO appointments (name, email, phone, note, starts_at, minutes, status, token, ip,
+                                     camp_source, camp_medium, camp_name, pagina)
+           VALUES ($1, $2, $3, $4, $5, $6, 'confermato', $7, $8, $9, $10, $11, $12)`,
           [
             valori.name,
             valori.email,
@@ -101,6 +105,10 @@ if (Astro.request.method === 'POST' && cfg.attiva) {
             cfg.minuti,
             token,
             Astro.locals.clientIp || '',
+            origine.camp_source,
+            origine.camp_medium,
+            origine.camp_name,
+            origine.pagina,
           ]
         );
 
@@ -252,6 +260,14 @@ const rassicurazioni = [
 
           <form method="POST" action="/prenota" novalidate>
             <input type="hidden" name="slot" value={istanteScelto.toISOString()} />
+            {/* Il token di questa visita: dice da quale campagna arriva chi
+                prenota. Su questa pagina serve più che sulla home — una call
+                prenotata è il contatto che vale di più, ed è quello che si vuole
+                poter attribuire all'annuncio che l'ha portata. Vedi
+                src/lib/campagne.ts. */}
+            {Astro.locals.visitToken && (
+              <input type="hidden" name="vt" value={Astro.locals.visitToken} />
+            )}
             {/* Esca per i bot: fuori dallo schermo e senza tabulazione, chi la
                 compila non sta guardando la pagina. */}
             <p class="pr-esca" aria-hidden="true">

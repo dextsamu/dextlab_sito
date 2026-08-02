@@ -97,6 +97,15 @@ export type AppuntamentoRow = {
    * di tenersi l'orario vecchio.
    */
   version: number;
+  /**
+   * Da dove arriva chi ha prenotato. Vuoti per gli appuntamenti presi prima che
+   * l'origine venisse registrata, e per chi arriva senza campagna: vedi
+   * src/lib/campagne.ts.
+   */
+  camp_source: string;
+  camp_medium: string;
+  camp_name: string;
+  pagina: string;
 }
 
 export interface Slot {

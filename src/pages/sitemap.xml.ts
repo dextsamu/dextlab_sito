@@ -5,7 +5,7 @@
  */
 import type { APIRoute } from 'astro';
 import { siteUrl } from '../lib/env.ts';
-import { lavoriConPagina } from '../lib/content.ts';
+import { lavoriConPagina, getLandingContent } from '../lib/content.ts';
 import { agendaConfig } from '../lib/agenda.ts';
 import { getSettings } from '../lib/db.ts';
 
@@ -36,11 +36,23 @@ export const GET: APIRoute = async () => {
     priority: '0.6',
   }));
 
-  const agenda = agendaConfig(await getSettings()).attiva
+  const impostazioni = await getSettings();
+  const agenda = agendaConfig(impostazioni).attiva
     ? [{ path: '/prenota', changefreq: 'weekly', priority: '0.7' }]
     : [];
 
-  const urls = [...PAGES, ...lavori, ...agenda].map((p) => {
+  /*
+    La pagina del servizio protezione dati entra solo quando esiste davvero, e le
+    sue condizioni sono due: l'interruttore acceso e almeno una qualifica
+    compilata. Le controlla getLandingContent, quindi qui si chiede a lui invece di
+    rifare il ragionamento — una sitemap che dichiara un indirizzo che risponde 404
+    è peggio di una sitemap corta.
+  */
+  const dpo = (await getLandingContent(impostazioni)).dpoAttivo
+    ? [{ path: '/gdpr', changefreq: 'monthly', priority: '0.7' }]
+    : [];
+
+  const urls = [...PAGES, ...lavori, ...agenda, ...dpo].map((p) => {
     const loc = new URL(p.path, base + '/').href;
     return `  <url>
     <loc>${loc}</loc>

@@ -116,12 +116,36 @@ export const CONTENT_TABLES = [
   'reviews',
   'faqs',
   'works',
+  // Le qualifiche: stessa forma delle altre righe di contenuto, e per questo
+  // passano dallo stesso CRUD. Cosa non si può fare da lì: mostrarne una senza
+  // l'ente che l'ha rilasciata — quel filtro sta in content.ts, non nel pannello,
+  // perché deve valere anche per una riga attivata per sbaglio.
+  'credentials',
   // L'agenda usa lo stesso CRUD generico dei contenuti: sono righe con sort e
   // active come le altre, e il pannello non ha bisogno di sapere altro.
   'agenda_windows',
   'agenda_closures',
 ] as const;
 export type ContentTable = (typeof CONTENT_TABLES)[number];
+
+/**
+ * Una qualifica: cosa attesta, chi l'ha rilasciata, e dove si controlla.
+ *
+ * `type` e non `interface`, come AppuntamentoRow: le interfacce non soddisfano
+ * `Record<string, unknown>`, che è il vincolo di contentRows nel pannello.
+ */
+export type CredentialRow = {
+  id: number;
+  title: string;
+  issuer: string;
+  scheme: string;
+  /** Anno, come testo: «2026» o «giugno 2026». Nessuna aritmetica. */
+  year: string;
+  code: string;
+  url: string;
+  sort: number;
+  active: boolean;
+};
 
 export interface PricingRow {
   id: number;
@@ -232,26 +256,79 @@ export function clientIp(request: Request, socketAddress?: string): string {
   return socketAddress ?? '';
 }
 
+/**
+ * L'origine ereditata dalla visita precedente dello stesso browser.
+ *
+ * Serve a un caso banale e frequentissimo: si arriva dall'annuncio sulla home,
+ * si apre la scheda di un lavoro, si torna indietro e si scrive dal modulo. Le
+ * pagine dopo la prima non hanno più i parametri della campagna, e senza questo
+ * passaggio quel contatto risulterebbe diretto — cioè l'annuncio che l'ha
+ * portato non prenderebbe il merito.
+ *
+ * Si cerca sull'IP anonimizzato E sullo stesso user-agent, dentro mezz'ora.
+ * L'IP da solo non basterebbe: è troncato all'ultimo ottetto (GDPR), quindi due
+ * persone sulla stessa rete lo condividono, e senza l'user-agent la campagna di
+ * una finirebbe sul contatto dell'altra. Non è un identificativo nuovo: sono i
+ * due campi che la tabella registra già da sempre.
+ */
+async function campagnaEreditata(
+  ip: string,
+  userAgent: string
+): Promise<{ camp_source: string; camp_medium: string; camp_name: string } | null> {
+  const righe = await tryQuery<{ camp_source: string; camp_medium: string; camp_name: string }>(
+    `SELECT camp_source, camp_medium, camp_name
+       FROM visits
+      WHERE ip = $1
+        AND ua = $2
+        AND camp_source <> ''
+        AND created_at > now() - interval '30 minutes'
+      ORDER BY created_at DESC
+      LIMIT 1`,
+    [ip, userAgent]
+  );
+  return righe[0] ?? null;
+}
+
 /** Registra una visita. Ritorna il token per il beacon "umano", o null. */
 export async function trackVisit(
   path: string,
   isMaintenance: boolean,
   ip: string,
   userAgent: string,
-  referer: string
+  referer: string,
+  campagna: { source: string; medium: string; name: string } = { source: '', medium: '', name: '' }
 ): Promise<string | null> {
   const token = randomBytes(8).toString('hex'); // 16 caratteri hex
+  const anon = anonIp(ip);
+  const ua = userAgent.slice(0, 255);
+
+  let camp = campagna;
+  if (camp.source === '') {
+    const ereditata = await campagnaEreditata(anon, ua);
+    if (ereditata) {
+      camp = {
+        source: ereditata.camp_source,
+        medium: ereditata.camp_medium,
+        name: ereditata.camp_name,
+      };
+    }
+  }
+
   try {
     await query(
-      `INSERT INTO visits (ip, path, ua, referer, is_maintenance, token, human)
-       VALUES ($1, $2, $3, $4, $5, $6, false)`,
+      `INSERT INTO visits (ip, path, ua, referer, is_maintenance, token, human,
+                           camp_source, camp_medium, camp_name)
+       VALUES ($1, $2, $3, $4, $5, $6, false, $7, $8, $9)`,
       [
-        anonIp(ip),
+        anon,
         path.slice(0, 190),
-        userAgent.slice(0, 255),
+        ua,
         referer.slice(0, 255),
         isMaintenance,
         token,
+        camp.source,
+        camp.medium,
+        camp.name,
       ]
     );
     return token;
@@ -259,6 +336,54 @@ export async function trackVisit(
     console.error('[visits] insert fallito:', (err as Error).message);
     return null;
   }
+}
+
+/** L'origine di un contatto: la campagna e la pagina della visita da cui è partito. */
+export interface OrigineContatto {
+  camp_source: string;
+  camp_medium: string;
+  camp_name: string;
+  pagina: string;
+}
+
+export const SENZA_ORIGINE: OrigineContatto = {
+  camp_source: '',
+  camp_medium: '',
+  camp_name: '',
+  pagina: '',
+};
+
+/**
+ * L'origine da associare a un contatto, letta dalla visita che ha reso il modulo.
+ *
+ * Il token arriva da un campo nascosto del modulo, cioè da fuori: si accetta
+ * solo se ha la forma esatta che genera trackVisit, e se non corrisponde a
+ * niente il contatto resta senza origine. Un token inventato non può quindi
+ * scrivere valori arbitrari nelle statistiche — al massimo non trova nulla.
+ */
+export async function origineDaVisita(token: string): Promise<OrigineContatto> {
+  if (!/^[a-f0-9]{16}$/.test(token)) return SENZA_ORIGINE;
+  const righe = await tryQuery<{
+    camp_source: string;
+    camp_medium: string;
+    camp_name: string;
+    path: string | null;
+  }>(
+    `SELECT camp_source, camp_medium, camp_name, path
+       FROM visits
+      WHERE token = $1
+        AND created_at > now() - interval '12 hours'
+      LIMIT 1`,
+    [token]
+  );
+  const r = righe[0];
+  if (!r) return SENZA_ORIGINE;
+  return {
+    camp_source: r.camp_source,
+    camp_medium: r.camp_medium,
+    camp_name: r.camp_name,
+    pagina: (r.path ?? '').slice(0, 190),
+  };
 }
 
 /** Marca una visita come umana (chiamata dal beacon JS: i bot raramente lo eseguono). */

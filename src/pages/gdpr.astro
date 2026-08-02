@@ -1,0 +1,253 @@
+---
+/**
+ * La pagina del servizio protezione dati.
+ *
+ * Esiste solo a due condizioni, e la seconda è il punto: l'interruttore acceso
+ * nel pannello E almeno una qualifica compilata (vedi content.ts, dpoAttivo).
+ * Una pagina che vende conformità senza una qualifica dimostrabile sarebbe
+ * esattamente la cosa che questo sito non fa da nessuna parte — con la differenza
+ * che qui il danno non è di immagine: chi compra un adeguamento privacy compra la
+ * competenza di chi lo firma, non un file.
+ *
+ * Cosa NON c'è, scritto qui perché non lo scopra qualcuno per sbaglio:
+ *
+ *  - nessun prezzo. L'opzione «Adeguamento privacy e cookie» ha il suo prezzo nel
+ *    configuratore quando è attiva, e l'incarico di DPO si valuta caso per caso.
+ *    Una cifra su questa pagina sarebbe un impegno preso senza sapere su cosa.
+ *  - nessun elenco di sanzioni. «Fino a 20 milioni di euro» è vero ed è il modo
+ *    più rapido di vendere per paura: chi arriva qui ha già capito che il tema
+ *    esiste.
+ *  - nessuna promessa di conformità. Nessuno può garantire che un'azienda «sia a
+ *    norma»: si può mettere in ordine ciò che si vede e scrivere cosa manca.
+ *
+ * Niente Nav, niente Indice e niente Footer, come la pagina di un lavoro e come
+ * le pagine legali: quelle voci sono ancore verso le sezioni della home e da qui
+ * porterebbero al nulla. Per la stessa ragione non c'è nessuna classe .reveal —
+ * main.js non viene caricato, e le sezioni resterebbero invisibili.
+ *
+ * Le tre domande in fondo riassumono l'articolo 37 del GDPR. È una descrizione
+ * della norma, non un parere legale, e la pagina lo dice: la differenza conta,
+ * perché un parere lo dà un avvocato e questa competenza non lo è.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getLandingContent } from '../lib/content.ts';
+import { datiLocali, servizioJsonLd } from '../lib/seo.ts';
+import { siteUrl } from '../lib/env.ts';
+
+const content = await getLandingContent(Astro.locals.settings);
+const locali = datiLocali(Astro.locals.settings ?? {});
+
+/*
+  Senza le due condizioni la pagina non c'è. 404 e non un rimando alla home: un
+  indirizzo che risponde 200 con altro contenuto insegna ai motori di ricerca che
+  quella pagina esiste, e poi bisogna disfarlo.
+*/
+const attivo = content.dpoAttivo;
+if (!attivo) Astro.response.status = 404;
+
+const qualifiche = content.credenziali;
+
+/** Solo indirizzi web: il valore arriva dal pannello e finisce in un href. */
+function verifica(url: string): string | null {
+  const v = url.trim();
+  if (v === '') return null;
+  try {
+    const u = new URL(v);
+    return u.protocol === 'https:' || u.protocol === 'http:' ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+const DESCRIZIONE =
+  'Adeguamento privacy dei siti web — cookie banner, informativa, registro dei trattamenti — e incarico di DPO esterno per aziende e associazioni.';
+
+const dati = attivo
+  ? JSON.stringify(servizioJsonLd('Privacy e protezione dei dati', DESCRIZIONE, '/gdpr', locali, siteUrl()))
+  : undefined;
+
+// Dove porta il pulsante: l'agenda quando è accesa, il modulo altrimenti. Stessa
+// scelta della sezione contatti — non si manda nessuno su una pagina che dice
+// «prenotazioni chiuse».
+const azione = content.agendaAttiva ? '/prenota' : '/#contatti';
+const azioneTesto = content.agendaAttiva ? 'Prenota una call' : 'Scrivimi';
+
+/*
+  Cosa comprende l'adeguamento di un sito. Sono le quattro cose che si guardano
+  aprendo un sito qualsiasi, e sono quelle che quasi nessun sito piccolo ha in
+  ordine. Ognuna è verificabile su questo sito prima che su un altro: il banner
+  qui funziona, l'informativa c'è, gli IP nelle statistiche sono troncati.
+*/
+const compreso = [
+  {
+    titolo: 'Il banner dei cookie che funziona',
+    testo:
+      'Nessuna traccia prima del consenso, e il rifiuto che vale quanto l’accettazione. Un banner con il solo «Accetta» non è un consenso: è un avviso.',
+  },
+  {
+    titolo: "L'informativa scritta per il tuo sito",
+    testo:
+      'Quali dati raccogli davvero, dove finiscono, per quanto restano. Non un modello scaricato in cui il nome dell’azienda è l’unica cosa cambiata.',
+  },
+  {
+    titolo: 'Il registro dei trattamenti del sito',
+    testo:
+      'Cosa fa il sito con i dati, un trattamento per riga: form, statistiche, prenotazioni, newsletter. È il documento che serve avere quando qualcuno lo chiede.',
+  },
+  {
+    titolo: 'I fornitori messi in fila',
+    testo:
+      'Chi ospita il sito, chi manda le email, chi conta le visite: ognuno è un responsabile del trattamento e va nominato per iscritto. È la parte che manca più spesso.',
+  },
+];
+
+const domande = [
+  {
+    d: 'La mia azienda deve avere un DPO?',
+    r: "L'articolo 37 del GDPR lo rende obbligatorio in tre casi: se il trattamento è svolto da un'autorità o da un organismo pubblico; se l'attività principale comporta un monitoraggio regolare e sistematico di persone su larga scala; se l'attività principale comporta il trattamento su larga scala di dati particolari (salute, convinzioni, dati giudiziari). Fuori da questi casi è facoltativo, e nominarlo resta una scelta che si valuta guardando cosa fa l'azienda. Questa è una descrizione della norma, non un parere legale.",
+  },
+  {
+    d: 'Il DPO risponde al posto mio se qualcosa va storto?',
+    r: "No, e chi lo lascia credere fa un favore a nessuno. Il DPO informa, sorveglia, dà pareri e fa da punto di contatto con il Garante (articoli 38 e 39). La responsabilità del trattamento resta del titolare, cioè dell'azienda. Un DPO serve a sapere prima quello che altrimenti si scopre dopo.",
+  },
+  {
+    d: 'Fai anche consulenza legale?',
+    r: "No: non sono un avvocato, non scrivo pareri legali e non assisto in giudizio. Quello che faccio è tecnico e organizzativo — guardare come funziona un sito o un processo, dire cosa non torna, scrivere i documenti che lo descrivono e sistemare la parte tecnica. Dove serve un legale lo dico, invece di improvvisare.",
+  },
+];
+---
+
+<BaseLayout
+  title={
+    attivo
+      ? 'Privacy e protezione dei dati — Dext Lab'
+      : 'Pagina non disponibile — Dext Lab'
+  }
+  description={attivo ? DESCRIZIONE : 'Questa pagina non è pubblicata.'}
+  path="/gdpr"
+  noindex={!attivo}
+  structuredData={dati}
+>
+  <div class="bg-glow glow-1" aria-hidden="true"></div>
+
+  {
+    attivo ? (
+      <main class="lavoro-pagina container">
+        <a href="/" class="back">← Torna alla home</a>
+
+        <header class="lp-testa">
+          <h1>Privacy e protezione dei dati</h1>
+          <p class="lp-sunto">
+            Due cose diverse, e conviene distinguerle subito. La prima è mettere in ordine un sito:
+            cookie, informativa, registro dei trattamenti, fornitori. La seconda è l'incarico di
+            <strong> DPO esterno</strong> per chi deve nominarlo o vuole comunque qualcuno che se ne
+            occupi.
+          </p>
+          <p class="lp-azioni">
+            <a class="btn btn-primary" href={azione}>{azioneTesto}</a>
+          </p>
+        </header>
+
+        {/*
+          Le qualifiche stanno in alto e non in fondo: è la sola informazione per
+          cui questa pagina può esistere, e chi la cerca la cerca prima di leggere
+          il resto. Con l'indirizzo di verifica, quando c'è.
+        */}
+        <section class="gd-qual">
+          <h2>Su cosa si basa</h2>
+          <ul>
+            {qualifiche.map((q) => {
+              const link = verifica(q.url);
+              return (
+                <li>
+                  <b>{q.title}</b>
+                  <span class="qual-ente">
+                    {q.issuer}
+                    {q.scheme && <> · {q.scheme}</>}
+                    {q.year && <> · {q.year}</>}
+                  </span>
+                  {q.code && <span class="qual-codice">{q.code}</span>}
+                  {link && (
+                    <a href={link} target="_blank" rel="noopener noreferrer">
+                      Verifica ↗
+                    </a>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          <p class="lp-nota">
+            Quello che c'è scritto qui è controllabile: l'ente che ha rilasciato la qualifica lo
+            dichiara, e dove c'è un link porta alla sua pagina. Nessun altro titolo, nessuna sigla
+            in più.
+          </p>
+        </section>
+
+        <section class="gd-blocco">
+          <h2>Adeguamento di un sito</h2>
+          <div class="gd-griglia">
+            {compreso.map((c) => (
+              <article>
+                <b>{c.titolo}</b>
+                <p>{c.testo}</p>
+              </article>
+            ))}
+          </div>
+          <p class="lp-nota">
+            Su un sito nuovo tutto questo è parte del lavoro: si sceglie nel
+            <a href="/#preventivo"> configuratore del preventivo</a>. Su un sito che esiste già si
+            guarda com'è fatto e si dice cosa manca, prima di toccare niente.
+          </p>
+        </section>
+
+        <section class="gd-blocco">
+          <h2>DPO esterno</h2>
+          <p class="gd-testo">
+            L'incarico si valuta caso per caso, perché dipende da cosa tratta l'azienda: prima una
+            call per capire se serve davvero e cosa comporterebbe, poi un preventivo. Comprende
+            quello che l'articolo 39 del GDPR assegna al DPO — informare e dare pareri, sorvegliare
+            l'osservanza, fare da punto di contatto con il Garante e con le persone i cui dati sono
+            trattati — e nient'altro presentato come di più.
+          </p>
+          <p class="gd-testo">
+            Una cosa detta prima di cominciare: se l'incarico serve solo per avere un nome da
+            scrivere nel registro, non sono la persona giusta. Un DPO che non guarda niente è un
+            costo che peggiora la posizione dell'azienda invece di migliorarla, perché documenta che
+            qualcuno doveva guardare.
+          </p>
+        </section>
+
+        <section class="gd-blocco">
+          <h2>Tre domande</h2>
+          <dl class="gd-domande">
+            {domande.map((q) => (
+              <>
+                <dt>{q.d}</dt>
+                <dd>{q.r}</dd>
+              </>
+            ))}
+          </dl>
+        </section>
+
+        <p class="lp-chiusa">
+          Vuoi capire da dove partire? <a href={azione}>{azioneTesto}</a> — la prima call serve a
+          questo, e non si paga.
+        </p>
+      </main>
+    ) : (
+      <main class="lavoro-pagina container">
+        <a href="/" class="back">← Torna alla home</a>
+        <header class="lp-testa">
+          <h1>Questa pagina non c'è</h1>
+          <p class="lp-sunto">
+            Il servizio di protezione dati non è pubblicato su questo sito. Quello che c'è si trova
+            nella <a href="/#servizi">sezione servizi</a>.
+          </p>
+          <p class="lp-azioni">
+            <a class="btn btn-primary" href="/">Vai alla home</a>
+          </p>
+        </header>
+      </main>
+    )
+  }
+</BaseLayout>

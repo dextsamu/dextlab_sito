@@ -3,6 +3,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 import { guardAdmin, handleAdminPost } from '../../lib/admin-actions.ts';
 import { csrfToken } from '../../lib/auth.ts';
 import { recentLeads, leadStats, LEAD_STATUSES } from '../../lib/admin.ts';
+import { etichettaCampagna } from '../../lib/campagne.ts';
 import { dateTime } from '../../lib/format.ts';
 
 const denied = guardAdmin(Astro);
@@ -23,7 +24,10 @@ const [leads, stats] = await Promise.all([recentLeads(), leadStats()]);
 
   <table class="leads">
     <thead>
-      <tr><th>Data</th><th>Nome</th><th>Email</th><th>Messaggio</th><th>Stato</th><th></th></tr>
+      <tr
+        ><th>Data</th><th>Nome</th><th>Email</th><th>Messaggio</th><th>Da dove</th><th>Stato</th><th
+        ></th></tr
+      >
     </thead>
     <tbody>
       {
@@ -43,6 +47,18 @@ const [leads, stats] = await Promise.all([recentLeads(), leadStats()]);
                   {line}
                 </>
               ))}
+            </td>
+            {/* Da dove arriva questo contatto. «Diretto» non è un buco nei dati:
+                è indirizzo scritto a mano, segnalibro o un link senza
+                tracciamento — e per i lead ricevuti prima di questa versione è
+                l'unica cosa vera che si può dire. */}
+            <td class="lead-da">
+              {etichettaCampagna({
+                source: lead.camp_source ?? '',
+                medium: lead.camp_medium ?? '',
+                name: lead.camp_name ?? '',
+              })}
+              {lead.pagina && <><br /><span class="hint" style="margin:0">{lead.pagina}</span></>}
             </td>
             <td>
               <form method="post" class="inline">
@@ -78,7 +94,7 @@ const [leads, stats] = await Promise.all([recentLeads(), leadStats()]);
       {
         leads.length === 0 && (
           <tr>
-            <td colspan="6" class="hint">Nessun lead ricevuto.</td>
+            <td colspan="7" class="hint">Nessun lead ricevuto.</td>
           </tr>
         )
       }

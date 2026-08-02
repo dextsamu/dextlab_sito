@@ -1,0 +1,333 @@
+---
+/**
+ * Marketing: da dove arriva chi visita, chi scrive e chi prenota.
+ *
+ * La dashboard dice quanti. Questa pagina dice da dove, che è la sola domanda
+ * che permette di decidere qualcosa: quale annuncio rifare, quale spegnere, se
+ * il biglietto da visita stampato porta davvero qualcuno.
+ *
+ * In fondo c'è il costruttore dei link tracciati. Non è un accessorio: i numeri
+ * di sopra esistono solo per i link costruiti come si deve, e un link scritto a
+ * mano sbaglia sempre allo stesso modo — una maiuscola che spezza in due il
+ * canale, un parametro col nome storto. Il costruttore usa la stessa
+ * normalizzazione della lettura, quindi quello che si copia da qui produce
+ * esattamente le righe che questa pagina sa raggruppare.
+ */
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import Kpi from '../../components/admin/Kpi.astro';
+import { guardAdmin } from '../../lib/admin-actions.ts';
+import { leadStats } from '../../lib/admin.ts';
+import { statoMarketing, DESTINAZIONI } from '../../lib/marketing.ts';
+import { CANALI, linkTracciato, nomeCanale } from '../../lib/campagne.ts';
+import { lavoriConPagina } from '../../lib/content.ts';
+import { siteUrl } from '../../lib/env.ts';
+
+const denied = guardAdmin(Astro);
+if (denied) return denied;
+
+const params = Astro.url.searchParams;
+
+// Periodo: tre valori previsti e nient'altro. Un numero arbitrario nell'indirizzo
+// non deve poter chiedere al database una scansione di dieci anni.
+const PERIODI = [7, 30, 90];
+const giorni = PERIODI.includes(Number(params.get('g'))) ? Number(params.get('g')) : 30;
+
+const [stato, lead, slugs] = await Promise.all([
+  statoMarketing(giorni),
+  leadStats(),
+  lavoriConPagina(),
+]);
+
+const base = siteUrl();
+
+// Le destinazioni fisse più le schede dei lavori, che nascono e muoiono dal
+// pannello: un elenco scritto a mano offrirebbe link a pagine che non esistono.
+const destinazioni = [
+  ...DESTINAZIONI,
+  ...slugs.map((s) => ({ percorso: `/lavori/${s}`, etichetta: `Scheda: ${s}` })),
+];
+
+/*
+  Il costruttore lavora in GET e senza JavaScript: i valori stanno
+  nell'indirizzo, quindi un link costruito si può salvare nei preferiti o
+  rimandare a se stessi. Nessun campo è obbligatorio — senza sorgente non si
+  costruisce niente e la pagina lo dice.
+*/
+const src = (params.get('src') ?? '').trim();
+const med = (params.get('med') ?? '').trim();
+const camp = (params.get('camp') ?? '').trim();
+const dest = destinazioni.some((d) => d.percorso === params.get('dest'))
+  ? (params.get('dest') as string)
+  : '/';
+
+const costruito = src === '' ? '' : linkTracciato(base, dest, { source: src, medium: med, name: camp });
+
+// I link pronti dei canali noti: stessa destinazione e stessa campagna scelte
+// sopra, così si copiano tutti insieme all'inizio di un'iniziativa.
+const pronti = CANALI.map((c) => ({
+  ...c,
+  link: linkTracciato(base, dest, { source: c.source, medium: c.medium, name: camp }),
+}));
+
+const percento = (parte: number, totale: number) =>
+  totale > 0 ? `${Math.round((parte / totale) * 100)}%` : '—';
+
+const tassoTotale =
+  stato.visite > 0 ? `${Math.round((stato.lead / stato.visite) * 1000) / 10}%` : '—';
+---
+
+<AdminLayout current="marketing" title="Marketing" newLeads={lead.newCount}>
+  <h1>
+    Marketing
+    <span class="mkt-periodo">
+      {
+        PERIODI.map((p) => (
+          <a href={`/admin/marketing?g=${p}`} class={p === giorni ? 'btn-s on' : 'btn-s'}>
+            {p} giorni
+          </a>
+        ))
+      }
+    </span>
+  </h1>
+
+  <div class="cards-kpi">
+    <Kpi value={stato.visite} label={`Visite (${giorni} giorni)`} />
+    <Kpi value={stato.lead} label="Contatti dal modulo" />
+    <Kpi value={stato.call} label="Call prenotate" />
+    <Kpi value={tassoTotale} label="Contatti su visite" />
+  </div>
+
+  <p class="hint" style="margin:-6px 0 24px">
+    Con un'origine riconosciuta: <strong>{percento(stato.visiteConOrigine, stato.visite)}</strong>
+    delle visite, <strong>{percento(stato.leadConOrigine, stato.lead)}</strong> dei contatti,
+    <strong>{percento(stato.callConOrigine, stato.call)}</strong> delle call. Il resto è diretto:
+    indirizzo scritto a mano, segnalibro, o un link senza tracciamento. Non è un errore, è
+    l'assenza del dato — e le righe registrate prima di oggi non ne hanno per forza.
+  </p>
+
+  <section class="block">
+    <h2>Canali</h2>
+    <table class="leads mkt-tab">
+      <thead>
+        <tr>
+          <th>Origine</th>
+          <th>Mezzo</th>
+          <th>Campagna</th>
+          <th class="num">Visite</th>
+          <th class="num">Persone</th>
+          <th class="num">Contatti</th>
+          <th class="num">Call</th>
+          <th class="num">Tasso</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          stato.canali.map((r) => (
+            <tr class={r.source === '' ? 'mkt-diretto' : ''}>
+              <td><strong>{nomeCanale(r.source)}</strong></td>
+              <td>{r.medium === '' ? '—' : r.medium}</td>
+              <td>{r.name === '' ? '—' : r.name}</td>
+              <td class="num">{r.visite}</td>
+              <td class="num">{r.umane}</td>
+              <td class="num">{r.lead > 0 ? <strong>{r.lead}</strong> : 0}</td>
+              <td class="num">{r.call > 0 ? <strong>{r.call}</strong> : 0}</td>
+              <td class="num">
+                {r.tasso === null ? '—' : r.tasso > 100 ? '>100%' : `${r.tasso}%`}
+              </td>
+            </tr>
+          ))
+        }
+        {
+          stato.canali.length === 0 && (
+            <tr>
+              <td colspan="8" class="hint">Nessuna visita nel periodo.</td>
+            </tr>
+          )
+        }
+      </tbody>
+    </table>
+    <p class="hint">
+      «Persone» sono le visite che hanno eseguito JavaScript: è il conteggio affidabile, i bot
+      restano fuori. Il tasso è contatti su persone, non su visite totali — un canale che attira
+      anche crawler non deve sembrare peggiore di quello che è. Un tasso oltre il 100% vuol dire
+      che in quel canale i contatti sono più delle persone confermate: succede con chi blocca
+      JavaScript, perché il modulo si invia comunque ma il conteggio delle persone non scatta.
+    </p>
+  </section>
+
+  <div class="grid2">
+    <section class="block">
+      <h2>Da quali siti arrivano</h2>
+      <table class="leads">
+        <tbody>
+          {
+            stato.referrer.map((r) => (
+              <tr>
+                <td>{r.host}</td>
+                <td class="num">{r.visite}</td>
+              </tr>
+            ))
+          }
+          {
+            stato.referrer.length === 0 && (
+              <tr>
+                <td colspan="2" class="hint">Nessun sito di provenienza registrato.</td>
+              </tr>
+            )
+          }
+        </tbody>
+      </table>
+    </section>
+
+    <section class="block">
+      <h2>Da quale pagina scrivono</h2>
+      <table class="leads">
+        <tbody>
+          {
+            stato.pagine.map((r) => (
+              <tr>
+                <td>{r.pagina}</td>
+                <td class="num">{r.lead > 0 ? `${r.lead} contatti` : ''}</td>
+                <td class="num">{r.call > 0 ? `${r.call} call` : ''}</td>
+              </tr>
+            ))
+          }
+          {
+            stato.pagine.length === 0 && (
+              <tr>
+                <td colspan="3" class="hint">Ancora nessun contatto con la pagina di partenza.</td>
+              </tr>
+            )
+          }
+        </tbody>
+      </table>
+      <p class="hint">
+        Dice se i contatti nascono dalla home o da una scheda di un lavoro. È il dato che serve per
+        decidere dove mandare gli annunci.
+      </p>
+    </section>
+  </div>
+
+  <section class="block">
+    <h2>Costruisci un link tracciato</h2>
+    <p class="hint" style="margin:0 0 18px">
+      Il link da mettere nell'annuncio, nella bio, nella firma o sotto un QR. Senza questi
+      parametri quel traffico finisce in «Diretto» e non si sa più da dove veniva.
+    </p>
+
+    <form method="get" action="/admin/marketing" class="mkt-form">
+      <input type="hidden" name="g" value={giorni} />
+      <div class="mkt-campi">
+        <label>
+          <span>Origine (chi porta il clic)</span>
+          <input name="src" value={src} list="canali-noti" placeholder="google" />
+        </label>
+        <label>
+          <span>Mezzo (in che modo)</span>
+          <input name="med" value={med} list="mezzi-noti" placeholder="cpc" />
+        </label>
+        <label>
+          <span>Campagna (quale iniziativa)</span>
+          <input name="camp" value={camp} placeholder="lancio-autunno" />
+        </label>
+        <label>
+          <span>Dove porta</span>
+          <select name="dest">
+            {
+              destinazioni.map((d) => (
+                <option value={d.percorso} selected={d.percorso === dest}>
+                  {d.etichetta}
+                </option>
+              ))
+            }
+          </select>
+        </label>
+      </div>
+
+      <datalist id="canali-noti">
+        {[...new Set(CANALI.map((c) => c.source))].map((s) => <option value={s} />)}
+      </datalist>
+      <datalist id="mezzi-noti">
+        {[...new Set(CANALI.map((c) => c.medium))].map((m) => <option value={m} />)}
+      </datalist>
+
+      <button type="submit" class="btn-save">Costruisci</button>
+    </form>
+
+    {
+      costruito !== '' && (
+        <div class="feed-url mkt-fatto">
+          <code>{costruito}</code>
+          <button class="btn-s" type="button" data-copia={costruito}>Copia</button>
+        </div>
+      )
+    }
+    {
+      costruito === '' && (
+        <p class="hint">
+          Scrivi almeno l'origine. Minuscole e trattini: «Google Ads» e «google-ads» sono due
+          canali diversi per qualsiasi strumento, compreso questo.
+        </p>
+      )
+    }
+  </section>
+
+  <section class="block">
+    <h2>Link pronti</h2>
+    <p class="hint" style="margin:0 0 18px">
+      Gli stessi link, già impostati per i posti in cui un link a questo sito finisce davvero.
+      Puntano a <strong>{destinazioni.find((d) => d.percorso === dest)?.etichetta}</strong>
+      {camp !== '' && <> con campagna <strong>{camp}</strong></>}: cambia i campi sopra e questi si
+      aggiornano.
+    </p>
+    <table class="leads mkt-pronti">
+      <tbody>
+        {
+          pronti.map((p) => (
+            <tr>
+              <td>
+                <strong>{p.etichetta}</strong>
+                <br />
+                <span class="hint" style="margin:0">{p.a_cosa_serve}</span>
+              </td>
+              <td class="mkt-link"><code>{p.link}</code></td>
+              <td>
+                <button class="btn-s" type="button" data-copia={p.link}>Copia</button>
+              </td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </section>
+
+  <p class="hint">
+    Nessun cookie di tracciamento e nessuno strumento esterno: l'origine si legge dall'indirizzo,
+    finisce sulla riga della visita e il modulo la porta con sé. Il limite è dichiarato — chi arriva
+    dall'annuncio oggi e scrive fra due giorni risulta diretto.
+  </p>
+
+  <script>
+    // Copia negli appunti. Il link è già selezionabile a mano: se il browser
+    // nega il permesso non succede niente di grave, e il pulsante lo dice.
+    document.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement | null;
+      const bottone = target?.closest<HTMLElement>('[data-copia]');
+      if (!bottone) return;
+      const testo = bottone.dataset.copia ?? '';
+      if (testo === '') return;
+      const originale = bottone.textContent;
+      navigator.clipboard?.writeText(testo).then(
+        () => {
+          bottone.textContent = 'Copiato';
+          window.setTimeout(() => {
+            bottone.textContent = originale;
+          }, 1500);
+        },
+        () => {
+          bottone.textContent = 'Copia a mano';
+        }
+      );
+    });
+  </script>
+</AdminLayout>

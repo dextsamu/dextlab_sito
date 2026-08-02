@@ -11,6 +11,7 @@
  */
 import { defineMiddleware } from 'astro:middleware';
 import { getSettings, settingOn, trackVisit, clientIp } from './lib/db.ts';
+import { campagnaDaUrl, campagnaDaReferrer, haCampagna } from './lib/campagne.ts';
 import { previewToken } from './lib/preview.ts';
 import { safeEqual } from './lib/crypto.ts';
 import { isCrossSiteWrite, crossSiteResponse } from './lib/origin.ts';
@@ -105,13 +106,26 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   const showsMaintenance = context.locals.maintenanceActive && !context.locals.previewActive;
 
+  /*
+    Da dove arriva questa visita. Prima i parametri dell'indirizzo — sono quelli
+    che ha scritto una persona costruendo il link dell'annuncio, e battono
+    qualsiasi deduzione. Se non ci sono, il referer dice almeno il sito di
+    provenienza: ricerca, social o un altro sito. Se non c'è nemmeno quello la
+    visita è diretta, e trackVisit prova a ereditare l'origine dalla pagina
+    precedente della stessa visita.
+  */
+  const referer = request.headers.get('referer') ?? '';
+  const daUrl = campagnaDaUrl(url);
+  const campagna = haCampagna(daUrl) ? daUrl : campagnaDaReferrer(referer, url.hostname);
+
   // Il tracciamento è best-effort e non deve mai impedire la risposta.
   context.locals.visitToken = await trackVisit(
     url.pathname,
     showsMaintenance,
     context.locals.clientIp,
     request.headers.get('user-agent') ?? '',
-    request.headers.get('referer') ?? ''
+    referer,
+    campagna
   );
 
   return rivalidaSempre(await next());
