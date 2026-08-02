@@ -43,7 +43,7 @@ const content = await getLandingContent(Astro.locals.settings);
 const locali = datiLocali(Astro.locals.settings ?? {});
 
 /*
-  Senza le due condizioni la pagina non c'è. 404 e non un rimando alla home: un
+  Con il servizio spento la pagina non c'è. 404 e non un rimando alla home: un
   indirizzo che risponde 200 con altro contenuto insegna ai motori di ricerca che
   quella pagina esiste, e poi bisogna disfarlo.
 */
