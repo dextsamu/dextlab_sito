@@ -780,21 +780,35 @@ jobs:
             done
           done
 
-          # 10) La pausa fra due call: gli orari devono distare durata + pausa, e un
-          # appuntamento deve occupare anche la pausa che gli sta intorno.
+          # 10) La pausa fra due call: fra due orari consecutivi dell'elenco non
+          # ci possono stare meno di durata + pausa minuti, e la distanza MINIMA
+          # dell'elenco deve essere esattamente quella.
+          #
+          # Prima si confrontavano i primi due orari offerti, saltando il caso in
+          # cui distassero più di due ore per non misurare la pausa pranzo. Ma la
+          # pausa pranzo di queste fasce è esattamente 120 minuti, e il confronto
+          # la includeva: così la guardia passava o falliva in base all'ora in cui
+          # girava. Con il preavviso di 12 ore, la sera resta libero solo l'ultimo
+          # orario della mattina e il successivo è dopo pranzo — vista fallire il
+          # 2 agosto alle 23:03 con «i primi due orari distano 120 minuti».
+          #
+          # La distanza minima non dipende né dall'ora né da quali orari sono già
+          # presi: senza pausa sarebbe uguale alla durata, con la pausa è durata
+          # più pausa. È esattamente la cosa che si voleva verificare.
           durata=$(qv "select v from settings where k='agenda_minuti'")
           pausa=$(qv "select v from settings where k='agenda_pausa'")
           passo=$((durata + pausa))
-          primi=$(curl -s http://127.0.0.1:4321/prenota | grep -o '<a href="/prenota?slot=[^"]*"' | sed 's/.*slot=//;s/"//' | head -2)
-          a=$(echo "$primi" | sed -n 1p); b=$(echo "$primi" | sed -n 2p)
-          # I due orari possono stare in fasce diverse (mattina/pomeriggio): il
-          # confronto vale solo se distano meno di due ore.
-          diff=$(qv "select round(extract(epoch from (timestamptz '$(printf '%b' "${b//%/\\x}")' - timestamptz '$(printf '%b' "${a//%/\\x}")')) / 60)")
-          if [ "$diff" -le 120 ] && [ "$diff" != "$passo" ]; then
-            echo "::error::i primi due orari distano $diff minuti, attesi $passo (durata $durata + pausa $pausa)"
+          orari=$(curl -s http://127.0.0.1:4321/prenota | grep -o '<a href="/prenota?slot=[^"]*"' | sed 's/.*slot=//;s/"//')
+          quanti=$(grep -c . <<<"$orari")
+          minimo=$(printf '%s\n' "$orari" | python3 -c "import sys,urllib.parse,datetime;r=[urllib.parse.unquote(x.strip()) for x in sys.stdin if x.strip()];i=sorted(datetime.datetime.fromisoformat(x.replace('Z','+00:00')) for x in r);s=[int((b-a).total_seconds()//60) for a,b in zip(i,i[1:])];print(min(s) if s else 0)")
+          if [ "$quanti" -lt 2 ]; then
+            echo "::error::servono almeno due orari per misurare la pausa, offerti $quanti"
+            fail=1
+          elif [ "$minimo" != "$passo" ]; then
+            echo "::error::fra due orari consecutivi passano al minimo $minimo minuti, attesi $passo (durata $durata + pausa $pausa)"
             fail=1
           else
-            echo "  ok    gli orari distano $passo minuti, cioè durata più pausa"
+            echo "  ok    fra due orari passano al minimo $passo minuti: durata più pausa"
           fi
 
           # 11) Un blocco parziale toglie solo le sue ore, non il giorno.
