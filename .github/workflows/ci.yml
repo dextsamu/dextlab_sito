@@ -161,6 +161,15 @@ jobs:
       - name: Le email dicono la stessa cosa in HTML e in testo
         run: npm run --silent mail -- --verifica
 
+      # Una cornice luminosa su .card copriva tutta la card senza
+      # pointer-events:none: dipinta sopra il contenuto, si prendeva lei il clic, e
+      # siccome l'evento di uno pseudo-elemento è dell'elemento che lo genera, il
+      # dito finiva sull'<article> invece che sul link dentro. Per quattro card su
+      # cinque non si notava — non c'era niente da cliccare. Sulla quinta il link
+      # non funzionava e sembrava che il telefono non registrasse il tocco.
+      - name: Una decorazione non intercetta i clic
+        run: npm run --silent css
+
       # Google Ads rifiuta un titolo di 31 caratteri e Meta taglia il testo a 125:
       # i conteggi accanto a ogni riga del kit non sono un ornamento, sono la sola
       # cosa che dice se un testo è pubblicabile. Qui si ricontano — e si verifica
@@ -1587,8 +1596,14 @@ jobs:
           #    mostra. È il caso normale finché nessuno ha compilato i dati.
           esegui "UPDATE settings SET v='1' WHERE k='dpo_attiva';"
           uguale 'il servizio acceso pubblica la pagina' "$(codice /gdpr)" '200'
-          uguale 'la pagina descrive il servizio' \
-            "$(curl -s http://127.0.0.1:4321/gdpr | grep -c 'DPO esterno')" '1'
+          pagina=$(curl -s http://127.0.0.1:4321/gdpr)
+          # Le sezioni che spiegano il servizio: senza queste la pagina è
+          # un'insegna, e chi arriva non capisce cosa comprerebbe.
+          for atteso in 'DPO esterno' 'Cosa ti resta in mano' 'Come funziona' \
+                        "Guarda com'è fatto questo sito" 'Quanto costa' 'Tre domande'; do
+            if grep -qF "$atteso" <<<"$pagina"; then echo "  ok    la pagina spiega: $atteso"
+            else echo "::error::manca dalla pagina: $atteso"; fail=1; fi
+          done
           uguale 'senza qualifiche non c-e la sezione delle qualifiche' "$(dice 'Su cosa si basa')" '0'
           uguale 'senza qualifiche non nomina certificazioni' "$(dice 'certificat\|certificaz')" '0'
           uguale 'niente qualifiche nei dati strutturati' "$(ld)" '[]'
