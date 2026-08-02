@@ -14,6 +14,15 @@ import { getSettings, settingOn, trackVisit, clientIp } from './lib/db.ts';
 import { previewToken } from './lib/preview.ts';
 import { safeEqual } from './lib/crypto.ts';
 import { isCrossSiteWrite, crossSiteResponse } from './lib/origin.ts';
+import { avviaPromemoria } from './lib/promemoria.ts';
+
+/*
+  Il timer dei promemoria parte con il processo, non con la prima richiesta: questo
+  modulo viene caricato all'avvio del server, ed è il solo punto del codice che
+  gira una volta sola per processo. Dentro c'è una guardia, quindi un ricaricamento
+  a caldo in sviluppo non fa partire un secondo timer.
+*/
+avviaPromemoria();
 
 /** Percorsi che non sono pagine visitabili: nessuna impostazione, nessun tracciamento. */
 function isVisitablePage(pathname: string): boolean {

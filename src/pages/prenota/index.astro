@@ -18,7 +18,7 @@
  */
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getSettings, query, rateLimit } from '../../lib/db.ts';
-import { agendaPubblica, slotAmmesso, quandoPerEsteso } from '../../lib/agenda.ts';
+import { agendaPubblica, slotAmmesso, quandoPerEsteso, dataItaliana } from '../../lib/agenda.ts';
 import { mailConfig, sendAppointmentMails } from '../../lib/mail.ts';
 import { telegramConfig, notifyAppointment } from '../../lib/telegram.ts';
 import { randomBytes } from 'node:crypto';
@@ -126,10 +126,12 @@ if (Astro.request.method === 'POST' && cfg.attiva) {
 
         return Astro.redirect(`/prenota/${token}`, 303);
       } catch (err) {
-        // 23505 è la violazione del vincolo univoco: quell'istante è stato preso
-        // fra il controllo e la scrittura. È il caso per cui esiste l'indice.
+        // 23505 è la violazione di un indice univoco, 23P01 quella del vincolo di
+        // non sovrapposizione: in entrambi i casi qualcuno ha preso quel tempo
+        // fra il controllo e la scrittura. È il caso per cui quei vincoli
+        // esistono — vedi le migrazioni 010 e 011.
         const codice = (err as { code?: string }).code;
-        if (codice === '23505') {
+        if (codice === '23505' || codice === '23P01') {
           errore = 'Quell’orario è stato preso in questo istante da qualcun altro. Scegline un altro.';
           scelto = '';
         } else {
@@ -158,6 +160,34 @@ const liberi = giorni.reduce((n, g) => n + g.slot.length, 0);
 const SUBITO = 5;
 const primi = giorni.slice(0, SUBITO);
 const dopo = giorni.slice(SUBITO);
+
+/*
+  Il primo orario libero, in evidenza. È la scorciatoia che serve alla maggior
+  parte di chi arriva qui: chi vuole parlare presto non ha voglia di leggere una
+  griglia, vuole il prossimo posto disponibile. Gli altri orari restano tutti sotto.
+*/
+const primoLibero = giorni[0]?.slot[0] ?? null;
+
+/*
+  «Oggi» e «domani» al posto della data: sono le due parole che dicono qualcosa a
+  chi guarda, e la data completa resta lì accanto. Il confronto è sulle stringhe
+  YYYY-MM-DD calcolate in ora italiana, non su due Date: due istanti dello stesso
+  giorno possono cadere in giorni diversi se li si confronta nel fuso sbagliato.
+*/
+const oggiData = dataItaliana(new Date());
+const domaniData = dataItaliana(new Date(Date.now() + 86_400_000));
+function vicinanza(data: string): string {
+  if (data === oggiData) return 'oggi';
+  if (data === domaniData) return 'domani';
+  return '';
+}
+
+/** I tre motivi per cui vale la pena premere, tutti verificabili. */
+const rassicurazioni = [
+  { forte: `${cfg.minuti} minuti`, resto: 'gratis, senza impegno e senza preventivo da firmare' },
+  { forte: 'Niente registrazione', resto: 'nome, email e basta: nessun account da creare' },
+  { forte: 'Sposti quando vuoi', resto: 'con un clic dal link che ti arriva, fino al giorno stesso' },
+];
 ---
 
 <BaseLayout
@@ -171,12 +201,26 @@ const dopo = giorni.slice(SUBITO);
     <a href="/#contatti" class="back">← Torna al sito</a>
 
     <header class="pr-testa">
-      <h1>Prenotiamo una call</h1>
+      <span class="eyebrow">Due passaggi, un minuto</span>
+      <h1>Parliamo del tuo <span class="grad">progetto</span></h1>
       <p class="pr-sunto">
-        {cfg.minuti} minuti, gratis e senza impegno: mi racconti il progetto e ti dico
-        cosa farei io. Orari italiani.
+        Scegli un orario che ti va bene: mi racconti cos'hai in mente, ti dico come lo
+        farei, quanto costa e quanto ci vuole. Senza giri di parole e senza impegno.
       </p>
     </header>
+
+    {
+      cfg.attiva && !istanteScelto && (
+        <ul class="pr-perche">
+          {rassicurazioni.map((r) => (
+            <li>
+              <strong>{r.forte}</strong>
+              <span>{r.resto}</span>
+            </li>
+          ))}
+        </ul>
+      )
+    }
 
     {errore && <p class="pr-errore" role="alert">{errore}</p>}
 
@@ -192,9 +236,18 @@ const dopo = giorni.slice(SUBITO);
         </p>
       ) : istanteScelto ? (
         <section class="pr-form">
-          <h2>{quandoPerEsteso(istanteScelto)}</h2>
+          {/* Il riepilogo prima del form: chi compila deve vedere cosa sta
+              confermando senza tornare indietro a controllare. */}
+          <div class="pr-scelto">
+            <span class="pr-scelto-eti">Hai scelto</span>
+            <strong>{quandoPerEsteso(istanteScelto)}</strong>
+            <span class="pr-scelto-durata">{cfg.minuti} minuti · ora italiana</span>
+            <a class="pr-cambia" href="/prenota">Cambia orario</a>
+          </div>
+
+          <h2>Ultimo passaggio</h2>
           <p class="pr-dettaglio">
-            Durata {cfg.minuti} minuti. Cambia orario <a href="/prenota">tornando all’elenco</a>.
+            Due campi obbligatori. Il resto serve solo a farmi arrivare preparato.
           </p>
 
           <form method="POST" action="/prenota" novalidate>
@@ -225,8 +278,9 @@ const dopo = giorni.slice(SUBITO);
 
             <button class="btn btn-primary" type="submit">Confermo l’appuntamento</button>
             <p class="pr-nota">
-              Ti arriva un’email con l’orario e un link per disdire, se ti serve. Nessun
-              account, nessuna registrazione.
+              Subito dopo ti arriva un’email con l’orario, l’evento per il calendario e un
+              link per spostare o disdire. Non uso il tuo indirizzo per altro e non finisce
+              a nessuno: <a href="/privacy">privacy</a>.
             </p>
           </form>
         </section>
@@ -238,10 +292,27 @@ const dopo = giorni.slice(SUBITO);
         </p>
       ) : (
         <>
+          {primoLibero && (
+            /* La scorciatoia: un solo bersaglio grande, con scritto quando. Chi
+               vuole un altro orario ha tutta la griglia sotto. */
+            <a class="pr-primo" href={`/prenota?slot=${encodeURIComponent(primoLibero.iso)}`}>
+              <span class="pr-primo-eti">Il primo libero</span>
+              <span class="pr-primo-quando">
+                {vicinanza(giorni[0]!.data) || giorni[0]!.etichetta} alle {primoLibero.ora}
+              </span>
+              <span class="pr-primo-vai">Scegli questo <span aria-hidden="true">→</span></span>
+            </a>
+          )}
+
+          <p class="pr-oppure">…oppure prendi l'orario che preferisci</p>
+
           <section class="pr-giorni">
             {primi.map((g) => (
               <div class="pr-giorno">
-                <h2>{g.etichetta}</h2>
+                <h2>
+                  {g.etichetta}
+                  {vicinanza(g.data) && <em class="pr-vicino">{vicinanza(g.data)}</em>}
+                </h2>
                 {/* Ogni orario è un link e non un pulsante che chiama del codice:
                     così l'elenco funziona anche senza JavaScript, e un orario si
                     può mandare a qualcuno per messaggio. */}

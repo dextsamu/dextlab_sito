@@ -12,6 +12,7 @@ import { guardAdmin, handleAdminPost } from '../../lib/admin-actions.ts';
 import { csrfToken } from '../../lib/auth.ts';
 import { contentRows, leadStats } from '../../lib/admin.ts';
 import { getSettings, settingOn, tryQuery } from '../../lib/db.ts';
+import { mailConfig, isMailUsable } from '../../lib/mail.ts';
 import { siteUrl } from '../../lib/env.ts';
 import {
   agendaConfig,
@@ -44,6 +45,9 @@ const [s, leads, fasce, chiusure, appuntamenti] = await Promise.all([
 
 const cfg = agendaConfig(s);
 const attiva = settingOn(s, 'agenda_attiva');
+// Il promemoria dipende dall'SMTP: prometterlo nel pannello mentre non può partire
+// sarebbe la cosa peggiore, perché nessuno va a controllare che sia arrivato.
+const smtpPronto = isMailUsable(mailConfig(s));
 
 const fasciaFields: FieldSpec[] = [
   { name: 'weekday', type: 'number', placeholder: '1=lun … 7=dom', label: 'Giorno (1=lun … 7=dom)' },
@@ -54,7 +58,9 @@ const fasciaFields: FieldSpec[] = [
 ];
 
 const chiusuraFields: FieldSpec[] = [
-  { name: 'day', type: 'text', placeholder: '2026-08-15', label: 'Giorno chiuso' },
+  { name: 'day', type: 'text', placeholder: '2026-08-15', label: 'Giorno' },
+  { name: 'from_time', type: 'text', placeholder: 'vuoto = tutto il giorno', label: 'Dalle' },
+  { name: 'to_time', type: 'text', placeholder: 'vuoto = tutto il giorno', label: 'Alle' },
   { name: 'reason', type: 'text', placeholder: 'Ferie', label: 'Motivo (solo per te)' },
   { name: 'sort', type: 'number', placeholder: 'ordine', label: 'Ordine' },
   { name: 'active', type: 'check', placeholder: 'attivo' },
@@ -74,7 +80,9 @@ const fasceVuote = fasce.filter((f) => {
 
 /* Anteprima: quanti slot uscirebbero davvero. È la sola risposta utile alla
    domanda «ho configurato bene?», e non richiede di aprire il sito pubblico. */
-const occupati = appuntamenti.filter((a) => a.status === 'confermato').map((a) => a.starts_at);
+const occupati = appuntamenti
+  .filter((a) => a.status === 'confermato')
+  .map((a) => ({ starts_at: a.starts_at, minutes: a.minutes }));
 const anteprima = giorniLiberi(cfg, fasce, chiusure, occupati);
 const slotTotali = anteprima.reduce((n, g) => n + g.slot.length, 0);
 
@@ -106,6 +114,13 @@ const feed = cfg.chiaveIcs ? `${siteUrl()}/agenda.ics?k=${cfg.chiaveIcs}` : '';
 
       <label for="agenda_minuti">Durata di un appuntamento (minuti)</label>
       <input id="agenda_minuti" name="agenda_minuti" value={String(cfg.minuti)} />
+      <label for="agenda_pausa">Pausa fra due appuntamenti (minuti)</label>
+      <input id="agenda_pausa" name="agenda_pausa" value={String(cfg.pausa)} />
+      <p class="hint">
+        Il respiro fra la fine di una call e l'inizio della prossima: con 30 minuti di durata e 15 di
+        pausa, gli orari escono alle 09:30, 10:15, 11:00. Vale anche intorno agli appuntamenti già
+        presi, quindi nessuno può prenotare a cavallo della tua pausa.
+      </p>
       <label for="agenda_preavviso">Preavviso minimo (ore)</label>
       <input id="agenda_preavviso" name="agenda_preavviso" value={String(cfg.preavviso)} />
       <p class="hint">
@@ -114,6 +129,16 @@ const feed = cfg.chiaveIcs ? `${siteUrl()}/agenda.ics?k=${cfg.chiaveIcs}` : '';
       </p>
       <label for="agenda_giorni">Quanto avanti si può prenotare (giorni)</label>
       <input id="agenda_giorni" name="agenda_giorni" value={String(cfg.giorni)} />
+      <label for="agenda_promemoria">Promemoria: ore prima della call (0 = nessuno)</label>
+      <input id="agenda_promemoria" name="agenda_promemoria" value={String(cfg.promemoria)} />
+      <p class="hint">
+        Un'email a chi ha prenotato e una a te, con il link per spostare o disdire. Parte da sé, da un
+        timer dentro il sito: niente da configurare sul server.
+        {cfg.promemoria > 0 && !smtpPronto && (
+          <strong> Adesso non parte: l'SMTP non è configurato (Impostazioni → SMTP).</strong>
+        )}
+        {cfg.promemoria === 0 && ' Adesso è spento.'}
+      </p>
 
       <button class="btn-s" name="action" value="save_agenda">Salva</button>
     </form>
@@ -164,10 +189,15 @@ const feed = cfg.chiaveIcs ? `${siteUrl()}/agenda.ics?k=${cfg.chiaveIcs}` : '';
     <h3>+ Nuovo giorno chiuso</h3>
     <CrudRow table="agenda_closures" fields={chiusuraFields} row={null} csrf={csrf} />
     <p class="hint">
-      Un giorno chiuso vince su tutte le fasce, e si scrive <code>2026-08-15</code>. È anche il posto
-      dove bloccare un giorno in cui hai un impegno preso altrove:
-      <strong>questa agenda non vede il tuo calendario personale</strong>, quindi senza una riga qui
-      proporrebbe quell'orario a chiunque.
+      Il giorno si scrive <code>2026-08-15</code>. Se lasci vuoti i due orari è chiuso tutto il
+      giorno; se li compili (<code>15:00</code> → <code>16:30</code>) resta prenotabile il resto della
+      giornata — è il modo di bloccare un impegno di mezz'ora senza perdere l'intero pomeriggio.
+      <strong>Questa agenda non vede il tuo calendario personale</strong>, quindi quello che non
+      blocchi qui verrà proposto a chiunque.
+    </p>
+    <p class="hint">
+      Un orario che non si legge vale come «tutto il giorno»: fra chiudere troppo e aprire un
+      appuntamento sopra un impegno che c'era già, il primo costa meno.
     </p>
   </section>
 
@@ -199,18 +229,27 @@ const feed = cfg.chiaveIcs ? `${siteUrl()}/agenda.ics?k=${cfg.chiaveIcs}` : '';
                 <td>{a.note || '—'}</td>
                 <td>
                   {a.status === 'confermato' ? (
-                    <form method="post">
-                      <input type="hidden" name="csrf" value={csrf} />
-                      <input type="hidden" name="id" value={a.id} />
-                      <button
-                        class="btn-s danger"
-                        name="action"
-                        value="app_disdici"
-                        data-confirm="Disdire questo appuntamento?"
-                      >
-                        Disdici
-                      </button>
-                    </form>
+                    <>
+                      {/* La scheda pubblica dell'appuntamento: da lì si sposta a
+                          un altro orario, con l'elenco di quelli liberi. Un
+                          selettore di orari anche qui sarebbe la stessa cosa
+                          scritta due volte. */}
+                      <a class="btn-s" href={`/prenota/${a.token}`} target="_blank" rel="noopener">
+                        Scheda
+                      </a>
+                      <form method="post">
+                        <input type="hidden" name="csrf" value={csrf} />
+                        <input type="hidden" name="id" value={a.id} />
+                        <button
+                          class="btn-s danger"
+                          name="action"
+                          value="app_disdici"
+                          data-confirm="Disdire questo appuntamento?"
+                        >
+                          Disdici
+                        </button>
+                      </form>
+                    </>
                   ) : (
                     <span class="hint">disdetto</span>
                   )}

@@ -35,6 +35,10 @@ export interface AgendaConfig {
   preavviso: number;
   /** Quanti giorni avanti si può prenotare. */
   giorni: number;
+  /** Minuti di respiro fra la fine di un appuntamento e l'inizio del prossimo. */
+  pausa: number;
+  /** Ore prima della call in cui parte il promemoria. 0 = nessun promemoria. */
+  promemoria: number;
   /** Chiave del feed .ics. Vuota significa feed spento. */
   chiaveIcs: string;
 }
@@ -52,11 +56,25 @@ export type FasciaRow = {
 
 export type ChiusuraRow = {
   id: number;
-  /** 'YYYY-MM-DD' — è un DATE, non un istante: un giorno chiuso è chiuso tutto. */
+  /** 'YYYY-MM-DD' — è un DATE, non un istante. */
   day: string;
+  /**
+   * Fascia bloccata dentro quel giorno, 'HH:MM'. Entrambi vuoti significa tutto
+   * il giorno: è il caso delle ferie. Pieni significa «quel giorno, solo da qui a
+   * qui» — che serve per l'impegno di mezz'ora preso altrove, e per cui prima si
+   * doveva chiudere l'intera giornata.
+   */
+  from_time: string;
+  to_time: string;
   reason: string;
   sort: number;
   active: boolean;
+}
+
+/** Un appuntamento già preso, per quello che serve al calcolo: quando e quanto. */
+export interface Occupato {
+  starts_at: Date;
+  minutes: number;
 }
 
 export type AppuntamentoRow = {
@@ -71,6 +89,14 @@ export type AppuntamentoRow = {
   token: string;
   ip: string;
   created_at: Date;
+  /** Quando è partito il promemoria. Nullo = non ancora mandato. */
+  reminded_at: Date | null;
+  /**
+   * Numero di revisione: cresce a ogni spostamento e finisce in SEQUENCE nel
+   * .ics. È il modo in cui un calendario capisce che l'evento è cambiato invece
+   * di tenersi l'orario vecchio.
+   */
+  version: number;
 }
 
 export interface Slot {
@@ -221,6 +247,8 @@ export function agendaConfig(s: Settings): AgendaConfig {
     minuti: n('agenda_minuti', 30, 10, 240),
     preavviso: n('agenda_preavviso', 12, 0, 336),
     giorni: n('agenda_giorni', 21, 1, 90),
+    pausa: n('agenda_pausa', 15, 0, 240),
+    promemoria: n('agenda_promemoria', 24, 0, 336),
     chiaveIcs: setting(s, 'agenda_ics_key', '').trim(),
   };
 }
@@ -238,11 +266,19 @@ export function giorniLiberi(
   cfg: AgendaConfig,
   fasce: FasciaRow[],
   chiusure: ChiusuraRow[],
-  occupati: Date[],
+  occupati: Occupato[],
   adesso: Date = new Date()
 ): GiornoLibero[] {
-  const presi = new Set(occupati.map((d) => d.getTime()));
-  const chiusi = new Set(chiusure.map((c) => giornoDaValore(c.day)).filter((v): v is string => v !== null));
+  /*
+    Un appuntamento non occupa solo la propria mezz'ora: si porta dietro la pausa
+    da una parte e dall'altra. Si confrontano intervalli e non istanti perché la
+    durata si cambia dal pannello, quindi gli appuntamenti presi ieri possono non
+    essere allineati al passo di oggi — e due orari diversi possono accavallarsi.
+  */
+  const pieni = occupati.map((o) => ({
+    da: o.starts_at.getTime() - cfg.pausa * 60_000,
+    a: o.starts_at.getTime() + (o.minutes + cfg.pausa) * 60_000,
+  }));
   const nonPrimaDi = adesso.getTime() + cfg.preavviso * 3_600_000;
 
   const risultato: GiornoLibero[] = [];
@@ -254,19 +290,33 @@ export function giorniLiberi(
     const perno = new Date(istanteDaOraItaliana(oggi.anno, oggi.mese, oggi.giorno + d, 12 * 60));
     const { anno, mese, giorno, weekday } = oraItaliana(perno);
     const data = `${anno}-${due(mese)}-${due(giorno)}`;
-    if (chiusi.has(data)) continue;
+
+    // Le chiusure di questo giorno: senza orari è chiuso tutto, con gli orari
+    // sono fasce da togliere.
+    const diOggi = chiusure.filter((c) => c.active && giornoDaValore(c.day) === data);
+    if (diOggi.some((c) => bloccoIntero(c))) continue;
+    const blocchi = diOggi
+      .map((c) => ({ da: minutiDaOrario(c.from_time), a: minutiDaOrario(c.to_time) }))
+      .filter((b): b is { da: number; a: number } => b.da !== null && b.a !== null && b.a > b.da);
 
     const slot: Slot[] = [];
+    const passo = cfg.minuti + cfg.pausa;
     for (const fascia of fasce) {
       if (!fascia.active || fascia.weekday !== weekday) continue;
       const inizio = minutiDaOrario(fascia.from_time);
       const fine = minutiDaOrario(fascia.to_time);
       if (inizio === null || fine === null) continue;
 
-      for (let m = inizio; m + cfg.minuti <= fine; m += cfg.minuti) {
+      // Il passo comprende la pausa, ma la fascia deve contenere solo
+      // l'appuntamento: se chiudi alle 13:00 un appuntamento che finisce alle
+      // 13:00 ci sta, la pausa dopo è tempo tuo.
+      for (let m = inizio; m + cfg.minuti <= fine; m += passo) {
         const istante = istanteDaOraItaliana(anno, mese, giorno, m);
         if (istante.getTime() < nonPrimaDi) continue;
-        if (presi.has(istante.getTime())) continue;
+        if (blocchi.some((b) => m < b.a && m + cfg.minuti > b.da)) continue;
+        const da = istante.getTime();
+        const a = da + cfg.minuti * 60_000;
+        if (pieni.some((p) => da < p.a && a > p.da)) continue;
         slot.push({ iso: istante.toISOString(), ora: oraDelGiorno(istante) });
       }
     }
@@ -277,6 +327,21 @@ export function giorniLiberi(
   }
 
   return risultato;
+}
+
+/**
+ * Una chiusura senza orari, o con orari illeggibili, chiude il giorno intero.
+ *
+ * Il caso degli orari illeggibili è deliberato e va nella direzione prudente: se
+ * qualcuno scrive «pomeriggio» al posto di un orario, chiudere troppo costa un
+ * giorno di prenotazioni, aprire troppo costa un appuntamento sopra un impegno
+ * che c'era già.
+ */
+function bloccoIntero(c: ChiusuraRow): boolean {
+  const da = c.from_time.trim();
+  const a = c.to_time.trim();
+  if (da === '' && a === '') return true;
+  return minutiDaOrario(da) === null || minutiDaOrario(a) === null;
 }
 
 /**
@@ -299,13 +364,20 @@ export async function chiusureAttive(): Promise<ChiusuraRow[]> {
   return rowsActive<ChiusuraRow>('agenda_closures');
 }
 
-/** Gli istanti già occupati da qui in avanti. */
-export async function slotOccupati(): Promise<Date[]> {
-  const rows = await tryQuery<{ starts_at: Date }>(
-    `SELECT starts_at FROM appointments
+/**
+ * Gli appuntamenti che occupano tempo da qui in avanti.
+ *
+ * Serve anche la durata e non solo l'istante: dal pannello si può cambiare la
+ * durata degli appuntamenti, quindi quelli presi prima possono essere più lunghi
+ * o più corti di quelli di adesso, e la sovrapposizione si calcola sugli
+ * intervalli. Un giorno indietro nella finestra perché un appuntamento iniziato
+ * ieri sera con una durata lunga può ancora coprire stamattina.
+ */
+export async function slotOccupati(): Promise<Occupato[]> {
+  return await tryQuery<Occupato>(
+    `SELECT starts_at, minutes FROM appointments
       WHERE status = 'confermato' AND starts_at > now() - interval '1 day'`
   );
-  return rows.map((r) => r.starts_at);
 }
 
 /** L'agenda pubblica pronta da mostrare. */
@@ -390,6 +462,8 @@ export interface EventoIcs {
   name: string;
   email: string;
   note: string;
+  /** Revisione dell'appuntamento: diventa SEQUENCE. Vedi AppuntamentoRow. */
+  version?: number;
 }
 
 /** Un calendario iCalendar con gli appuntamenti dati. */
@@ -422,6 +496,10 @@ export function calendarioIcs(eventi: EventoIcs[], base: string, nomeCalendario 
       // così lo stesso evento produce sempre lo stesso testo e i calendari non
       // lo vedono cambiare a ogni lettura del feed.
       `DTSTAMP:${icsIstante(e.starts_at)}`,
+      // SEQUENCE cresce a ogni spostamento: è il solo modo di dire a un
+      // calendario «questo evento che hai già è cambiato». Senza, chi aveva
+      // salvato l'appuntamento si terrebbe l'orario vecchio.
+      `SEQUENCE:${e.version ?? 0}`,
       `DTSTART:${icsIstante(e.starts_at)}`,
       `DTEND:${icsIstante(fine)}`,
       `SUMMARY:${icsTesto(`Call con ${e.name}`)}`,

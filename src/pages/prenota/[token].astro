@@ -15,8 +15,13 @@
  */
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { query, tryQuery, getSettings } from '../../lib/db.ts';
-import { quandoPerEsteso, type AppuntamentoRow } from '../../lib/agenda.ts';
-import { mailConfig, sendCancellationMail } from '../../lib/mail.ts';
+import {
+  agendaPubblica,
+  slotAmmesso,
+  quandoPerEsteso,
+  type AppuntamentoRow,
+} from '../../lib/agenda.ts';
+import { mailConfig, sendCancellationMail, sendMoveMails } from '../../lib/mail.ts';
 
 const { token = '' } = Astro.params;
 
@@ -27,31 +32,82 @@ async function leggi(): Promise<AppuntamentoRow | null> {
 }
 
 let app = await leggi();
-let disdettaFatta = false;
+let spostatoA: Date | null = null;
 let errore = '';
 
 if (Astro.request.method === 'POST' && app) {
+  // Riferimento fisso alla riga letta all'inizio: più sotto `app` viene riletto
+  // dopo la scrittura, e da lì in poi può essere nullo.
+  const attuale = app;
   let azione = '';
+  let slotChiesto = '';
   try {
-    azione = String((await Astro.request.formData()).get('azione') ?? '');
+    const form = await Astro.request.formData();
+    azione = String(form.get('azione') ?? '');
+    slotChiesto = String(form.get('slot') ?? '');
   } catch {
     errore = 'Richiesta non valida.';
   }
 
+  if (azione === 'sposta') {
+    /*
+      Spostare invece di disdire e riprenotare: fra le due operazioni il nuovo
+      orario poteva essere preso da un altro, e chi voleva solo cambiare ora si
+      ritrovava senza appuntamento. Qui è un solo passaggio, e se il nuovo orario
+      non è più libero quello vecchio resta dov'è.
+    */
+    const { cfg, giorni } = await agendaPubblica(await getSettings());
+    const nuovo = slotAmmesso(giorni, slotChiesto);
+    if (attuale.status !== 'confermato') {
+      errore = 'Questo appuntamento è stato disdetto: non si può spostare.';
+    } else if (attuale.starts_at.getTime() < Date.now()) {
+      errore = 'Questo appuntamento è già passato.';
+    } else if (!nuovo) {
+      errore = 'Quell’orario non è più disponibile. Scegline un altro.';
+    } else {
+      const prima = attuale.starts_at;
+      try {
+        await query(
+          `UPDATE appointments
+              SET starts_at = $1, minutes = $2, version = version + 1, reminded_at = NULL
+            WHERE token = $3 AND status = 'confermato'`,
+          [nuovo.toISOString(), cfg.minuti, token]
+        );
+        spostatoA = nuovo;
+        app = await leggi();
+        // reminded_at torna nullo qui sopra: il promemoria dell'orario vecchio
+        // non vale più, e chi ha spostato ne vuole uno per quello nuovo.
+        if (app) {
+          const esito = await sendMoveMails(app, prima, mailConfig(await getSettings()), Astro.url.origin);
+          if (!esito.ok) console.warn(`[prenota] avviso di spostamento non inviato (${esito.error}).`);
+        }
+      } catch (err) {
+        // 23505 indice univoco, 23P01 vincolo di non sovrapposizione: in entrambi
+        // i casi qualcuno è arrivato su quell'orario un istante prima.
+        const codice = (err as { code?: string }).code;
+        if (codice === '23505' || codice === '23P01') {
+          errore = 'Quell’orario è stato preso in questo istante da qualcun altro. Scegline un altro.';
+        } else {
+          console.error('[prenota] spostamento non registrato:', (err as Error).message);
+          errore = 'Non è stato possibile spostare l’appuntamento. Scrivimi a info@dextlab.it.';
+        }
+      }
+    }
+  }
+
   if (azione === 'disdici') {
-    if (app.status !== 'confermato') {
+    if (attuale.status !== 'confermato') {
       errore = 'Questo appuntamento era già stato disdetto.';
-    } else if (app.starts_at.getTime() < Date.now()) {
+    } else if (attuale.starts_at.getTime() < Date.now()) {
       // Un appuntamento passato non si disdice: è già accaduto o già mancato, e
       // cambiarlo adesso riscriverebbe la storia senza liberare niente.
       errore = 'Questo appuntamento è già passato: non c’è più niente da disdire.';
     } else {
       try {
         await query("UPDATE appointments SET status = 'disdetto' WHERE token = $1", [token]);
-        disdettaFatta = true;
         // L'avviso a chi doveva rispondere: senza, l'orario resta segnato in un
         // calendario personale che nessuno ha aggiornato.
-        await sendCancellationMail(app, mailConfig(await getSettings()));
+        await sendCancellationMail(attuale, mailConfig(await getSettings()));
         app = await leggi();
       } catch (err) {
         console.error('[prenota] disdetta non registrata:', (err as Error).message);
@@ -65,6 +121,22 @@ if (!app) Astro.response.status = 404;
 
 const attivo = app?.status === 'confermato';
 const passato = app ? app.starts_at.getTime() < Date.now() : false;
+
+/*
+  L'elenco degli orari si carica solo quando serve: la scheda di un appuntamento
+  la si apre per guardare l'ora, e calcolare tre settimane di slot a ogni visita
+  sarebbe lavoro buttato. `?sposta=1` è un link vero, quindi il percorso funziona
+  anche senza JavaScript come il resto della prenotazione.
+*/
+const vuoleSpostare = Astro.url.searchParams.get('sposta') === '1' && attivo && !passato;
+const { giorni: giorniLiberiOra } = vuoleSpostare
+  ? await agendaPubblica(await getSettings())
+  : { giorni: [] };
+
+// Come nell'elenco per prenotare: i primi giorni si vedono, gli altri stanno
+// dentro un <details>. Tre settimane di orari in fila sono uno scorrimento inutile.
+const primiGiorni = giorniLiberiOra.slice(0, 5);
+const altriGiorni = giorniLiberiOra.slice(5);
 ---
 
 <BaseLayout
@@ -90,7 +162,13 @@ const passato = app ? app.starts_at.getTime() < Date.now() : false;
       ) : (
         <>
           <header class="pr-testa">
-            <h1>{disdettaFatta ? 'Appuntamento disdetto' : attivo ? 'Appuntamento confermato' : 'Appuntamento disdetto'}</h1>
+            <h1>
+              {spostatoA
+                ? 'Appuntamento spostato'
+                : attivo
+                  ? 'Appuntamento confermato'
+                  : 'Appuntamento disdetto'}
+            </h1>
             <p class="pr-sunto">
               {attivo
                 ? `Ti aspetto ${quandoPerEsteso(app.starts_at)}, ora italiana. Dura ${app.minutes} minuti.`
@@ -99,6 +177,26 @@ const passato = app ? app.starts_at.getTime() < Date.now() : false;
           </header>
 
           {errore && <p class="pr-errore" role="alert">{errore}</p>}
+
+          {attivo && !passato && (
+            <ol class="pr-dopo">
+              <li>
+                <strong>Ti arriva un’email</strong>
+                <span>con l’orario, l’evento per il calendario e il link a questa pagina.</span>
+              </li>
+              <li>
+                <strong>Ti chiamo io</strong>
+                <span>
+                  {app.phone ? `al ${app.phone}` : 'all’orario scelto'}: se preferisci un altro
+                  modo, rispondi a quell’email.
+                </span>
+              </li>
+              <li>
+                <strong>Se ti cambia un impegno</strong>
+                <span>sposti o disdici da qui, fino al giorno stesso.</span>
+              </li>
+            </ol>
+          )}
 
           <dl class="pr-scheda">
             <dt>Quando</dt>
@@ -128,12 +226,85 @@ const passato = app ? app.starts_at.getTime() < Date.now() : false;
               <a class="btn btn-ghost" href={`/prenota/${token}.ics`} download>
                 Aggiungi al calendario
               </a>
+              {/* Spostare prima di disdire, e nell'ordine in cui si spera che
+                  vengano usati: chi non può più a quell'ora quasi sempre può a
+                  un'altra, e un appuntamento spostato è meglio di uno perso. */}
+              {!vuoleSpostare && (
+                <a class="btn btn-ghost" href={`/prenota/${token}?sposta=1`}>Sposta a un altro orario</a>
+              )}
               <form method="POST" action={`/prenota/${token}`}>
                 <input type="hidden" name="azione" value="disdici" />
                 <button class="btn-disdici" type="submit">Disdici l’appuntamento</button>
               </form>
             </div>
           )}
+
+          {vuoleSpostare &&
+            (giorniLiberiOra.length === 0 ? (
+              <p class="pr-vuoto">
+                Non c’è nessun altro orario libero nei prossimi giorni. Scrivimi a <a
+                  href="mailto:info@dextlab.it">info@dextlab.it</a
+                > e lo sistemiamo.
+              </p>
+            ) : (
+              <section class="pr-sposta">
+                <h2>Scegli il nuovo orario</h2>
+                <p class="pr-dettaglio">
+                  L’appuntamento di adesso resta valido finché non ne scegli un altro.
+                </p>
+                {/*
+                  Qui gli orari sono pulsanti di un form e non link, perché
+                  spostare cambia i dati: un GET che modifica viene eseguito dai
+                  precaricamenti del browser, e l'appuntamento si sposterebbe da
+                  solo. Vedi il commento in testa al file.
+                */}
+                <div class="pr-giorni">
+                  {primiGiorni.map((g) => (
+                    <div class="pr-giorno">
+                      <h3>{g.etichetta}</h3>
+                      <ul>
+                        {g.slot.map((s) => (
+                          <li>
+                            <form method="POST" action={`/prenota/${token}`}>
+                              <input type="hidden" name="azione" value="sposta" />
+                              <input type="hidden" name="slot" value={s.iso} />
+                              <button type="submit">{s.ora}</button>
+                            </form>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+
+                {altriGiorni.length > 0 && (
+                  <details class="pr-altri">
+                    <summary>Altri {altriGiorni.length} giorni</summary>
+                    <div class="pr-giorni">
+                      {altriGiorni.map((g) => (
+                        <div class="pr-giorno">
+                          <h3>{g.etichetta}</h3>
+                          <ul>
+                            {g.slot.map((s) => (
+                              <li>
+                                <form method="POST" action={`/prenota/${token}`}>
+                                  <input type="hidden" name="azione" value="sposta" />
+                                  <input type="hidden" name="slot" value={s.iso} />
+                                  <button type="submit">{s.ora}</button>
+                                </form>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
+                <p class="pr-nota">
+                  Hai cambiato idea? <a href={`/prenota/${token}`}>Torna alla scheda</a>.
+                </p>
+              </section>
+            ))}
 
           {!attivo && (
             <p class="pr-nota">

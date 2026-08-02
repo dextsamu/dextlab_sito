@@ -1187,12 +1187,75 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   color:var(--text);font-variation-settings:'wght' 560}
 .pr-giorno ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;
   grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}
-.pr-giorno li a{display:block;text-align:center;padding:11px 8px;border-radius:12px;
+/* Link per prenotare, pulsanti per spostare: la differenza è che spostare cambia
+   i dati e quindi non può essere un GET. Devono però somigliarsi, perché per chi
+   guarda sono la stessa cosa — un orario da premere. */
+.pr-giorno li form{display:block;margin:0}
+.pr-giorno li a,
+.pr-giorno li button{display:block;width:100%;text-align:center;padding:11px 8px;border-radius:12px;
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92rem;
-  color:var(--text);border:1px solid var(--border);background:var(--surface);
+  color:var(--text);border:1px solid var(--border);background:var(--surface);cursor:pointer;
   transition:border-color .3s,background .3s,transform .3s var(--ease)}
-.pr-giorno li a:hover{border-color:var(--border-2);background:var(--surface-2);transform:translateY(-2px)}
-.pr-giorno li a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.pr-giorno li a:hover,
+.pr-giorno li button:hover{border-color:var(--border-2);background:var(--surface-2);transform:translateY(-2px)}
+.pr-giorno li a:focus-visible,
+.pr-giorno li button:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+/* Nell'elenco per spostare i giorni sono titoli di terzo livello, perché il
+   secondo è «Scegli il nuovo orario». */
+.pr-giorno h3{font-size:1.05rem;margin:0 0 12px;font-family:'Space Grotesk',sans-serif;
+  color:var(--text);font-variation-settings:'wght' 560}
+.pr-sposta{margin:34px 0 0}
+.pr-sposta h2{font-size:1.3rem;margin:0 0 6px}
+.pr-sposta .pr-giorni{margin-top:22px}
+/* I tre motivi sotto il titolo: fatti, non slogan. Su desktop in fila, su telefono
+   in colonna — restano leggibili in entrambi i casi senza scorciare il testo. */
+.pr-perche{list-style:none;margin:26px 0 0;padding:0;display:grid;gap:12px;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.pr-perche li{padding:14px 16px;border-radius:14px;background:var(--surface);
+  border:1px solid var(--border)}
+.pr-perche strong{display:block;font-family:'Space Grotesk',sans-serif;font-size:.95rem;
+  color:var(--text);margin-bottom:4px}
+.pr-perche span{display:block;color:var(--muted);font-size:.86rem;line-height:1.5}
+
+/* La scorciatoia al primo orario libero: un bersaglio grande, perché è quello che
+   la maggior parte di chi arriva sta cercando. */
+.pr-primo{display:grid;gap:4px;margin:30px 0 0;padding:20px 22px;border-radius:var(--radius);
+  background:linear-gradient(120deg,rgba(84,201,200,.12),rgba(139,216,158,.06) 70%);
+  border:1px solid var(--border-2);transition:transform .3s var(--ease),box-shadow .3s}
+.pr-primo:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(0,0,0,.3)}
+.pr-primo:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.pr-primo-eti{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+  font-family:'Space Grotesk',sans-serif}
+.pr-primo-quando{font-family:'Space Grotesk',sans-serif;font-size:1.25rem;color:var(--text);
+  font-variation-settings:'wght' 600}
+.pr-primo-vai{font-size:.9rem;color:var(--cyan)}
+.pr-oppure{margin:22px 0 -8px;color:var(--muted);font-size:.92rem}
+/* «oggi» / «domani» accanto alla data: la parola che orienta, la data che precisa. */
+.pr-vicino{margin-left:9px;padding:2px 8px;border-radius:999px;font-style:normal;
+  font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--green);
+  border:1px solid rgba(139,216,158,.3);background:rgba(139,216,158,.08)}
+
+/* Il riepilogo sopra il form: cosa si sta confermando, senza tornare indietro. */
+.pr-scelto{display:grid;gap:3px;padding:18px 20px;border-radius:14px;background:var(--surface);
+  border:1px solid var(--border);margin-bottom:28px}
+.pr-scelto-eti{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+  font-family:'Space Grotesk',sans-serif}
+.pr-scelto strong{font-family:'Space Grotesk',sans-serif;font-size:1.1rem;color:var(--cyan);
+  font-variation-settings:'wght' 600}
+.pr-scelto-durata{color:var(--muted);font-size:.85rem}
+.pr-cambia{justify-self:start;margin-top:6px;font-size:.86rem;color:var(--cyan)}
+
+/* «Cosa succede adesso», sulla pagina di conferma: la domanda che si fa chiunque
+   abbia appena prenotato qualcosa. I numeri li mette il contatore della lista. */
+.pr-dopo{list-style:none;counter-reset:passo;margin:28px 0 0;padding:0;display:grid;gap:12px}
+.pr-dopo li{counter-increment:passo;position:relative;padding:0 0 0 40px}
+.pr-dopo li::before{content:counter(passo);position:absolute;left:0;top:1px;width:26px;height:26px;
+  display:grid;place-items:center;border-radius:50%;font-size:.8rem;
+  font-family:'Space Grotesk',sans-serif;color:var(--cyan);
+  border:1px solid rgba(84,201,200,.35);background:rgba(84,201,200,.08)}
+.pr-dopo strong{display:block;font-family:'Space Grotesk',sans-serif;font-size:.95rem;color:var(--text)}
+.pr-dopo span{display:block;color:var(--muted);font-size:.9rem;line-height:1.55}
+
 .pr-altri{margin:30px 0 0}
 .pr-altri summary{cursor:pointer;color:var(--cyan);font-family:'Space Grotesk',sans-serif;
   font-size:.94rem;padding:11px 16px;border-radius:999px;display:inline-block;
