@@ -25,6 +25,7 @@ import {
   messaggioPromemoriaAlCliente,
   messaggioPromemoriaAMe,
   messaggioDisdetta,
+  messaggioProva,
   type Messaggio,
 } from './mail-messaggi.ts';
 
@@ -316,6 +317,87 @@ export async function sendCancellationMail(
     });
   } catch (err) {
     console.warn('[mail] avviso di disdetta non inviato:', (err as Error).message);
+  }
+}
+
+/**
+ * Cosa non torna in una configurazione SMTP, senza toccare la rete.
+ *
+ * Esiste per un motivo preciso, e non ipotetico: su questo sito l'host è stato
+ * impostato al server IMAP invece che a quello SMTP. Da fuori tutto sembrava a
+ * posto — modulo che risponde «messaggio inviato», nessun errore in pagina — e
+ * l'unico sintomo era che le email non arrivavano. Un difetto silenzioso di
+ * questo tipo non lo trova nessuno guardando il pannello: bisogna che il pannello
+ * lo dica.
+ *
+ * Sono controlli sui valori, non sulla connessione: si vedono aprendo la pagina,
+ * prima di premere qualsiasi cosa, e non dipendono da un server raggiungibile.
+ */
+export function diagnosiSmtp(cfg: MailConfig): string[] {
+  const problemi: string[] = [];
+  const host = cfg.host.trim().toLowerCase();
+
+  if (!cfg.enabled) {
+    problemi.push(
+      'SMTP è spento: i messaggi si salvano e si notificano, ma nessuna email parte — né le risposte ai contatti né le conferme delle call.'
+    );
+  }
+  if (cfg.enabled && host === '') problemi.push("Manca l'host del server di posta.");
+  if (cfg.enabled && cfg.user.trim() === '') problemi.push("Manca l'utente.");
+  if (cfg.enabled && cfg.pass === '') problemi.push('Manca la password.');
+
+  /*
+    Un host che comincia per imap o pop è un server per LEGGERE la posta: accetta
+    la connessione, risponde, e non spedirà mai niente. È l'errore più difficile
+    da vedere perché tutto il resto sembra configurato.
+  */
+  if (/^(imap|pop|imaps|pops)/.test(host)) {
+    // La «s» finale si conserva: imaps → smtps, non smtp. Sui fornitori che
+    // usano quella forma — Aruba fra questi — «smtps» è l'host giusto per la
+    // porta 465, e togliergliela darebbe un suggerimento sbagliato.
+    const suggerito = host.replace(/^imaps|^pops/, 'smtps').replace(/^imap|^pop3?/, 'smtp');
+    problemi.push(
+      `«${cfg.host}» è un server per leggere la posta, non per spedirla: le email non partiranno. Per spedire serve il server SMTP dello stesso fornitore, che di solito si chiama «${suggerito}».`
+    );
+  }
+
+  // Porta e modalità devono corrispondere: sono la coppia che il fornitore
+  // documenta insieme, e scambiarla dà un timeout invece di un errore chiaro.
+  if (cfg.port === 465 && cfg.requireTls) {
+    problemi.push('La porta 465 vuole «ssl», non «tls»: con «tls» la connessione resta appesa.');
+  }
+  if ((cfg.port === 587 || cfg.port === 25) && !cfg.requireTls) {
+    problemi.push(`La porta ${cfg.port} vuole «tls», non «ssl».`);
+  }
+  return problemi;
+}
+
+/**
+ * Manda un'email di prova all'indirizzo dei contatti.
+ *
+ * La verifica della connessione dice che il server risponde e accetta le
+ * credenziali. Non dice che il messaggio arriva: possono mancare il permesso a
+ * spedire con quel mittente, o un filtro dall'altra parte. L'unica prova è una
+ * email che si vede arrivare, e usa lo stesso impianto delle altre — se questa si
+ * legge bene, si leggono bene tutte.
+ */
+export async function sendTestMail(cfg: MailConfig): Promise<{ ok: boolean; error?: string }> {
+  if (!isMailUsable(cfg)) return { ok: false, error: 'SMTP non configurato o incompleto.' };
+  const m = messaggioProva({
+    host: cfg.host,
+    port: cfg.port,
+    modalita: cfg.requireTls ? 'STARTTLS' : 'SSL',
+    utente: cfg.user,
+  });
+  try {
+    await createTransport(cfg).sendMail({
+      from: { name: cfg.fromName, address: cfg.from },
+      to: cfg.to,
+      ...busta(m, siteUrl()),
+    });
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
   }
 }
 

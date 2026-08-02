@@ -1633,6 +1633,93 @@ jobs:
 
           exit $fail
 
+      # Il difetto che questa guardia protegge è già capitato, ed è il peggiore
+      # possibile: l'host della posta impostato al server IMAP invece che a quello
+      # SMTP. Il modulo risponde «messaggio inviato», il pannello non dice niente,
+      # e le email non arrivano — con l'agenda accesa significa che qualcuno
+      # prenota una call e non riceve la conferma. Un guasto così non lo trova
+      # nessuno guardando: deve essere il pannello a dirlo, appena si apre la
+      # pagina e senza premere niente.
+      - name: Un SMTP che non può spedire lo dice
+        run: |
+          fail=0
+          esegui() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -qc "$1"; }
+          imposta() {
+            esegui "INSERT INTO settings (k, v) VALUES ('$1', '$2') ON CONFLICT (k) DO UPDATE SET v = '$2';"
+          }
+          # Il limite dell'accesso conta anche i tentativi riusciti: questa guardia
+          # entra nel pannello, e le guardie prima di lei hanno già fatto un login.
+          esegui "DELETE FROM rate_limits WHERE rl_key LIKE 'login%';"
+
+          jar=/tmp/smtp.jar
+          rm -f $jar
+          csrf=$(curl -s -c $jar http://127.0.0.1:4321/admin | grep -oE '[a-f0-9]{64}' | head -1)
+          curl -s -b $jar -c $jar -o /dev/null -H 'Origin: http://127.0.0.1:4321' \
+            -X POST http://127.0.0.1:4321/admin \
+            -d "csrf=$csrf&username=ci_admin&password=password-ci-molto-lunga"
+          pagina() { curl -s -b $jar http://127.0.0.1:4321/admin/impostazioni; }
+
+          contiene() {
+            if grep -qF "$2" <<<"$1"; then echo "  ok    dice: $3"
+            else echo "::error::non dice: $3"; fail=1; fi
+          }
+          non_contiene() {
+            if grep -qF "$2" <<<"$1"; then echo "::error::non doveva dire: $3"; fail=1
+            else echo "  ok    tace su: $3"; fi
+          }
+
+          # 1. SMTP spento: è una scelta legittima, ma va detta — senza posta il
+          #    sito non risponde a nessuno.
+          imposta smtp_enabled ''
+          spento=$(pagina)
+          contiene "$spento" 'Le email non partiranno' 'con SMTP spento avvisa'
+          contiene "$spento" 'SMTP è spento' 'spiega perché'
+          contiene "$spento" 'value="smtp_verifica" class="btn-s" disabled' 'la prova è disattivata senza configurazione'
+
+          # 2. La configurazione sbagliata vera: host di lettura, e porta che non
+          #    corrisponde alla modalità.
+          imposta smtp_enabled '1'
+          imposta smtp_host 'imaps.esempio.it'
+          imposta smtp_user 'info@esempio.it'
+          imposta smtp_pass 'segreto-di-prova'
+          imposta smtp_port '465'
+          imposta smtp_secure 'tls'
+          storto=$(pagina)
+          contiene "$storto" 'server per leggere la posta' 'che un host IMAP non spedisce'
+          contiene "$storto" 'smtps.esempio.it' "l'host giusto da provare"
+          contiene "$storto" 'La porta 465 vuole «ssl»' 'che porta e modalità non corrispondono'
+
+          # 3. Configurazione coerente: l'avviso deve sparire del tutto. Un
+          #    pannello che avvisa sempre non avvisa mai.
+          imposta smtp_host 'smtps.esempio.it'
+          imposta smtp_secure 'ssl'
+          giusto=$(pagina)
+          non_contiene "$giusto" 'Le email non partiranno' 'una configurazione coerente'
+          contiene "$giusto" 'value="smtp_prova" class="btn-s"' 'la prova è disponibile'
+          non_contiene "$giusto" 'value="smtp_prova" class="btn-s" disabled' 'un pulsante disattivato'
+
+          # 4. La prova riporta l'errore vero e non un riassunto: «ECONNREFUSED» e
+          #    «Invalid login» sono la differenza fra un host sbagliato e una
+          #    password sbagliata, ed è l'unica informazione utile.
+          imposta smtp_host '127.0.0.1'
+          imposta smtp_port '2525'
+          imposta smtp_secure 'ssl'
+          csrf=$(pagina | grep -oE 'name="csrf" value="[a-f0-9]{64}"' | head -1 | grep -oE '[a-f0-9]{64}')
+          curl -s -b $jar -c $jar -o /dev/null -H 'Origin: http://127.0.0.1:4321' \
+            -X POST http://127.0.0.1:4321/admin/impostazioni -d "csrf=$csrf&action=smtp_verifica"
+          esito=$(curl -s -b $jar -c $jar http://127.0.0.1:4321/admin/impostazioni)
+          contiene "$esito" 'ECONNREFUSED' "l'errore esatto della connessione"
+
+          # Si rimette la configurazione come stava: le altre guardie leggono le
+          # stesse impostazioni, e una posta finta accesa cambierebbe i loro esiti.
+          imposta smtp_enabled ''
+          imposta smtp_host ''
+          imposta smtp_user ''
+          imposta smtp_pass ''
+          imposta smtp_port '465'
+          imposta smtp_secure 'ssl'
+          exit $fail
+
       - name: Backup e ripristino su database vuoto
         run: |
           # Il numero atteso viene letto dal database di partenza, non scritto a

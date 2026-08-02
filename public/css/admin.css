@@ -164,3 +164,10 @@ tr.mkt-diretto td{color:var(--mut)}
 /* La colonna dell'origine di un lead: corta, e non deve spingere fuori il
    messaggio, che è la cosa che si legge davvero. */
 .lead-da{font-size:.82rem;color:var(--mut);white-space:nowrap}
+/* Diagnosi della posta: un elenco di frasi, non di codici. Sta dentro il riquadro
+   giallo perché è la stessa cosa della manutenzione — un avviso che riguarda il
+   comportamento del sito, non un errore di questa pagina. */
+.smtp-guai{margin:10px 0 0;padding-left:20px;font-size:.88rem;line-height:1.6}
+.smtp-guai li{margin-bottom:6px}
+.smtp-prove{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.smtp-prove .btn-s[disabled]{opacity:.45;cursor:not-allowed}

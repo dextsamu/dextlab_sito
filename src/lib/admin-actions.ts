@@ -14,7 +14,8 @@ import {
   updateLeadStatus,
   deleteLead,
 } from './admin.ts';
-import { saveSettings, CONTENT_TABLES, query } from './db.ts';
+import { saveSettings, getSettings, CONTENT_TABLES, query } from './db.ts';
+import { mailConfig, verifyMailConfig, sendTestMail } from './mail.ts';
 import {
   settingsFromForm,
   agendaSettingsFromForm,
@@ -114,6 +115,38 @@ export async function handleAdminPost(context: APIContext, redirectTo: string): 
       case 'save_locale': {
         await saveSettings(localeSettingsFromForm(form));
         setFlash(cookies, 'Dati della zona salvati.');
+        break;
+      }
+      case 'smtp_verifica': {
+        /*
+          Verifica la connessione senza spedire: dice se il server risponde e se
+          accetta le credenziali. L'errore si riporta per intero — «connect
+          ETIMEDOUT» o «Invalid login» sono la differenza fra un host sbagliato e
+          una password sbagliata, e riassumerli in «errore SMTP» significherebbe
+          buttare via l'unica informazione utile.
+        */
+        const cfg = mailConfig(await getSettings());
+        const esito = await verifyMailConfig(cfg);
+        if (esito.ok) {
+          setFlash(cookies, 'Il server di posta risponde e accetta le credenziali.');
+        } else {
+          setFlash(cookies, `Il server di posta non risponde: ${esito.error}`, 'error');
+        }
+        break;
+      }
+      case 'smtp_prova': {
+        /*
+          La verifica dice che il server accetta le credenziali; solo un'email che
+          si vede arrivare dice che il messaggio esce davvero. Va all'indirizzo dei
+          contatti, cioè al proprio.
+        */
+        const cfg = mailConfig(await getSettings());
+        const esito = await sendTestMail(cfg);
+        if (esito.ok) {
+          setFlash(cookies, `Email di prova inviata a ${cfg.to}. Se non arriva, guarda lo spam.`);
+        } else {
+          setFlash(cookies, `Invio non riuscito: ${esito.error}`, 'error');
+        }
         break;
       }
       case 'save_dpo': {
