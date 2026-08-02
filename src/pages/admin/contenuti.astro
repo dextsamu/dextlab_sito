@@ -126,10 +126,11 @@ const [reviews, works, credentials, faqs, leads] = await Promise.all([
       verifica sono facoltativi, ma sono la parte che chi legge può controllare davvero.
     </p>
     <p class="hint">
-      Queste righe compaiono nella sezione «L'approccio» della home e nei dati strutturati
-      (<code>hasCredential</code>). Attivano anche la voce «Protezione dati» nel menu e la pagina
-      <code>/gdpr</code>, che però resta spenta finché non accendi il servizio in
-      <a href="/admin/impostazioni">Impostazioni</a>.
+      Queste righe compaiono nella sezione «L'approccio» della home, in cima alla pagina
+      <code>/gdpr</code> e nei dati strutturati (<code>hasCredential</code>). Non accendono e non
+      spengono il servizio: quello è un interruttore a parte in
+      <a href="/admin/impostazioni">Impostazioni → Servizio protezione dati</a>. Senza una riga
+      compilata la pagina del servizio esce comunque, ma non nomina nessuna certificazione.
     </p>
   </section>
 

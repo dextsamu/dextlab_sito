@@ -2,12 +2,17 @@
 /**
  * La pagina del servizio protezione dati.
  *
- * Esiste solo a due condizioni, e la seconda è il punto: l'interruttore acceso
- * nel pannello E almeno una qualifica compilata (vedi content.ts, dpoAttivo).
- * Una pagina che vende conformità senza una qualifica dimostrabile sarebbe
- * esattamente la cosa che questo sito non fa da nessuna parte — con la differenza
- * che qui il danno non è di immagine: chi compra un adeguamento privacy compra la
- * competenza di chi lo firma, non un file.
+ * Esiste quando l'interruttore è acceso nel pannello (vedi content.ts,
+ * dpoAttivo). Prima chiedeva anche una qualifica compilata, e quella cautela era
+ * sbagliata nel punto che conta: teneva invisibile un servizio che si può offrire
+ * perché mancavano l'ente e l'anno di un attestato, cioè dati che solo una persona
+ * può scrivere. Vedi la migrazione 015.
+ *
+ * Quello che resta legato al dato verificabile è la dichiarazione, non l'offerta:
+ * senza una qualifica con il suo ente questa pagina descrive il lavoro e non
+ * nomina nessuna certificazione. Chi compra un adeguamento privacy compra la
+ * competenza di chi lo firma — quindi il titolo, quando c'è, si dichiara con
+ * l'ente che l'ha rilasciato e un modo di controllarlo.
  *
  * Cosa NON c'è, scritto qui perché non lo scopra qualcuno per sbaglio:
  *
@@ -38,7 +43,7 @@ const content = await getLandingContent(Astro.locals.settings);
 const locali = datiLocali(Astro.locals.settings ?? {});
 
 /*
-  Senza le due condizioni la pagina non c'è. 404 e non un rimando alla home: un
+  Con il servizio spento la pagina non c'è. 404 e non un rimando alla home: un
   indirizzo che risponde 200 con altro contenuto insegna ai motori di ricerca che
   quella pagina esiste, e poi bisogna disfarlo.
 */
@@ -149,10 +154,17 @@ const domande = [
         </header>
 
         {/*
-          Le qualifiche stanno in alto e non in fondo: è la sola informazione per
-          cui questa pagina può esistere, e chi la cerca la cerca prima di leggere
-          il resto. Con l'indirizzo di verifica, quando c'è.
+          Le qualifiche stanno in alto e non in fondo: sono la ragione per cui
+          scegliere questo servizio invece di un altro, e chi le cerca le cerca
+          prima di leggere il resto. Con l'indirizzo di verifica, quando c'è.
+
+          La sezione esiste solo se una qualifica è compilata con il suo ente.
+          Senza, la pagina descrive il lavoro e NON nomina nessuna certificazione:
+          offrire un servizio è una cosa, dichiarare un titolo è un'altra, e la
+          seconda resta legata al dato verificabile. Un'intestazione «Su cosa si
+          basa» seguita dal vuoto sarebbe peggio della sua assenza.
         */}
+        {qualifiche.length > 0 && (
         <section class="gd-qual">
           <h2>Su cosa si basa</h2>
           <ul>
@@ -182,6 +194,7 @@ const domande = [
             in più.
           </p>
         </section>
+        )}
 
         <section class="gd-blocco">
           <h2>Adeguamento di un sito</h2>

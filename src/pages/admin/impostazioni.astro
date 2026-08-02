@@ -5,6 +5,7 @@ import { csrfToken } from '../../lib/auth.ts';
 import { leadStats, contentRows } from '../../lib/admin.ts';
 import { qualificaMostrabile } from '../../lib/content.ts';
 import { getSettings, setting, settingOn, type CredentialRow } from '../../lib/db.ts';
+import { mailConfig, diagnosiSmtp, isMailUsable } from '../../lib/mail.ts';
 import { siteUrl } from '../../lib/env.ts';
 import { previewToken } from '../../lib/preview.ts';
 
@@ -29,6 +30,17 @@ const [s, leads, qualifiche] = await Promise.all([
 */
 const qualificheOk = qualifiche.filter((c) => c.active && qualificaMostrabile(c)).length;
 const dpoOn = settingOn(s, 'dpo_attiva');
+
+/*
+  Cosa non torna nella configurazione della posta, calcolato aprendo la pagina e
+  non premendo un pulsante. È il difetto che questo sito ha avuto per settimane
+  senza che si vedesse: host impostato al server IMAP, modulo che risponde
+  «messaggio inviato», e nessuna email mai arrivata. Un pannello che non lo dice
+  lascia scoprire il guasto a chi prenota una call e non riceve la conferma.
+*/
+const cfgMail = mailConfig(s);
+const guaiMail = diagnosiSmtp(cfgMail);
+const mailUsabile = isMailUsable(cfgMail);
 
 const maintenanceOn = settingOn(s, 'maintenance');
 // Token derivato, non APP_SECRET: questo valore finisce in un href.
@@ -94,6 +106,22 @@ const secretHint = (key: string) =>
 
     <h2>SMTP (email)</h2>
     <p class="hint">Senza SMTP i lead vengono salvati e notificati, ma nessuna email parte.</p>
+    {
+      guaiMail.length > 0 && (
+        <div class="maint-box on" style="margin-top:14px">
+          <p class="ck big" style="color:#febc2e">Le email non partiranno</p>
+          <ul class="smtp-guai">
+            {guaiMail.map((g) => (
+              <li>{g}</li>
+            ))}
+          </ul>
+          <p class="hint" style="margin:8px 0 0">
+            Sono controlli sui valori qui sotto, non sulla connessione: si vedono senza premere
+            niente. Dopo averli sistemati usa i due pulsanti in fondo per provare davvero.
+          </p>
+        </div>
+      )
+    }
     <label class="ck">
       <input type="checkbox" name="smtp_enabled" checked={settingOn(s, 'smtp_enabled')} /> Usa SMTP
     </label>
@@ -121,6 +149,29 @@ const secretHint = (key: string) =>
     <button type="submit" name="action" value="save_settings" class="btn-save">
       Salva impostazioni
     </button>
+
+    {/*
+      Le due prove, in ordine di forza. La verifica dice che il server risponde e
+      accetta le credenziali; l'email di prova è l'unica cosa che dimostra che un
+      messaggio esce davvero e si legge. Sono nello stesso form dei campi ma non
+      salvano niente: leggono la configurazione già memorizzata, quindi vanno usate
+      dopo aver salvato.
+    */}
+    <div class="smtp-prove">
+      <button type="submit" name="action" value="smtp_verifica" class="btn-s" disabled={!mailUsabile}>
+        Verifica la connessione
+      </button>
+      <button type="submit" name="action" value="smtp_prova" class="btn-s" disabled={!mailUsabile}>
+        Mandami una prova a {setting(s, 'contact_email', 'info@dextlab.it')}
+      </button>
+    </div>
+    <p class="hint" style="margin-top:8px">
+      {
+        mailUsabile
+          ? 'Provano la configurazione salvata: se hai appena cambiato un campo, salva prima.'
+          : 'Le prove si attivano quando SMTP è acceso e host, utente e password sono compilati.'
+      }
+    </p>
   </form>
 
   <p class="hint">
@@ -222,27 +273,40 @@ const secretHint = (key: string) =>
         {dpoOn && qualificheOk > 0 && <strong>attiva</strong>}
       </label>
       <p class="hint" style="margin-top:0">
+        {dpoOn ? (
+          <>
+            La pagina è pubblica: <a href="/gdpr" target="_blank" rel="noopener">apri /gdpr</a>. Da
+            qui passano anche la voce «Protezione dati» nel menu, la card nei servizi e il piè di
+            pagina.
+          </>
+        ) : (
+          'Spunta la casella per pubblicare la pagina del servizio.'
+        )}
+      </p>
+      {/*
+        Le qualifiche non decidono se il servizio è in vendita — quello lo decide
+        la casella qui sopra. Decidono se il sito DICHIARA una certificazione, e
+        senza il dato la pagina descrive il lavoro senza nominare titoli. Detto
+        qui perché è la differenza fra le due cose, e altrimenti si scopre
+        aprendo la pagina e non trovandoci l'attestato.
+      */}
+      <p class="hint" style="margin-top:10px">
         {
           qualificheOk === 0 ? (
             <>
-              Nessuna qualifica compilata: la pagina risponde <strong>404</strong> anche con la
-              casella spuntata. Servono titolo ed ente in{' '}
-              <a href="/admin/contenuti">Contenuti → Formazione e certificazioni</a>. Non è un
-              impedimento burocratico: una pagina che vende conformità senza una qualifica
-              dimostrabile è esattamente ciò che questo sito non fa.
+              <strong>Nessuna qualifica dichiarata.</strong> La pagina esce comunque, ma non nomina
+              nessuna certificazione: senza l'ente che l'ha rilasciata un titolo non è
+              verificabile, e questo sito non pubblica affermazioni su di sé che chi legge non possa
+              controllare. Il posto per scriverla è già pronto in{' '}
+              <a href="/admin/contenuti">Contenuti → Formazione e certificazioni</a>: servono il
+              titolo come sta sull'attestato, l'ente, e la spunta «attiva».
             </>
           ) : (
             <>
               {qualificheOk === 1
-                ? '1 qualifica compilata e mostrabile.'
-                : `${qualificheOk} qualifiche compilate e mostrabili.`}{' '}
-              {dpoOn ? (
-                <>
-                  La pagina è pubblica: <a href="/gdpr" target="_blank" rel="noopener">apri /gdpr</a>.
-                </>
-              ) : (
-                'Spunta la casella per pubblicare la pagina.'
-              )}
+                ? '1 qualifica dichiarata'
+                : `${qualificheOk} qualifiche dichiarate`}: compare in «L'approccio» sulla home, in
+              cima alla pagina del servizio e nei dati strutturati.
             </>
           )
         }

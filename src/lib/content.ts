@@ -85,7 +85,10 @@ export interface LandingContent {
   faqs: FaqItem[];
   /** Formazione e certificazioni, già filtrate: vedi qualificaMostrabile. */
   credenziali: CredentialItem[];
-  /** La pagina /gdpr è accesa E c'è una qualifica da mostrare. */
+  /**
+   * La pagina /gdpr è accesa. Non dipende dalle qualifiche: quelle decidono se la
+   * pagina dichiara una certificazione, non se il servizio è in vendita.
+   */
   dpoAttivo: boolean;
   contactEmail: string;
   calendly: string;
@@ -285,11 +288,18 @@ export async function getLandingContent(settings?: Settings): Promise<LandingCon
   ]);
 
   /*
-    La pagina /gdpr ha due condizioni, non una. L'interruttore dice «voglio
-    vendere questo servizio», le qualifiche dicono «posso dimostrarlo»: la
-    pagina esiste solo con entrambe. Serve a rendere impossibile la sequenza
-    sbagliata, cioè pubblicare la pagina di un servizio di conformità e
-    compilare la qualifica il giorno dopo.
+    Due cose separate, e tenerle unite era un errore mio (vedi la 015).
+
+    L'interruttore decide se il servizio è in vendita. Le qualifiche decidono se
+    il sito DICHIARA una certificazione. Legare la pagina a entrambe teneva
+    invisibile un servizio che si può offrire — la competenza c'è — solo perché
+    mancavano l'ente e l'anno di un attestato, cioè dati che solo una persona può
+    scrivere.
+
+    Quello che resta legato al dato verificabile è la dichiarazione: senza una
+    qualifica con il suo ente, la pagina descrive il lavoro e non nomina nessun
+    titolo. Offrire un servizio è una cosa, dichiarare una certificazione è
+    un'altra.
   */
   const qualifiche = credenziali.filter(qualificaMostrabile);
 
@@ -310,7 +320,7 @@ export async function getLandingContent(settings?: Settings): Promise<LandingCon
     // Nessun ripiego nemmeno qui, e per il motivo più stretto di tutti: un
     // attestato d'esempio è un'affermazione falsa su una persona.
     credenziali: qualifiche,
-    dpoAttivo: settingOn(s, 'dpo_attiva') && qualifiche.length > 0,
+    dpoAttivo: settingOn(s, 'dpo_attiva'),
     contactEmail: setting(s, 'contact_email', 'info@dextlab.it'),
     calendly: setting(s, 'calendly', 'https://calendly.com/dextlab/call'),
     agendaAttiva: settingOn(s, 'agenda_attiva'),

@@ -303,6 +303,49 @@ export function messaggioDisdetta(app: DatiAppuntamento, siteName: string): Mess
   };
 }
 
+/**
+ * L'email di prova della configurazione, mandata dal pannello a se stessi.
+ *
+ * Sta qui con le altre e non dentro mail.ts perché deve passare dalla stessa
+ * verifica: la guardia «Le email dicono la stessa cosa in HTML e in testo»
+ * controlla ogni messaggio di questo file, e un messaggio scritto altrove
+ * sfuggirebbe al solo controllo che quel testo ha.
+ */
+export function messaggioProva(smtp: {
+  host: string;
+  port: number;
+  modalita: string;
+  utente: string;
+}): Messaggio {
+  return {
+    subject: 'Prova di invio dal sito',
+    email: {
+      titolo: 'La posta funziona',
+      sottotitolo: 'Prova di configurazione dal pannello.',
+      blocchi: [
+        {
+          tipo: 'testo',
+          testo:
+            'Se stai leggendo questo messaggio, il server di posta accetta le credenziali del pannello e riesce a spedire. Da adesso partono le risposte ai contatti, le conferme delle call e i promemoria.',
+        },
+        {
+          tipo: 'scheda',
+          righe: [
+            { nome: 'Server', valore: `${smtp.host}:${smtp.port}` },
+            { nome: 'Modalità', valore: smtp.modalita },
+            { nome: 'Utente', valore: smtp.utente },
+          ],
+        },
+        {
+          tipo: 'nota',
+          testo:
+            'Messaggio generato dal pannello, premendo «Mandami una prova». Non serve rispondere.',
+        },
+      ],
+    },
+  };
+}
+
 /** Tutti i messaggi con dati d'esempio: serve all'anteprima e alle verifiche. */
 export function messaggiDiEsempio(base: string): { nome: string; messaggio: Messaggio }[] {
   const app: DatiAppuntamento = {
@@ -324,6 +367,15 @@ export function messaggiDiEsempio(base: string): { nome: string; messaggio: Mess
   };
 
   return [
+    {
+      nome: 'prova-smtp',
+      messaggio: messaggioProva({
+        host: 'smtps.esempio.it',
+        port: 465,
+        modalita: 'SSL',
+        utente: 'info@esempio.it',
+      }),
+    },
     { nome: 'lead-a-me', messaggio: messaggioLead(lead, '15/09/2026, 09:12', 'Dext Lab') },
     { nome: 'lead-ricevuta', messaggio: messaggioRicevuta(lead, 'Dext Lab') },
     { nome: 'prenotazione-a-me', messaggio: messaggioPrenotazione(app, scheda, 'Dext Lab') },
