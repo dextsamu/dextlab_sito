@@ -277,9 +277,11 @@ jobs:
           # per la pagina Marketing, che mostra da dove arrivano i contatti.
           check /admin/lead      303
           check /admin/marketing 303
-          # La pagina del servizio protezione dati parte spenta: 404 è lo stato
-          # giusto appena migrato, e la guardia dedicata prova l'accensione.
-          check /gdpr            404
+          # La pagina del servizio protezione dati: dalla 015 il servizio parte
+          # ACCESO, quindi 200 è lo stato giusto appena migrato. Che la pagina non
+          # dichiari nessuna certificazione finché la qualifica è vuota lo prova la
+          # guardia dedicata più sotto — qui si controlla solo che risponda.
+          check /gdpr            200
           # L'endpoint di backup resta chiuso senza BACKUP_KEY.
           check /api/backup  403
           exit $fail
