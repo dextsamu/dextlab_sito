@@ -26,6 +26,7 @@ import VisitBeacon from './VisitBeacon.astro';
 import { getLandingContent } from '../lib/content.ts';
 import { siteUrl } from '../lib/env.ts';
 import { versioned } from '../lib/assets.ts';
+import { datiLocali, attivitaJsonLd, faqJsonLd, graficoJsonLd } from '../lib/seo.ts';
 
 // Le impostazioni sono già state caricate dal middleware: si riusano invece di
 // interrogare di nuovo il database.
@@ -54,24 +55,33 @@ const sezioni = [
 ];
 
 const base = siteUrl();
-const structuredData = JSON.stringify({
-  '@context': 'https://schema.org',
-  '@type': 'ProfessionalService',
-  name: 'Dext Lab',
-  description:
-    'Realizzazione siti web, web app, e-commerce e consulenza informatica con le migliori tecnologie.',
-  url: base,
-  email: content.contactEmail,
-  image: new URL('/assets/logo-v.png', base + '/').href,
-  areaServed: 'IT',
-  knowsLanguage: ['it'],
-  serviceType: [
-    'Realizzazione siti web',
-    'Sviluppo web app',
-    'Realizzazione e-commerce',
-    'Consulenza informatica',
-  ],
-});
+
+/*
+  I dati strutturati arrivano dalle impostazioni e non da qui: città, telefono e
+  zone servite sono cose che cambiano quando l'attività cambia, e nessuna di esse
+  va scritta nel codice. Con i campi vuoti esce l'oggetto povero e onesto di prima
+  — nome, sito, email, servizi — perché un dato locale inventato è peggio di un
+  dato locale assente. Vedi src/lib/seo.ts.
+
+  Le FAQ si dichiarano insieme, in un solo blocco @graph: sono già scritte, sono
+  vere, e sono l'unica cosa di questa pagina che un motore di ricerca può mostrare
+  come risultato arricchito.
+*/
+const locali = datiLocali(Astro.locals.settings ?? {});
+const structuredData = graficoJsonLd([
+  attivitaJsonLd(locali, {
+    email: content.contactEmail,
+    descrizione:
+      'Realizzazione siti web, web app, e-commerce e consulenza informatica con le migliori tecnologie.',
+    servizi: [
+      'Realizzazione siti web',
+      'Sviluppo web app',
+      'Realizzazione e-commerce',
+      'Consulenza informatica',
+    ],
+  }, base),
+  faqJsonLd(content.faqs, base),
+]);
 ---
 
 <BaseLayout
@@ -108,6 +118,7 @@ const structuredData = JSON.stringify({
     contactEmail={content.contactEmail}
     calendly={content.calendly}
     agendaAttiva={content.agendaAttiva}
+    zone={locali.zone}
   />
   <Footer />
   <WhatsAppFloat href={content.whatsappLink} />

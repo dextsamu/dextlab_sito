@@ -922,6 +922,119 @@ jobs:
           q "update settings set v='' where k='agenda_attiva'"
           exit $fail
 
+      # I dati strutturati. La regola non è tecnica: non si dichiara un dato che
+      # nessuno ha scritto. Un indirizzo o un telefono inventati non sono
+      # un'imprecisione da correggere dopo — Google li confronta con la scheda
+      # dell'attività, e se non combaciano il segnale non vale; se combaciano ma
+      # sono falsi, il problema non è più il posizionamento.
+      - name: I dati strutturati dicono solo quello che c'è
+        run: |
+          fail=0
+          q() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -q -c "$1"; }
+          # Il blocco JSON-LD della home. Si estrae con grep e non con un parser
+          # perché serve solo cercarci dentro: le chiavi mancanti sono il punto.
+          leggi() {
+            curl -s http://127.0.0.1:4321/ | tr -d '\n' \
+              | grep -o '<script type="application/ld+json"[^>]*>[^<]*</script>' \
+              | sed 's/.*json"[^>]*>//; s|</script>||'
+          }
+
+          # 1) A campi vuoti — come li lascia la 012 — nessun dato locale.
+          dati=$(leggi)
+          [ -n "$dati" ] || { echo "::error::nessun blocco JSON-LD nella home"; fail=1; }
+          for vietato in telephone address geo vatID sameAs hasMap; do
+            if grep -q "\"$vietato\"" <<<"$dati"; then
+              echo "::error::con le impostazioni vuote la pagina dichiara «$vietato»: è un dato che nessuno ha scritto"
+              fail=1
+            else
+              echo "  ok    niente «$vietato» finché il campo è vuoto"
+            fi
+          done
+          grep -q 'ProfessionalService' <<<"$dati" \
+            && echo "  ok    l'attività è dichiarata comunque, con quello che si può dimostrare" \
+            || { echo "::error::manca l'oggetto dell'attività nei dati strutturati"; fail=1; }
+          grep -q 'FAQPage' <<<"$dati" \
+            && echo "  ok    e le FAQ, che sono vere e stanno nel database" \
+            || { echo "::error::le FAQ non sono dichiarate come FAQPage"; fail=1; }
+          # Le domande dichiarate devono essere quelle in pagina: un FAQPage con
+          # domande che il visitatore non trova viene trattato come una bugia.
+          n_json=$(grep -o '"Question"' <<<"$dati" | wc -l)
+          n_pagina=$(curl -s http://127.0.0.1:4321/ | grep -o 'class="faq-item' | wc -l)
+          if [ "$n_json" = "$n_pagina" ] && [ "$n_json" -gt 0 ]; then
+            echo "  ok    le $n_json domande dichiarate sono quelle rese in pagina"
+          else
+            echo "::error::domande nei dati strutturati: $n_json, domande in pagina: $n_pagina"
+            fail=1
+          fi
+
+          # 2) Compilati i campi, i dati compaiono — e con i valori scritti.
+          q "update settings set v='Sarzana' where k='biz_city'"
+          q "update settings set v='SP' where k='biz_province'"
+          q "update settings set v='+39 333 1234567' where k='biz_phone'"
+          q "update settings set v='La Spezia, Massa-Carrara' where k='biz_zone'"
+          q "update settings set v='https://www.linkedin.com/in/esempio' where k='social_linkedin'"
+          q "update settings set v='javascript:alert(1)' where k='social_github'"
+          dati=$(leggi)
+          grep -qF '+39 333 1234567' <<<"$dati" \
+            && echo "  ok    il telefono compare quando è scritto" \
+            || { echo "::error::il telefono scritto non compare nei dati strutturati"; fail=1; }
+          grep -qF 'Sarzana' <<<"$dati" \
+            && echo "  ok    la città compare come località" \
+            || { echo "::error::la città non compare nell'indirizzo"; fail=1; }
+          # Senza via non deve comparire streetAddress: per un'attività senza sede
+          # dichiarare un indirizzo postale sarebbe falso.
+          if grep -q 'streetAddress' <<<"$dati"; then
+            echo "::error::compare streetAddress senza che nessuno abbia scritto la via"
+            fail=1
+          else
+            echo "  ok    e senza via non si dichiara nessun indirizzo postale"
+          fi
+          grep -qF 'La Spezia' <<<"$dati" \
+            && echo "  ok    le zone servite sostituiscono «Italia»" \
+            || { echo "::error::le zone servite non compaiono in areaServed"; fail=1; }
+          curl -s http://127.0.0.1:4321/ | grep -qF 'Lavoro con clienti in' \
+            && echo "  ok    e sono scritte anche per chi legge, non solo per i motori" \
+            || { echo "::error::le zone sono dichiarate ai motori ma non ai visitatori"; fail=1; }
+          # Un profilo con uno schema non web viene scartato: quel valore finisce
+          # in sameAs e potrebbe finire in un href.
+          if grep -q 'javascript:' <<<"$dati"; then
+            echo "::error::un indirizzo «javascript:» è finito nei dati strutturati"
+            fail=1
+          else
+            echo "  ok    un profilo con schema non web viene scartato"
+          fi
+          # Coordinate illeggibili: nessun punto sulla mappa, invece di uno sbagliato.
+          q "update settings set v='mezzogiorno' where k='biz_lat'"
+          q "update settings set v='9.9' where k='biz_lng'"
+          if grep -q 'GeoCoordinates' <<<"$(leggi)"; then
+            echo "::error::coordinate non numeriche accettate: l'attività finirebbe in mezzo al mare"
+            fail=1
+          else
+            echo "  ok    coordinate illeggibili non producono un punto sulla mappa"
+          fi
+
+          # 3) L'anteprima social: c'era il logo verticale, che ogni piattaforma
+          # ritagliava a modo suo.
+          tipo=$(curl -s -o /tmp/og.png -w '%{content_type}' http://127.0.0.1:4321/assets/og.png)
+          grep -q 'image/png' <<<"$tipo" \
+            && echo "  ok    l'immagine social c'è" \
+            || { echo "::error::/assets/og.png ha risposto $tipo"; fail=1; }
+          if file /tmp/og.png | grep -q '1200 x 630'; then
+            echo "  ok    ed è 1200x630, la misura che le piattaforme non ritagliano"
+          else
+            echo "::error::l'immagine social non è 1200x630: $(file -b /tmp/og.png)"
+            fail=1
+          fi
+          home=$(curl -s http://127.0.0.1:4321/)
+          for atteso in 'og:site_name' 'og:image:width' 'twitter:image' 'assets/og.png'; do
+            grep -qF "$atteso" <<<"$home" \
+              && echo "  ok    c'è $atteso" \
+              || { echo "::error::manca $atteso"; fail=1; }
+          done
+
+          q "update settings set v='' where k in ('biz_city','biz_province','biz_phone','biz_zone','social_linkedin','social_github','biz_lat','biz_lng')"
+          exit $fail
+
       # Le quattro cose che si vedono, e le tre trappole che nascondono.
       - name: Indice, cuciture, titoli e domande
         run: |

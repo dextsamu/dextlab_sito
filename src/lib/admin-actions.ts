@@ -15,7 +15,7 @@ import {
   deleteLead,
 } from './admin.ts';
 import { saveSettings, CONTENT_TABLES, query } from './db.ts';
-import { settingsFromForm, agendaSettingsFromForm } from './admin.ts';
+import { settingsFromForm, agendaSettingsFromForm, localeSettingsFromForm } from './admin.ts';
 import { runBackup, deleteBackup } from './backup.ts';
 import { randomBytes } from 'node:crypto';
 
@@ -104,6 +104,11 @@ export async function handleAdminPost(context: APIContext, redirectTo: string): 
       case 'save_agenda': {
         await saveSettings(agendaSettingsFromForm(form));
         setFlash(cookies, 'Agenda aggiornata.');
+        break;
+      }
+      case 'save_locale': {
+        await saveSettings(localeSettingsFromForm(form));
+        setFlash(cookies, 'Dati della zona salvati.');
         break;
       }
       case 'agenda_chiave': {

@@ -364,6 +364,30 @@ export const AGENDA_SETTING_KEYS = [
 
 const AGENDA_TOGGLES = new Set(['agenda_attiva']);
 
+/**
+ * I dati per la ricerca locale, in un elenco loro come quelli dell'agenda e per la
+ * stessa ragione: ogni form salva solo i campi che mostra.
+ */
+export const LOCALE_SETTING_KEYS = [
+  'biz_name',
+  'biz_phone',
+  'biz_city',
+  'biz_province',
+  'biz_region',
+  'biz_zone',
+  'biz_street',
+  'biz_zip',
+  'biz_lat',
+  'biz_lng',
+  'biz_hours',
+  'biz_vat',
+  'biz_maps',
+  'social_linkedin',
+  'social_github',
+  'social_instagram',
+  'social_facebook',
+] as const;
+
 /** Chiavi che nel form sono checkbox: assenti significa disattivate. */
 export const SETTING_TOGGLES = new Set([
   'maintenance',
@@ -378,6 +402,21 @@ export const SETTING_TOGGLES = new Set([
  * vuoto e un invio vuoto conserva il valore già salvato invece di azzerarlo.
  */
 export const SETTING_SECRETS = new Set(['smtp_pass', 'tg_token']);
+
+/**
+ * I dati locali dal form. Qui un campo svuotato DEVE potersi svuotare: se un
+ * indirizzo o una partita IVA cambiano, la vecchia versione non deve sopravvivere
+ * perché il campo è stato lasciato vuoto per cancellarla.
+ */
+export function localeSettingsFromForm(form: FormData): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const key of LOCALE_SETTING_KEYS) {
+    const raw = form.get(key);
+    if (raw === null) continue;
+    out[key] = typeof raw === 'string' ? raw.trim() : '';
+  }
+  return out;
+}
 
 /** Come settingsFromForm, ma sulle sole chiavi dell'agenda. Vedi sopra il perché. */
 export function agendaSettingsFromForm(form: FormData): Record<string, string> {

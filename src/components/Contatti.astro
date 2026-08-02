@@ -4,9 +4,11 @@ interface Props {
   calendly: string;
   /** Vero se l'agenda del sito è accesa: allora si prenota qui, non altrove. */
   agendaAttiva: boolean;
+  /** Zone servite, dalle impostazioni. Vuoto significa che non si dice niente. */
+  zone?: string[];
 }
 
-const { contactEmail, calendly, agendaAttiva } = Astro.props;
+const { contactEmail, calendly, agendaAttiva, zone = [] } = Astro.props;
 
 /*
   Con l'agenda accesa il pulsante resta dentro il sito: il link a Calendly
@@ -27,6 +29,18 @@ const prenotaFuori = !agendaAttiva;
       <p>
         Raccontami la tua idea. Ti rispondo entro 24 ore con un primo riscontro, senza impegno.
       </p>
+      {/*
+        Le zone servite, se sono state scritte nel pannello. È la stessa
+        informazione dei dati strutturati, detta a chi legge: un elenco di comuni
+        dichiarato solo ai motori di ricerca e non ai visitatori è il genere di
+        cosa per cui i dati strutturati vengono ignorati.
+      */}
+      {zone.length > 0 && (
+        <p class="contact-zone">
+          Lavoro con clienti in <strong>{zone.join(', ')}</strong> e da remoto nel resto d'Italia.
+        </p>
+      )}
+
       <div class="contact-direct">
         <a href={`mailto:${contactEmail}`} class="contact-link">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">

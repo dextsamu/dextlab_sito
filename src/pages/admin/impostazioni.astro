@@ -113,4 +113,83 @@ const secretHint = (key: string) =>
     I campi segreti non vengono ristampati nella pagina: lasciandoli vuoti si conserva il valore già
     salvato. Le impostazioni qui hanno la precedenza sui default passati per variabile d'ambiente.
   </p>
+
+  {/*
+    Form separato, con la sua azione: un solo form avrebbe spento le caselle degli
+    altri gruppi al primo salvataggio, perché un form HTML non manda le checkbox
+    non spuntate. Vedi il commento in src/lib/admin.ts.
+  */}
+  <form method="post" class="settings-form">
+    <input type="hidden" name="csrf" value={csrf} />
+    <h2>Zona e ricerca locale</h2>
+    <p class="hint">
+      Questi campi finiscono nei dati strutturati della home, quelli che Google confronta con la tua
+      scheda dell'attività. <strong>Finché sono vuoti la pagina non dichiara nessun dato locale</strong>,
+      ed è voluto: un indirizzo o un telefono inventati sono peggio di un campo mancante, perché se
+      non combaciano con la scheda il segnale non vale, e se combaciano ma sono falsi il problema non
+      è più il posizionamento. Nome, telefono e città devono essere <em>identici</em> a quelli della
+      scheda, carattere per carattere.
+    </p>
+
+    <label for="biz_name">Nome dell'attività</label>
+    <input id="biz_name" name="biz_name" value={setting(s, 'biz_name')} placeholder="Dext Lab" />
+    <label for="biz_phone">Telefono pubblico</label>
+    <input id="biz_phone" name="biz_phone" value={setting(s, 'biz_phone')} placeholder="+39 333 1234567" />
+    <label for="biz_city">Città di riferimento</label>
+    <input id="biz_city" name="biz_city" value={setting(s, 'biz_city')} placeholder="Sarzana" />
+    <label for="biz_province">Provincia (sigla)</label>
+    <input id="biz_province" name="biz_province" value={setting(s, 'biz_province')} placeholder="SP" />
+    <label for="biz_region">Regione</label>
+    <input id="biz_region" name="biz_region" value={setting(s, 'biz_region')} placeholder="Liguria" />
+    <label for="biz_zone">Zone servite, separate da virgole</label>
+    <input
+      id="biz_zone"
+      name="biz_zone"
+      value={setting(s, 'biz_zone')}
+      placeholder="La Spezia, Massa-Carrara, Lunigiana"
+    />
+    <p class="hint">
+      Le zone sostituiscono l'indirizzo per chi lavora da remoto o a domicilio: è la forma prevista
+      per queste attività, non una scorciatoia. Compaiono anche in fondo alla sezione contatti.
+    </p>
+
+    <h2>Indirizzo, solo se pubblicabile</h2>
+    <p class="hint">
+      Da compilare <strong>solo</strong> se c'è una sede e l'indirizzo si può mostrare. Senza via, con
+      la sola città, la pagina dichiara la località e non un indirizzo postale — che per un'attività
+      senza sede è la cosa corretta.
+    </p>
+    <label for="biz_street">Via e numero</label>
+    <input id="biz_street" name="biz_street" value={setting(s, 'biz_street')} placeholder="" />
+    <label for="biz_zip">CAP</label>
+    <input id="biz_zip" name="biz_zip" value={setting(s, 'biz_zip')} placeholder="" />
+    <label for="biz_lat">Latitudine</label>
+    <input id="biz_lat" name="biz_lat" value={setting(s, 'biz_lat')} placeholder="44.1123" />
+    <label for="biz_lng">Longitudine</label>
+    <input id="biz_lng" name="biz_lng" value={setting(s, 'biz_lng')} placeholder="9.9612" />
+    <label for="biz_hours">Orari, come li scrivi tu</label>
+    <input id="biz_hours" name="biz_hours" value={setting(s, 'biz_hours')} placeholder="lun-ven 09:00-18:00" />
+    <label for="biz_vat">Partita IVA</label>
+    <input id="biz_vat" name="biz_vat" value={setting(s, 'biz_vat')} placeholder="" />
+    <label for="biz_maps">Indirizzo della scheda Google</label>
+    <input id="biz_maps" name="biz_maps" value={setting(s, 'biz_maps')} placeholder="https://maps.app.goo.gl/…" />
+
+    <h2>Profili pubblici</h2>
+    <p class="hint">
+      Servono a dire che l'attività del sito e quella dei profili sono la stessa. Solo indirizzi
+      completi: gli altri vengono scartati.
+    </p>
+    <label for="social_linkedin">LinkedIn</label>
+    <input id="social_linkedin" name="social_linkedin" value={setting(s, 'social_linkedin')} placeholder="https://www.linkedin.com/in/…" />
+    <label for="social_github">GitHub</label>
+    <input id="social_github" name="social_github" value={setting(s, 'social_github')} placeholder="https://github.com/…" />
+    <label for="social_instagram">Instagram</label>
+    <input id="social_instagram" name="social_instagram" value={setting(s, 'social_instagram')} placeholder="https://www.instagram.com/…" />
+    <label for="social_facebook">Facebook</label>
+    <input id="social_facebook" name="social_facebook" value={setting(s, 'social_facebook')} placeholder="https://www.facebook.com/…" />
+
+    <button type="submit" name="action" value="save_locale" class="btn-save">
+      Salva i dati della zona
+    </button>
+  </form>
 </AdminLayout>
