@@ -6,7 +6,7 @@
  * risponde il sito pubblico resta comunque completo e navigabile, invece di
  * mostrare sezioni vuote o una pagina d'errore.
  */
-import { rowsActive, getSettings, setting, type Settings, type PricingRow, type ReviewRow, type FaqRow, type WorkRow } from './db.ts';
+import { rowsActive, getSettings, setting, settingOn, type Settings, type PricingRow, type ReviewRow, type FaqRow, type WorkRow } from './db.ts';
 import { slugLavoro } from './assets.ts';
 
 export type PricingItem = Pick<PricingRow, 'label' | 'price' | 'weeks'>;
@@ -81,6 +81,8 @@ export interface LandingContent {
   faqs: FaqItem[];
   contactEmail: string;
   calendly: string;
+  /** L'agenda del sito è accesa: la sezione contatti prenota qui, non su Calendly. */
+  agendaAttiva: boolean;
   whatsappLink: string;
 }
 
@@ -268,6 +270,7 @@ export async function getLandingContent(settings?: Settings): Promise<LandingCon
     faqs: faqs.length > 0 ? faqs : FALLBACK_FAQS,
     contactEmail: setting(s, 'contact_email', 'info@dextlab.it'),
     calendly: setting(s, 'calendly', 'https://calendly.com/dextlab/call'),
+    agendaAttiva: settingOn(s, 'agenda_attiva'),
     whatsappLink: whatsappLink(setting(s, 'whatsapp', '393000000000')),
   };
 }

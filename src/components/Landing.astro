@@ -104,7 +104,11 @@ const structuredData = JSON.stringify({
   {content.reviews.length > 0 && <Recensioni reviews={content.reviews} />}
   <Configuratore types={content.types} addons={content.addons} />
   <Faq faqs={content.faqs} />
-  <Contatti contactEmail={content.contactEmail} calendly={content.calendly} />
+  <Contatti
+    contactEmail={content.contactEmail}
+    calendly={content.calendly}
+    agendaAttiva={content.agendaAttiva}
+  />
   <Footer />
   <WhatsAppFloat href={content.whatsappLink} />
   <ChatWidget />

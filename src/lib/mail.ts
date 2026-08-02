@@ -13,6 +13,7 @@
 import nodemailer, { type Transporter } from 'nodemailer';
 import { mailDefaults } from './env.ts';
 import { setting, settingOn, type Settings } from './db.ts';
+import { quandoPerEsteso, calendarioIcs } from './agenda.ts';
 
 export interface MailConfig {
   enabled: boolean;
@@ -160,6 +161,122 @@ export async function sendLeadMails(
   }
 
   return { leadSent: true };
+}
+
+export interface Appuntamento {
+  name: string;
+  email: string;
+  phone: string;
+  note: string;
+  starts_at: Date;
+  minutes: number;
+  token: string;
+}
+
+/**
+ * Conferma dell'appuntamento: a chi lo riceve e a chi l'ha preso.
+ *
+ * Al visitatore va anche l'allegato .ics, che è il modo in cui un appuntamento
+ * entra nel suo calendario senza che debba ricopiarlo, e il link per disdire —
+ * senza quel link l'unica via d'uscita sarebbe scrivere una mail e sperare che
+ * venga letta in tempo.
+ *
+ * Il risultato non decide se l'appuntamento è valido: quello è già scritto nel
+ * database. Chi chiama registra l'errore e va avanti.
+ */
+export async function sendAppointmentMails(
+  app: Appuntamento,
+  cfg: MailConfig,
+  base: string,
+  siteName = 'Dext Lab'
+): Promise<{ ok: boolean; error?: string }> {
+  if (!isMailUsable(cfg)) return { ok: false, error: 'SMTP non configurato' };
+
+  const quando = quandoPerEsteso(app.starts_at);
+  const gestisci = new URL(`/prenota/${app.token}`, base + '/').href;
+  const ics = calendarioIcs([app], base, `Call con ${siteName}`);
+
+  const transport = createTransport(cfg);
+  let error: string | undefined;
+
+  try {
+    await transport.sendMail({
+      from: { name: cfg.fromName, address: cfg.from },
+      to: cfg.to,
+      replyTo: { name: app.name, address: app.email },
+      subject: `[${siteName}] Call prenotata — ${quando}`,
+      text: [
+        `Nuovo appuntamento dal sito ${siteName}`,
+        '-----------------------------------',
+        `Quando:   ${quando} (${app.minutes} minuti, ora italiana)`,
+        `Nome:     ${app.name}`,
+        `Email:    ${app.email}`,
+        `Telefono: ${app.phone || 'non indicato'}`,
+        '-----------------------------------',
+        '',
+        app.note || 'Nessuna nota.',
+        '',
+        `Scheda e disdetta: ${gestisci}`,
+        '',
+      ].join('\n'),
+      icalEvent: { filename: 'appuntamento.ics', method: 'PUBLISH', content: ics },
+    });
+  } catch (err) {
+    error = (err as Error).message;
+  }
+
+  try {
+    await transport.sendMail({
+      from: { name: cfg.fromName, address: cfg.from },
+      to: { name: app.name, address: app.email },
+      subject: `Appuntamento confermato — ${quando}`,
+      text: [
+        `Ciao ${app.name},`,
+        '',
+        `l'appuntamento è confermato per ${quando}, ora italiana, e dura ${app.minutes} minuti.`,
+        'Ti chiamo io: se preferisci un altro modo, rispondi a questa email.',
+        '',
+        `Se ti serve disdire o controllare l'orario: ${gestisci}`,
+        '',
+        'A presto,',
+        `${siteName}`,
+        'info@dextlab.it',
+        '',
+      ].join('\n'),
+      icalEvent: { filename: 'appuntamento.ics', method: 'PUBLISH', content: ics },
+    });
+  } catch (err) {
+    // La ricevuta al visitatore è importante ma secondaria: l'appuntamento c'è
+    // comunque, e la pagina di conferma gli ha già dato orario e link.
+    console.warn('[mail] conferma al visitatore non inviata:', (err as Error).message);
+  }
+
+  return error ? { ok: false, error } : { ok: true };
+}
+
+/** Avviso di disdetta, solo a chi riceve gli appuntamenti. */
+export async function sendCancellationMail(
+  app: Appuntamento,
+  cfg: MailConfig,
+  siteName = 'Dext Lab'
+): Promise<void> {
+  if (!isMailUsable(cfg)) return;
+  try {
+    await createTransport(cfg).sendMail({
+      from: { name: cfg.fromName, address: cfg.from },
+      to: cfg.to,
+      subject: `[${siteName}] Call disdetta — ${quandoPerEsteso(app.starts_at)}`,
+      text: [
+        `${app.name} ha disdetto l'appuntamento di ${quandoPerEsteso(app.starts_at)}.`,
+        `Email: ${app.email}`,
+        '',
+        "L'orario è di nuovo libero sull'agenda del sito.",
+        '',
+      ].join('\n'),
+    });
+  } catch (err) {
+    console.warn('[mail] avviso di disdetta non inviato:', (err as Error).message);
+  }
 }
 
 /** Verifica la configurazione SMTP senza inviare nulla. Usata dall'admin. */

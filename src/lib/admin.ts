@@ -273,9 +273,11 @@ export const TABLE_FIELDS = {
   reviews: ['quote', 'author', 'role', 'stars', 'sort', 'active'],
   faqs: ['question', 'answer', 'sort', 'active'],
   works: ['title', 'url', 'summary', 'tags', 'proprio', 'story', 'links', 'shots', 'sort', 'active'],
+  agenda_windows: ['weekday', 'from_time', 'to_time', 'sort', 'active'],
+  agenda_closures: ['day', 'reason', 'sort', 'active'],
 } as const satisfies Record<ContentTable, readonly string[]>;
 
-const NUMERIC_FIELDS = new Set(['price', 'weeks', 'sort', 'stars']);
+const NUMERIC_FIELDS = new Set(['price', 'weeks', 'sort', 'stars', 'weekday']);
 const BOOLEAN_FIELDS = new Set(['active', 'proprio']);
 
 export function isContentTable(value: string): value is ContentTable {
@@ -342,6 +344,24 @@ export const SETTING_KEYS = [
   'tg_chat',
 ] as const;
 
+/**
+ * Le impostazioni dell'agenda stanno in un elenco a parte, e non nel primo.
+ *
+ * Non è ordine: è che settingsFromForm tratta una casella assente come «spenta»,
+ * perché un form HTML non manda le checkbox non spuntate. Con una sola lista,
+ * salvare dalla pagina dell'agenda spegnerebbe SMTP, Telegram e la manutenzione
+ * — che in quel form non ci sono — e salvare dalle impostazioni spegnerebbe
+ * l'agenda. Due liste e due azioni: ogni form scrive solo ciò che mostra.
+ */
+export const AGENDA_SETTING_KEYS = [
+  'agenda_minuti',
+  'agenda_preavviso',
+  'agenda_giorni',
+  'agenda_ics_key',
+] as const;
+
+const AGENDA_TOGGLES = new Set(['agenda_attiva']);
+
 /** Chiavi che nel form sono checkbox: assenti significa disattivate. */
 export const SETTING_TOGGLES = new Set([
   'maintenance',
@@ -356,6 +376,24 @@ export const SETTING_TOGGLES = new Set([
  * vuoto e un invio vuoto conserva il valore già salvato invece di azzerarlo.
  */
 export const SETTING_SECRETS = new Set(['smtp_pass', 'tg_token']);
+
+/** Come settingsFromForm, ma sulle sole chiavi dell'agenda. Vedi sopra il perché. */
+export function agendaSettingsFromForm(form: FormData): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const key of AGENDA_TOGGLES) {
+    out[key] = form.get(key) !== null ? '1' : '';
+  }
+  for (const key of AGENDA_SETTING_KEYS) {
+    const raw = form.get(key);
+    if (raw === null) continue;
+    const value = typeof raw === 'string' ? raw.trim() : '';
+    // La chiave del feed non si azzera per distrazione: svuotare quel campo
+    // spegnerebbe il calendario di chi l'ha già sottoscritto senza dirlo.
+    if (key === 'agenda_ics_key' && value === '') continue;
+    out[key] = value;
+  }
+  return out;
+}
 
 export function settingsFromForm(form: FormData): Record<string, string> {
   const out: Record<string, string> = {};

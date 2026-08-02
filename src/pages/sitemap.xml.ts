@@ -6,12 +6,21 @@
 import type { APIRoute } from 'astro';
 import { siteUrl } from '../lib/env.ts';
 import { lavoriConPagina } from '../lib/content.ts';
+import { agendaConfig } from '../lib/agenda.ts';
+import { getSettings } from '../lib/db.ts';
 
 const PAGES = [
   { path: '/', changefreq: 'monthly', priority: '1.0' },
   { path: '/privacy', changefreq: 'yearly', priority: '0.3' },
   { path: '/termini', changefreq: 'yearly', priority: '0.3' },
 ];
+
+/*
+  La pagina per prenotare entra nella sitemap solo con l'agenda accesa: con
+  l'agenda spenta risponde «prenotazioni chiuse», e non è una pagina da far
+  trovare su una ricerca. Le pagine di un singolo appuntamento non ci entrano
+  mai, e portano anche noindex: sono indirizzi con un codice segreto dentro.
+*/
 
 export const GET: APIRoute = async () => {
   const base = siteUrl();
@@ -27,7 +36,11 @@ export const GET: APIRoute = async () => {
     priority: '0.6',
   }));
 
-  const urls = [...PAGES, ...lavori].map((p) => {
+  const agenda = agendaConfig(await getSettings()).attiva
+    ? [{ path: '/prenota', changefreq: 'weekly', priority: '0.7' }]
+    : [];
+
+  const urls = [...PAGES, ...lavori, ...agenda].map((p) => {
     const loc = new URL(p.path, base + '/').href;
     return `  <url>
     <loc>${loc}</loc>

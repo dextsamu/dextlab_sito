@@ -557,6 +557,193 @@ jobs:
           q "delete from works where sort = 93"
           exit $fail
 
+      # L'agenda. Le cose che devono valere sono tre: un orario non si prenota due
+      # volte, non si prenota un orario che non è mai stato offerto, e chi ha
+      # prenotato può disdire. Le prime due sono la ragione per cui esiste il
+      # vincolo univoco sul database, la terza è la ragione per cui esiste il
+      # codice nel link.
+      - name: Un orario si prenota una volta sola
+        run: |
+          fail=0
+          q() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -q -c "$1"; }
+          qv() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -tA -c "$1"; }
+          post() { curl -s -o "$1" -w '%{http_code}' -D "$1.head" -X POST "http://127.0.0.1:4321$2" -H 'Origin: http://127.0.0.1:4321' "${@:3}"; }
+
+          # Le prenotazioni sono limitate a sei per quarto d'ora per indirizzo, e
+          # qui ne partono quattro da 127.0.0.1: azzerare il conteggio all'inizio
+          # evita che questa guardia fallisca per il proprio limite se viene
+          # rieseguita, o se un giorno si aggiungono altri casi di prova.
+          q "delete from rate_limits where rl_key like 'prenota:%'"
+
+          # 1) Dopo le migrazioni l'agenda è SPENTA: la sezione contatti deve
+          # ancora portare al link di prima, e la pagina deve dirlo invece di
+          # mostrare un calendario vuoto.
+          home=$(curl -s http://127.0.0.1:4321/)
+          grep -qE 'href="https?://[^"]*"[^>]*class="contact-link contact-link-cal"' <<<"$home" \
+            && echo "  ok    con l'agenda spenta il pulsante porta al link esterno" \
+            || { echo "::error::agenda spenta, ma il pulsante non porta più al link esterno"; fail=1; }
+          curl -s http://127.0.0.1:4321/prenota | grep -qF 'prenotazioni online sono chiuse' \
+            && echo "  ok    e /prenota dice che è chiusa, con l'email come alternativa" \
+            || { echo "::error::/prenota con l'agenda spenta non spiega che è chiusa"; fail=1; }
+          curl -s http://127.0.0.1:4321/sitemap.xml | grep -qF '/prenota' \
+            && { echo "::error::/prenota è nella sitemap con l'agenda spenta"; fail=1; } \
+            || echo "  ok    e non è nella sitemap"
+
+          # 2) Il feed del calendario non si apre senza la chiave giusta: dentro ci
+          # sono nome ed email di chi ha prenotato.
+          chiave=$(qv "select v from settings where k='agenda_ics_key'")
+          [ -n "$chiave" ] || { echo "::error::la 010 non ha generato la chiave del feed"; fail=1; }
+          for prova in "" "?k=" "?k=sbagliata" "?k=${chiave}x"; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:4321/agenda.ics$prova")
+            [ "$code" = 404 ] \
+              && echo "  ok    il feed con «$prova» risponde 404" \
+              || { echo "::error::/agenda.ics$prova ha risposto $code, atteso 404"; fail=1; }
+          done
+          tipo=$(curl -s -o /dev/null -w '%{content_type}' "http://127.0.0.1:4321/agenda.ics?k=$chiave")
+          grep -q 'text/calendar' <<<"$tipo" \
+            && echo "  ok    e con la chiave giusta serve un calendario" \
+            || { echo "::error::il feed con la chiave giusta ha risposto $tipo"; fail=1; }
+
+          # 3) Accesa: gli orari ci sono, sono link veri (senza JS si prenota
+          # comunque) e la pagina non dipende da main.js per farsi vedere.
+          q "update settings set v='1' where k='agenda_attiva'"
+          pag=$(curl -s http://127.0.0.1:4321/prenota)
+          primo=$(grep -o 'prenota?slot=[^"]*' <<<"$pag" | head -1 | sed 's/.*slot=//')
+          if [ -z "$primo" ]; then
+            echo "::error::agenda accesa ma nessun orario offerto: le fasce della 010 non producono slot"
+            fail=1
+          else
+            echo "  ok    l'agenda offre orari, il primo è $primo"
+          fi
+          if grep -q 'class="[^"]*reveal' <<<"$pag"; then
+            echo "::error::/prenota usa .reveal, ma qui main.js non gira: resterebbe vuota"
+            fail=1
+          else
+            echo "  ok    /prenota non dipende da main.js"
+          fi
+          grep -qF 'href="/prenota"' <<<"$(curl -s http://127.0.0.1:4321/)" \
+            && echo "  ok    e il pulsante in home resta dentro il sito" \
+            || { echo "::error::agenda accesa, ma il pulsante in home non porta a /prenota"; fail=1; }
+          curl -s http://127.0.0.1:4321/sitemap.xml | grep -qF '/prenota' \
+            && echo "  ok    /prenota è nella sitemap" \
+            || { echo "::error::/prenota non è nella sitemap con l'agenda accesa"; fail=1; }
+
+          slot=$(printf '%b' "${primo//%/\\x}")
+
+          # 4) Si prenota, e l'orario sparisce dall'elenco.
+          code=$(post /tmp/pren1.html /prenota --data-urlencode "slot=$slot" \
+            --data-urlencode 'name=Prova CI' --data-urlencode 'email=prova@esempio.example' \
+            --data-urlencode 'note=Riga di prova.')
+          token=$(grep -i '^location:' /tmp/pren1.html.head | sed 's|.*/prenota/||' | tr -d '\r')
+          if [ "$code" = 303 ] && [ -n "$token" ]; then
+            echo "  ok    la prenotazione risponde 303 verso la scheda dell'appuntamento"
+          else
+            echo "::error::la prenotazione ha risposto $code (location «$token»), atteso un 303"
+            fail=1
+          fi
+          scheda=$(curl -s "http://127.0.0.1:4321/prenota/$token")
+          grep -qF 'Prova CI' <<<"$scheda" \
+            && echo "  ok    la scheda mostra l'appuntamento" \
+            || { echo "::error::la scheda dell'appuntamento non mostra il nome"; fail=1; }
+          grep -qF 'name="robots" content="noindex"' <<<"$scheda" \
+            && echo "  ok    e non finisce nei motori di ricerca" \
+            || { echo "::error::la scheda dell'appuntamento non è noindex"; fail=1; }
+          curl -s http://127.0.0.1:4321/prenota | grep -qF "$primo" \
+            && { echo "::error::l'orario prenotato è ancora nell'elenco"; fail=1; } \
+            || echo "  ok    l'orario prenotato non è più offerto"
+
+          # 5) Lo stesso orario, una seconda volta: nessuna riga in più.
+          post /tmp/pren2.html /prenota --data-urlencode "slot=$slot" \
+            --data-urlencode 'name=Doppione CI' --data-urlencode 'email=doppio@esempio.example' >/dev/null
+          n=$(qv "select count(*) from appointments where starts_at = '$slot' and status = 'confermato'")
+          [ "$n" = 1 ] \
+            && echo "  ok    lo stesso orario resta prenotato una volta sola" \
+            || { echo "::error::$n appuntamenti confermati sullo stesso istante"; fail=1; }
+          grep -qF 'Doppione CI' <<<"$(qv "select coalesce(string_agg(name,','),'') from appointments")" \
+            && { echo "::error::il doppione è stato scritto comunque"; fail=1; } \
+            || echo "  ok    e il secondo non è finito a database"
+
+          # 5-bis) Il vincolo va provato dove vive, cioè nel database: due
+          # richieste HTTP in fila non si sovrappongono mai, quindi il controllo
+          # applicativo le respinge da sé e questa guardia passerebbe anche senza
+          # l'indice univoco. Il caso vero è due persone che premono nello stesso
+          # istante, e in SQL si riproduce.
+          q "insert into appointments (name, email, starts_at, minutes, token)
+             values ('Vincolo A', 'a@esempio.example', '2035-06-04T09:00:00Z', 30, repeat('a', 32))"
+          q "insert into appointments (name, email, starts_at, minutes, token)
+             values ('Vincolo B', 'b@esempio.example', '2035-06-04T09:00:00Z', 30, repeat('b', 32))" 2>/dev/null || true
+          n=$(qv "select count(*) from appointments where starts_at = '2035-06-04T09:00:00Z' and status = 'confermato'")
+          [ "$n" = 1 ] \
+            && echo "  ok    il database rifiuta il secondo confermato sullo stesso istante" \
+            || { echo "::error::$n confermati sullo stesso istante: manca il vincolo univoco"; fail=1; }
+          # E disdicendo il primo, l'istante torna disponibile anche per il vincolo:
+          # altrimenti una disdetta non libererebbe niente.
+          q "update appointments set status = 'disdetto' where token = repeat('a', 32)"
+          q "insert into appointments (name, email, starts_at, minutes, token)
+             values ('Vincolo C', 'c@esempio.example', '2035-06-04T09:00:00Z', 30, repeat('c', 32))" 2>/dev/null || true
+          n=$(qv "select count(*) from appointments where starts_at = '2035-06-04T09:00:00Z' and status = 'confermato'")
+          [ "$n" = 1 ] \
+            && echo "  ok    e dopo una disdetta lo stesso istante si può riprendere" \
+            || { echo "::error::dopo la disdetta i confermati su quell'istante sono $n"; fail=1; }
+          q "delete from appointments where starts_at = '2035-06-04T09:00:00Z'"
+
+          # 6) Un orario mai offerto non si prenota, nemmeno scrivendolo a mano nel
+          # campo nascosto: è il caso delle tre di notte di un giorno qualsiasi.
+          post /tmp/pren3.html /prenota --data-urlencode 'slot=2035-01-02T02:00:00.000Z' \
+            --data-urlencode 'name=Notturno CI' --data-urlencode 'email=notte@esempio.example' >/dev/null
+          n=$(qv "select count(*) from appointments where starts_at = '2035-01-02T02:00:00Z'")
+          [ "$n" = 0 ] \
+            && echo "  ok    un orario fuori dalle fasce viene rifiutato" \
+            || { echo "::error::è stato prenotato un orario che non era offerto"; fail=1; }
+
+          # 7) Un giorno chiuso vince sulle fasce.
+          giorno=$(qv "select to_char((now() + interval '3 days')::date, 'YYYY-MM-DD')")
+          q "insert into agenda_closures (day, reason, sort) values ('$giorno', 'Prova CI', 99)"
+          n=$(curl -s http://127.0.0.1:4321/prenota | grep -o "slot=$giorno" | wc -l)
+          [ "$n" = 0 ] \
+            && echo "  ok    un giorno chiuso non offre nessun orario" \
+            || { echo "::error::il giorno chiuso $giorno offre ancora $n orari"; fail=1; }
+          q "delete from agenda_closures where sort = 99"
+
+          # 8) Chi ha prenotato può disdire, e l'orario torna libero. La riga resta:
+          # «avevo prenotato» è una domanda a cui serve poter rispondere.
+          post /tmp/dis.html "/prenota/$token" --data-urlencode 'azione=disdici' >/dev/null
+          stato=$(qv "select status from appointments where token = '$token'")
+          [ "$stato" = disdetto ] \
+            && echo "  ok    la disdetta cambia lo stato senza cancellare la riga" \
+            || { echo "::error::dopo la disdetta lo stato è «$stato»"; fail=1; }
+          curl -s http://127.0.0.1:4321/prenota | grep -qF "$primo" \
+            && echo "  ok    e l'orario torna disponibile" \
+            || { echo "::error::l'orario disdetto non è tornato nell'elenco"; fail=1; }
+
+          # 9) Il file per il calendario: quello dell'appuntamento e quello inventato.
+          q "update appointments set status = 'confermato' where token = '$token'"
+          tipo=$(curl -s -o /tmp/app.ics -w '%{content_type}' "http://127.0.0.1:4321/prenota/$token.ics")
+          grep -q 'text/calendar' <<<"$tipo" \
+            && echo "  ok    l'appuntamento si scarica come calendario" \
+            || { echo "::error::il .ics dell'appuntamento ha risposto $tipo"; fail=1; }
+          for atteso in BEGIN:VCALENDAR DTSTART: DTEND: END:VCALENDAR; do
+            grep -qF "$atteso" /tmp/app.ics || { echo "::error::il .ics non contiene $atteso"; fail=1; }
+          done
+          # Le righe di un .ics finiscono con CRLF: senza, i calendari più severi
+          # rifiutano il file.
+          grep -qU $'\r' /tmp/app.ics \
+            && echo "  ok    e le sue righe finiscono con CRLF" \
+            || { echo "::error::il .ics non usa CRLF"; fail=1; }
+          for finto in ffffffffffffffffffffffffffffffff corto; do
+            for coda in "" ".ics"; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:4321/prenota/$finto$coda")
+              [ "$code" = 404 ] \
+                && echo "  ok    /prenota/$finto$coda risponde 404" \
+                || { echo "::error::/prenota/$finto$coda ha risposto $code, atteso 404"; fail=1; }
+            done
+          done
+
+          # Si rimette tutto come l'hanno trovato le migrazioni.
+          q "delete from appointments"
+          q "update settings set v='' where k='agenda_attiva'"
+          exit $fail
+
       # Le quattro cose che si vedono, e le tre trappole che nascondono.
       - name: Indice, cuciture, titoli e domande
         run: |

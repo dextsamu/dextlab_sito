@@ -1,0 +1,282 @@
+---
+/**
+ * La pagina per prenotare una call.
+ *
+ * Tre passaggi, tutti resi dal server: si scelgono giorno e ora, si lasciano i
+ * propri dati, si riceve la conferma. Il motivo per cui è così e non un solo
+ * riquadro che si aggiorna da sé è che deve funzionare senza JavaScript: ogni
+ * slot è un link vero e la conferma è un POST con un redirect. Con JS attivo il
+ * comportamento è identico — non c'è niente da migliorare, e quindi niente che
+ * possa rompersi.
+ *
+ * Lo slot arriva nel form come istante ISO, ma NON gli si crede: prima di
+ * scrivere si ricalcolano gli slot liberi e si controlla che quello chiesto sia
+ * fra loro. Senza questo controllo chiunque potrebbe prenotare le tre di notte
+ * cambiando un campo nascosto. L'ultima parola sulle prenotazioni simultanee
+ * resta al vincolo univoco del database: fra il controllo e la scrittura passa un
+ * istante, ed è lì che due persone che premono insieme si incontrano.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getSettings, query, rateLimit } from '../../lib/db.ts';
+import { agendaPubblica, slotAmmesso, quandoPerEsteso } from '../../lib/agenda.ts';
+import { mailConfig, sendAppointmentMails } from '../../lib/mail.ts';
+import { telegramConfig, notifyAppointment } from '../../lib/telegram.ts';
+import { randomBytes } from 'node:crypto';
+
+const MAX_NOME = 120;
+const MAX_EMAIL = 190;
+const MAX_TEL = 40;
+const MAX_NOTA = 2000;
+
+const settings = await getSettings();
+let { cfg, giorni } = await agendaPubblica(settings);
+
+/** Volutamente permissiva: la validazione vera di un indirizzo è la consegna. */
+function emailPlausibile(v: string): boolean {
+  return v.length <= MAX_EMAIL && /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(v);
+}
+
+/** Via i caratteri di controllo: in un campo di form non significano niente. */
+function pulisci(v: string): string {
+  return v.replace(/[\u0000-\u001f\u007f]/g, ' ').trim();
+}
+
+let errore = '';
+// Lo slot scelto: arriva dal link (?slot=) al secondo passaggio, o dal form.
+let scelto = Astro.url.searchParams.get('slot') ?? '';
+let valori = { name: '', email: '', phone: '', note: '' };
+
+if (Astro.request.method === 'POST' && cfg.attiva) {
+  let form: FormData | null = null;
+  try {
+    form = await Astro.request.formData();
+  } catch {
+    errore = 'Richiesta non valida.';
+  }
+
+  if (form) {
+    const campo = (n: string) => {
+      const v = form!.get(n);
+      return typeof v === 'string' ? v : '';
+    };
+
+    scelto = campo('slot');
+    valori = {
+      name: pulisci(campo('name')).slice(0, MAX_NOME),
+      email: pulisci(campo('email')).slice(0, MAX_EMAIL),
+      phone: pulisci(campo('phone')).slice(0, MAX_TEL),
+      note: campo('note').trim().slice(0, MAX_NOTA),
+    };
+
+    // Honeypot, come nel form contatti: chi lo compila non sta guardando la
+    // pagina. Si risponde con un redirect innocuo invece di spiegare perché la
+    // richiesta è stata scartata.
+    if (pulisci(campo('website')) !== '') {
+      return Astro.redirect('/prenota', 303);
+    }
+
+    const istante = slotAmmesso(giorni, scelto);
+    if (!(await rateLimit('prenota', 6, 900, Astro.locals.clientIp))) {
+      errore = 'Troppe richieste da questo indirizzo. Riprova tra qualche minuto.';
+    } else if (valori.name === '') {
+      errore = 'Serve il nome.';
+    } else if (!emailPlausibile(valori.email)) {
+      errore = 'Controlla l’indirizzo email: è dove arriva la conferma.';
+    } else if (!istante) {
+      errore =
+        'Quell’orario non è più disponibile: qualcuno l’ha preso un attimo prima, oppure il link era vecchio. Scegline un altro.';
+      scelto = '';
+    } else {
+      const token = randomBytes(16).toString('hex');
+      try {
+        await query(
+          `INSERT INTO appointments (name, email, phone, note, starts_at, minutes, status, token, ip)
+           VALUES ($1, $2, $3, $4, $5, $6, 'confermato', $7, $8)`,
+          [
+            valori.name,
+            valori.email,
+            valori.phone,
+            valori.note,
+            istante.toISOString(),
+            cfg.minuti,
+            token,
+            Astro.locals.clientIp || '',
+          ]
+        );
+
+        // Email e Telegram non decidono l'esito: l'appuntamento è preso perché è
+        // scritto. Se l'SMTP è configurato male il visitatore vede comunque la
+        // conferma, con l'orario e il link per disdire — che è ciò che gli serve.
+        const app = {
+          name: valori.name,
+          email: valori.email,
+          phone: valori.phone,
+          note: valori.note,
+          starts_at: istante,
+          minutes: cfg.minuti,
+          token,
+        };
+        const base = Astro.url.origin;
+        await Promise.all([
+          sendAppointmentMails(app, mailConfig(settings), base).then((r) => {
+            if (!r.ok) console.warn(`[prenota] email non inviata (${r.error}).`);
+          }),
+          notifyAppointment(telegramConfig(settings), app),
+        ]);
+
+        return Astro.redirect(`/prenota/${token}`, 303);
+      } catch (err) {
+        // 23505 è la violazione del vincolo univoco: quell'istante è stato preso
+        // fra il controllo e la scrittura. È il caso per cui esiste l'indice.
+        const codice = (err as { code?: string }).code;
+        if (codice === '23505') {
+          errore = 'Quell’orario è stato preso in questo istante da qualcun altro. Scegline un altro.';
+          scelto = '';
+        } else {
+          console.error('[prenota] appuntamento non salvato:', (err as Error).message);
+          errore = 'Non è stato possibile registrare l’appuntamento. Riprova, o scrivimi a info@dextlab.it.';
+        }
+        // La disponibilità è cambiata: si ricalcola, o si mostrerebbe uno slot
+        // che nel frattempo non c'è più.
+        ({ giorni } = await agendaPubblica(settings));
+      }
+    }
+  }
+}
+
+// Se lo slot indicato non è (più) valido si torna all'elenco invece di mostrare
+// un form che non può funzionare.
+const istanteScelto = scelto ? slotAmmesso(giorni, scelto) : null;
+const liberi = giorni.reduce((n, g) => n + g.slot.length, 0);
+
+/*
+  Tre settimane di orari sono trecento pastiglie: chi cerca «il prima possibile»
+  le scorre tutte per niente. I primi giorni si vedono, gli altri stanno dentro un
+  <details> — che è HTML e non JavaScript, quindi la piega funziona anche dove il
+  JS non gira e resta un elemento che i lettori di schermo sanno annunciare.
+*/
+const SUBITO = 5;
+const primi = giorni.slice(0, SUBITO);
+const dopo = giorni.slice(SUBITO);
+---
+
+<BaseLayout
+  title="Prenota una call — Dext Lab"
+  description="Scegli giorno e ora per una call gratuita di trenta minuti: nessuna registrazione, conferma immediata."
+  path="/prenota"
+>
+  <div class="bg-glow glow-1" aria-hidden="true"></div>
+
+  <main class="prenota container">
+    <a href="/#contatti" class="back">← Torna al sito</a>
+
+    <header class="pr-testa">
+      <h1>Prenotiamo una call</h1>
+      <p class="pr-sunto">
+        {cfg.minuti} minuti, gratis e senza impegno: mi racconti il progetto e ti dico
+        cosa farei io. Orari italiani.
+      </p>
+    </header>
+
+    {errore && <p class="pr-errore" role="alert">{errore}</p>}
+
+    {
+      !cfg.attiva ? (
+        /* L'agenda spenta non è un errore: è la condizione in cui nessuno ha
+           ancora deciso le proprie fasce. Meglio dirlo e dare l'alternativa che
+           mostrare un calendario vuoto. */
+        <p class="pr-vuoto">
+          Le prenotazioni online sono chiuse in questo momento. Scrivimi a <a
+            href="mailto:info@dextlab.it">info@dextlab.it</a
+          > e troviamo un orario: rispondo entro 24 ore.
+        </p>
+      ) : istanteScelto ? (
+        <section class="pr-form">
+          <h2>{quandoPerEsteso(istanteScelto)}</h2>
+          <p class="pr-dettaglio">
+            Durata {cfg.minuti} minuti. Cambia orario <a href="/prenota">tornando all’elenco</a>.
+          </p>
+
+          <form method="POST" action="/prenota" novalidate>
+            <input type="hidden" name="slot" value={istanteScelto.toISOString()} />
+            {/* Esca per i bot: fuori dallo schermo e senza tabulazione, chi la
+                compila non sta guardando la pagina. */}
+            <p class="pr-esca" aria-hidden="true">
+              <label for="website">Non compilare</label>
+              <input type="text" id="website" name="website" tabindex="-1" autocomplete="off" />
+            </p>
+
+            <div class="field">
+              <input type="text" id="name" name="name" required value={valori.name} placeholder=" " />
+              <label for="name">Nome e cognome</label>
+            </div>
+            <div class="field">
+              <input type="email" id="email" name="email" required value={valori.email} placeholder=" " />
+              <label for="email">Email</label>
+            </div>
+            <div class="field">
+              <input type="tel" id="phone" name="phone" value={valori.phone} placeholder=" " />
+              <label for="phone">Telefono (se preferisci essere chiamato)</label>
+            </div>
+            <div class="field">
+              <textarea id="note" name="note" rows="4" placeholder=" ">{valori.note}</textarea>
+              <label for="note">Di cosa parliamo? (facoltativo)</label>
+            </div>
+
+            <button class="btn btn-primary" type="submit">Confermo l’appuntamento</button>
+            <p class="pr-nota">
+              Ti arriva un’email con l’orario e un link per disdire, se ti serve. Nessun
+              account, nessuna registrazione.
+            </p>
+          </form>
+        </section>
+      ) : liberi === 0 ? (
+        <p class="pr-vuoto">
+          Nei prossimi {cfg.giorni} giorni non c’è più nessun orario libero. Scrivimi a <a
+            href="mailto:info@dextlab.it">info@dextlab.it</a
+          > e ne troviamo uno.
+        </p>
+      ) : (
+        <>
+          <section class="pr-giorni">
+            {primi.map((g) => (
+              <div class="pr-giorno">
+                <h2>{g.etichetta}</h2>
+                {/* Ogni orario è un link e non un pulsante che chiama del codice:
+                    così l'elenco funziona anche senza JavaScript, e un orario si
+                    può mandare a qualcuno per messaggio. */}
+                <ul>
+                  {g.slot.map((s) => (
+                    <li>
+                      <a href={`/prenota?slot=${encodeURIComponent(s.iso)}`}>{s.ora}</a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </section>
+
+          {dopo.length > 0 && (
+            <details class="pr-altri">
+              <summary>Altri {dopo.length} giorni</summary>
+              <section class="pr-giorni">
+                {dopo.map((g) => (
+                  <div class="pr-giorno">
+                    <h2>{g.etichetta}</h2>
+                    <ul>
+                      {g.slot.map((s) => (
+                        <li>
+                          <a href={`/prenota?slot=${encodeURIComponent(s.iso)}`}>{s.ora}</a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </section>
+            </details>
+          )}
+        </>
+      )
+    }
+  </main>
+</BaseLayout>
