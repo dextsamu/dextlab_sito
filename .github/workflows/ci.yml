@@ -153,6 +153,14 @@ jobs:
           fi
           exit $fail
 
+      # Le email si controllano senza spedirle: i messaggi si costruiscono con dati
+      # d'esempio e si guarda cosa ne esce. Le regole provate sono quelle che si
+      # rompono in silenzio — una versione testuale vuota, un link presente solo
+      # nell'HTML, un tag scritto da chi prenota che diventa markup nella casella
+      # di chi lo riceve.
+      - name: Le email dicono la stessa cosa in HTML e in testo
+        run: npm run --silent mail -- --verifica
+
       - name: Build
         run: npm run build
 
@@ -608,7 +616,9 @@ jobs:
           # comunque) e la pagina non dipende da main.js per farsi vedere.
           q "update settings set v='1' where k='agenda_attiva'"
           pag=$(curl -s http://127.0.0.1:4321/prenota)
-          primo=$(grep -o 'prenota?slot=[^"]*' <<<"$pag" | head -1 | sed 's/.*slot=//')
+          # Solo i link della griglia: la scorciatoia al primo orario libero ha una
+          # classe, e prenderla qui vorrebbe dire misurare due volte lo stesso slot.
+          primo=$(grep -o '<a href="/prenota?slot=[^"]*"' <<<"$pag" | sed -n 1p | sed 's/.*slot=//;s/"//')
           if [ -z "$primo" ]; then
             echo "::error::agenda accesa ma nessun orario offerto: le fasce della 010 non producono slot"
             fail=1
@@ -744,7 +754,7 @@ jobs:
           durata=$(qv "select v from settings where k='agenda_minuti'")
           pausa=$(qv "select v from settings where k='agenda_pausa'")
           passo=$((durata + pausa))
-          primi=$(curl -s http://127.0.0.1:4321/prenota | grep -o 'prenota?slot=[^"]*' | sed 's/.*slot=//' | head -2)
+          primi=$(curl -s http://127.0.0.1:4321/prenota | grep -o '<a href="/prenota?slot=[^"]*"' | sed 's/.*slot=//;s/"//' | head -2)
           a=$(echo "$primi" | sed -n 1p); b=$(echo "$primi" | sed -n 2p)
           # I due orari possono stare in fasce diverse (mattina/pomeriggio): il
           # confronto vale solo se distano meno di due ore.
@@ -787,8 +797,8 @@ jobs:
           # nuovo non è libero. Cambia anche la revisione, che è ciò che dice ai
           # calendari «l'evento che hai già è cambiato».
           pag=$(curl -s http://127.0.0.1:4321/prenota)
-          primo=$(grep -o 'prenota?slot=[^"]*' <<<"$pag" | sed -n 1p | sed 's/.*slot=//')
-          secondo=$(grep -o 'prenota?slot=[^"]*' <<<"$pag" | sed -n 2p | sed 's/.*slot=//')
+          primo=$(grep -o '<a href="/prenota?slot=[^"]*"' <<<"$pag" | sed -n 1p | sed 's/.*slot=//;s/"//')
+          secondo=$(grep -o '<a href="/prenota?slot=[^"]*"' <<<"$pag" | sed -n 2p | sed 's/.*slot=//;s/"//')
           slot1=$(printf '%b' "${primo//%/\\x}"); slot2=$(printf '%b' "${secondo//%/\\x}")
           post /tmp/sp1.html /prenota --data-urlencode "slot=$slot1" \
             --data-urlencode 'name=Sposta CI' --data-urlencode 'email=sposta@esempio.example' >/dev/null
@@ -870,6 +880,42 @@ jobs:
           [ "$scelti" = 'Da avvisare CI' ] \
             && echo "  ok    il promemoria sceglie solo chi ha prenotato prima della finestra" \
             || { echo "::error::il promemoria avrebbe scelto «$scelti», atteso solo «Da avvisare CI»"; fail=1; }
+
+          # 15) Le parti che invitano a prenotare. Non sono decorazione: la
+          # scorciatoia al primo orario è ciò che preme chi vuole parlare presto, il
+          # riepilogo dice cosa si sta confermando senza tornare indietro, e i tre
+          # passaggi sulla conferma rispondono a «e adesso?». Se sparissero, la
+          # pagina tornerebbe un elenco di orari senza che nessuno se ne accorga.
+          pag=$(curl -s http://127.0.0.1:4321/prenota)
+          scorciatoia=$(grep -o 'class="pr-primo" href="[^"]*"' <<<"$pag" | sed 's/.*href="//;s/"//')
+          if [ -n "$scorciatoia" ]; then
+            echo "  ok    c'è la scorciatoia al primo orario libero"
+          else
+            echo "::error::manca la scorciatoia al primo orario libero"
+            fail=1
+          fi
+          grep -qF 'class="pr-perche"' <<<"$pag" \
+            && echo "  ok    e le tre cose che dicono com'è la call" \
+            || { echo "::error::mancano le rassicurazioni sopra gli orari"; fail=1; }
+          # La scorciatoia deve portare al passaggio dei dati, con il riepilogo di
+          # cosa si sta confermando.
+          passo2=$(curl -s "http://127.0.0.1:4321${scorciatoia//&amp;/&}")
+          grep -qF 'class="pr-scelto"' <<<"$passo2" \
+            && echo "  ok    la scorciatoia porta al form, con l'orario in riepilogo" \
+            || { echo "::error::dalla scorciatoia non si arriva al riepilogo dell'orario scelto"; fail=1; }
+          grep -qE 'name="slot" value="[^"]+"' <<<"$passo2" \
+            && echo "  ok    e il form porta con sé l'orario" \
+            || { echo "::error::il form del passaggio due non porta l'orario"; fail=1; }
+          # E la conferma dice cosa succede adesso.
+          q "delete from appointments"
+          q "delete from rate_limits where rl_key like 'prenota:%'"
+          slotp=$(printf '%b' "$(sed 's/.*slot=//' <<<"${scorciatoia//&amp;/&}" | sed 's/%/\\x/g')")
+          post /tmp/inv.html /prenota --data-urlencode "slot=$slotp" \
+            --data-urlencode 'name=Invito CI' --data-urlencode 'email=invito@esempio.example' >/dev/null
+          tki=$(grep -i '^location:' /tmp/inv.html.head | sed 's|.*/prenota/||' | tr -d '\r')
+          grep -qF 'class="pr-dopo"' <<<"$(curl -s "http://127.0.0.1:4321/prenota/$tki")" \
+            && echo "  ok    e la conferma spiega cosa succede adesso" \
+            || { echo "::error::la pagina di conferma non spiega i passaggi successivi"; fail=1; }
 
           # Si rimette tutto come l'hanno trovato le migrazioni.
           q "delete from appointments"

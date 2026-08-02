@@ -32,7 +32,6 @@ async function leggi(): Promise<AppuntamentoRow | null> {
 }
 
 let app = await leggi();
-let disdettaFatta = false;
 let spostatoA: Date | null = null;
 let errore = '';
 
@@ -106,7 +105,6 @@ if (Astro.request.method === 'POST' && app) {
     } else {
       try {
         await query("UPDATE appointments SET status = 'disdetto' WHERE token = $1", [token]);
-        disdettaFatta = true;
         // L'avviso a chi doveva rispondere: senza, l'orario resta segnato in un
         // calendario personale che nessuno ha aggiornato.
         await sendCancellationMail(attuale, mailConfig(await getSettings()));
@@ -179,6 +177,26 @@ const altriGiorni = giorniLiberiOra.slice(5);
           </header>
 
           {errore && <p class="pr-errore" role="alert">{errore}</p>}
+
+          {attivo && !passato && (
+            <ol class="pr-dopo">
+              <li>
+                <strong>Ti arriva un’email</strong>
+                <span>con l’orario, l’evento per il calendario e il link a questa pagina.</span>
+              </li>
+              <li>
+                <strong>Ti chiamo io</strong>
+                <span>
+                  {app.phone ? `al ${app.phone}` : 'all’orario scelto'}: se preferisci un altro
+                  modo, rispondi a quell’email.
+                </span>
+              </li>
+              <li>
+                <strong>Se ti cambia un impegno</strong>
+                <span>sposti o disdici da qui, fino al giorno stesso.</span>
+              </li>
+            </ol>
+          )}
 
           <dl class="pr-scheda">
             <dt>Quando</dt>
