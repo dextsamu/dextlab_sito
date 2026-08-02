@@ -1724,7 +1724,16 @@ jobs:
           }
           expect "tipi progetto"      "select count(*) from pricing_types" 3
           expect "tipi attivi"        "select count(*) from pricing_types where active" 2
-          expect "addon"              "select count(*) from pricing_addons" 2
+          # Non il numero di righe: quello che deve sopravvivere sono i DUE addon
+          # reali. La 014 ne aggiunge uno suo — «Adeguamento privacy e cookie»,
+          # spento e a zero — e contare le righe farebbe fallire questa guardia
+          # per una riga in più invece che per un dato perduto, che è la cosa che
+          # deve controllare. Le due righe si verificano per nome, e la nuova si
+          # verifica per come deve entrare: spenta, così il configuratore non la
+          # mostra finché nessuno le ha dato un prezzo.
+          expect "addon reali"        "select count(*) from pricing_addons where label in ('Multilingua','SEO locale')" 2
+          expect "prezzi addon reali" "select sum(price) from pricing_addons where label in ('Multilingua','SEO locale')" 840
+          expect "addon della 014"    "select count(*) from pricing_addons where label = 'Adeguamento privacy e cookie' and not active and price = 0" 1
           expect "recensioni"         "select count(*) from reviews" 2
           expect "lead"               "select count(*) from leads" 2
           expect "lead senza data"    "select count(*) from leads where created_at is null" 0
