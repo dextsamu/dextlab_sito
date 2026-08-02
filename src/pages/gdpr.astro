@@ -106,6 +106,82 @@ const compreso = [
   },
 ];
 
+/*
+  I passi sono numerati perché sono una sequenza vera: il secondo non si può fare
+  prima del primo, e chi legge vuole sapere dove si infila lui. È anche la
+  risposta alla domanda che blocca la maggior parte delle richieste — «quanto mi
+  costa scoprire cosa mi manca?»: niente, il primo passo è una call.
+*/
+const passi = [
+  {
+    titolo: 'Una call, gratis',
+    testo:
+      'Mezz\'ora per capire cosa raccogli davvero: moduli, prenotazioni, newsletter, gestionali, telecamere. Alla fine sai se il tuo caso è semplice o no, e questo non si paga.',
+  },
+  {
+    titolo: 'Guardo il sito e gli strumenti',
+    testo:
+      'Apro le pagine, gli strumenti per sviluppatori e i servizi che usi: quali dati partono, verso chi, e cosa succede prima che qualcuno abbia detto sì.',
+  },
+  {
+    titolo: 'Ti mando una lista scritta',
+    testo:
+      'Cosa manca, in ordine di urgenza, con accanto il preventivo. È una lista che resta tua: se decidi di fermarti lì, sai comunque dove sei.',
+  },
+  {
+    titolo: 'Si sistema, e resta sistemato',
+    testo:
+      'Banner, informativa, registro, nomine dei fornitori. Poi quando il sito cambia — un modulo nuovo, uno strumento nuovo — si aggiorna quello che va aggiornato.',
+  },
+];
+
+/*
+  Le consegne, per nome. Serve perché «adeguamento privacy» non dice niente:
+  chi paga vuole sapere cosa avrà in mano quando è finito, e cosa potrà mostrare
+  a chi glielo chiede.
+*/
+const consegne = [
+  'Informativa privacy e cookie policy scritte sul tuo sito, non un modello con il nome cambiato.',
+  'Registro dei trattamenti: un foglio per riga, quello che serve avere pronto quando lo chiedono.',
+  'Elenco dei fornitori che toccano i dati, con le nomine a responsabile da firmare.',
+  'Banner dei cookie configurato: niente parte prima del consenso, e il rifiuto vale quanto il sì.',
+  'Una pagina di istruzioni per te: cosa fare se qualcuno chiede i suoi dati o li vuole cancellati.',
+];
+
+/*
+  La parte che fa capire più di qualsiasi elenco: questo sito è fatto così, e si
+  controlla adesso. Sono tutti fatti verificabili con gli strumenti del browser —
+  non promesse. Nessuna riga qui dentro parla della pagina privacy di questo sito,
+  che ha ancora i segnaposto: si dice quello che è vero, non quello che suona bene.
+*/
+const prove = [
+  {
+    titolo: 'Nessun cookie di analisi. Nemmeno dopo il consenso.',
+    testo:
+      'Le visite si contano sul server e l\'indirizzo IP viene troncato prima di essere salvato. La scelta sul banner sta nel tuo browser, non in un cookie che gira.',
+  },
+  {
+    titolo: 'Nessuno script di terze parti',
+    testo:
+      'I caratteri arrivano da questo dominio, non da Google: aprendo gli strumenti per sviluppatori non parte una richiesta verso nessun altro, quindi il tuo IP non lo riceve nessuno per leggere la pagina.',
+  },
+  {
+    titolo: 'La prenotazione delle call è dentro il sito',
+    testo:
+      'Nessun servizio esterno con i suoi cookie e i suoi trasferimenti: l\'appuntamento finisce nello stesso database del resto.',
+  },
+  {
+    titolo: 'Anche la pubblicità si misura senza tracciare',
+    testo:
+      'Da dove arriva un contatto si legge dal link e resta sulla riga della visita. Nessun identificativo che segue una persona da un giorno all\'altro.',
+  },
+  {
+    titolo: 'Un contatto si cancella con un clic',
+    testo:
+      'I messaggi ricevuti stanno in un database nostro e si eliminano dal pannello: il diritto alla cancellazione è una cosa che si fa, non una frase in un\'informativa.',
+  },
+];
+
 const domande = [
   {
     d: 'La mia azienda deve avere un DPO?',
@@ -214,6 +290,32 @@ const domande = [
         </section>
 
         <section class="gd-blocco">
+          <h2>Cosa ti resta in mano</h2>
+          <ul class="gd-consegne">
+            {consegne.map((c) => (
+              <li>{c}</li>
+            ))}
+          </ul>
+        </section>
+
+        <section class="gd-blocco">
+          <h2>Come funziona</h2>
+          <ol class="gd-passi">
+            {/* Titolo e testo dentro un contenitore: la riga è una griglia di due
+                colonne — il numero e il resto — e tre figli manderebbero il testo
+                nella colonna del numero, larga 38px. Provato: una parola per riga. */}
+            {passi.map((p) => (
+              <li>
+                <div>
+                  <b>{p.titolo}</b>
+                  <span>{p.testo}</span>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section class="gd-blocco">
           <h2>DPO esterno</h2>
           <p class="gd-testo">
             L'incarico si valuta caso per caso, perché dipende da cosa tratta l'azienda: prima una
@@ -227,6 +329,41 @@ const domande = [
             scrivere nel registro, non sono la persona giusta. Un DPO che non guarda niente è un
             costo che peggiora la posizione dell'azienda invece di migliorarla, perché documenta che
             qualcuno doveva guardare.
+          </p>
+        </section>
+
+        {/*
+          La prova più forte che questa pagina può portare non è un attestato: è
+          il sito su cui si trova. Ogni riga qui sotto si controlla adesso, con gli
+          strumenti del browser, senza credermi sulla parola.
+        */}
+        <section class="gd-blocco">
+          <h2>Guarda com'è fatto questo sito</h2>
+          <p class="gd-testo">
+            Il modo più rapido di capire come lavoro è controllare come è fatto il posto in cui stai
+            leggendo. Sono cinque cose, tutte verificabili in un minuto.
+          </p>
+          <div class="gd-griglia">
+            {prove.map((p) => (
+              <article>
+                <b>{p.titolo}</b>
+                <p>{p.testo}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section class="gd-blocco">
+          <h2>Quanto costa</h2>
+          <p class="gd-testo">
+            Se il sito lo faccio io, l'adeguamento è una voce del preventivo e la cifra la vedi da
+            solo nel <a href="/#preventivo">configuratore</a>, insieme al resto. Su un sito che
+            esiste già dipende da cosa c'è dentro: prima la lista scritta, poi il prezzo — e la lista
+            arriva dopo la call, che non si paga.
+          </p>
+          <p class="gd-testo">
+            L'incarico di DPO esterno si valuta caso per caso e si preventiva dopo aver guardato cosa
+            tratta l'azienda. Nessun canone deciso prima di sapere su cosa.
           </p>
         </section>
 

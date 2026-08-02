@@ -563,8 +563,14 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   display:flex;flex-direction:column;
 }
 .card-tags{margin-top:auto}
+/* pointer-events:none non è un dettaglio: questo pseudo-elemento è posizionato e
+   copre tutta la card, quindi viene dipinto SOPRA il contenuto in flusso e
+   intercetta i clic. Finché nessuna card aveva un link dentro non si vedeva; la
+   card «Privacy e protezione dati» ne ha uno, e non funzionava — il dito toccava
+   la cornice, non il link. Vale per ogni decorazione a inset:0. */
 .card::before{
   content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;
+  pointer-events:none;
   background:var(--grad);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;mask-composite:exclude;
   opacity:0;transition:opacity .4s;
@@ -1448,8 +1454,13 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 /* La quinta card dei servizi sta su due colonne: una riga a metà si nota più di
    una card larga, e la forma larga fa spazio al link che le altre non hanno. */
 @media(min-width:900px){.card-larga{grid-column:1 / -1}}
-.card-vai{margin:16px 0 0}
-.card-vai a{color:var(--cyan);font-weight:500}
+.card-vai{margin:10px 0 0}
+/* Area toccabile alta 44px: il testo del link è alto 19, e su un telefono un
+   bersaglio così basso si manca. Misurato con l'emulazione mobile: 128x19 prima,
+   128x44 adesso. Il padding verticale sta qui e non nel margine della riga, così
+   l'area cresce senza spostare la card. */
+.card-vai a{color:var(--cyan);font-weight:500;display:inline-flex;align-items:center;
+  min-height:44px;padding:2px 0}
 /* Pagina /gdpr: riusa .lavoro-pagina e .lp-* , qui c'è solo ciò che le è proprio. */
 .gd-qual{margin:38px 0 0;padding:24px;border:1px solid var(--border-2);border-radius:var(--radius);
   background:var(--surface)}
@@ -1468,3 +1479,19 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .gd-domande dt{font-weight:600;margin:0 0 8px}
 .gd-domande dd{margin:0 0 22px;color:var(--muted);line-height:1.7}
 .gd-blocco .lp-nota{margin-top:16px}
+/* Le consegne e i passi della pagina protezione dati. I passi sono numerati
+   perché sono una sequenza vera — il numero dice l'ordine, non decora. */
+.gd-consegne{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.gd-consegne li{position:relative;padding-left:30px;color:var(--muted);line-height:1.65}
+.gd-consegne li::before{content:"✓";position:absolute;left:6px;top:0;color:var(--green);font-weight:700}
+.gd-passi{list-style:none;margin:0;padding:0;counter-reset:passo;display:flex;flex-direction:column;gap:20px}
+.gd-passi li{counter-increment:passo;display:grid;grid-template-columns:38px 1fr;gap:16px;align-items:start}
+.gd-passi li::before{content:counter(passo);width:34px;height:34px;border-radius:50%;display:grid;
+  place-items:center;font-weight:700;font-size:.9rem;color:#04121a;background:var(--grad)}
+.gd-passi b{display:block;margin-bottom:4px}
+.gd-passi span{color:var(--muted);line-height:1.65;font-size:.95rem}
+.gd-testo a{color:var(--cyan)}
+@media(max-width:520px){
+  .gd-passi li{grid-template-columns:30px 1fr;gap:12px}
+  .gd-passi li::before{width:28px;height:28px;font-size:.8rem}
+}
