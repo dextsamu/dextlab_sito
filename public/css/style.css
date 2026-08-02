@@ -1548,3 +1548,90 @@ table.gd-norma tbody tr:last-child td{border-bottom:0}
 .gd-no{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
 .gd-no li{position:relative;padding-left:30px;color:var(--muted);line-height:1.65}
 .gd-no li::before{content:"✕";position:absolute;left:6px;top:0;color:#ff8a8a;font-weight:700}
+
+/* ---------- elementi grafici della pagina protezione dati ----------
+   Stessa lingua visiva delle card dei servizi: quadrato arrotondato, fondo e
+   bordo nell'accento della card, tratto sottile in currentColor. --acc lo passa
+   il componente, e i tre valori sono i tre colori del gradiente: non ne entrano
+   di nuovi per una pagina in più. */
+.gd-icona{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;
+  margin-bottom:16px;flex:none;
+  background:rgba(var(--acc,84,201,200),.1);
+  border:1px solid rgba(var(--acc,84,201,200),.3);
+  color:rgb(var(--acc,84,201,200))}
+.gd-icona svg{width:24px;height:24px}
+.gd-icona.piccola{width:30px;height:30px;border-radius:9px;margin:0 10px 0 0;vertical-align:-9px;
+  display:inline-grid}
+.gd-icona.piccola svg{width:17px;height:17px}
+.gd-profili b{display:flex;align-items:center;gap:0}
+/* Nei sei controlli l'icona sta accanto al numero: la riga diventa tre colonne,
+   perché il numero dice l'ordine e l'icona dice di cosa si parla. */
+.gd-audit li{grid-template-columns:34px 30px 1fr;gap:12px}
+.gd-ctrl-icona{width:30px;height:30px;display:grid;place-items:center;color:var(--cyan);
+  padding-top:2px}
+.gd-ctrl-icona svg{width:20px;height:20px}
+@media(max-width:520px){
+  .gd-audit li{grid-template-columns:28px 24px 1fr;gap:9px}
+  .gd-ctrl-icona svg{width:17px;height:17px}
+}
+
+/* Lo schema di dove passano i dati. Quattro nodi in fila con una freccia fra
+   loro; su un telefono la fila diventa una colonna e le frecce girano. Il
+   collegamento è disegnato con un ::after e non con un carattere, così non finisce
+   letto ad alta voce da un lettore di schermo. */
+.sd{margin:26px 0 0}
+.sd-flusso{list-style:none;margin:0;padding:0;display:grid;gap:26px 18px;
+  grid-template-columns:1fr}
+@media(min-width:820px){.sd-flusso{grid-template-columns:repeat(4,1fr);gap:0 26px}}
+.sd-flusso li{position:relative;padding:18px;border-radius:14px;
+  background:var(--surface);border:1px solid var(--border);
+  display:flex;flex-direction:column}
+/* Il collegamento fra due nodi: la rotaia (::after) e la punta (::before). Un
+   trattino che sfuma non dice da che parte si va — la punta sì, e senza usare una
+   freccia scritta che un lettore di schermo leggerebbe ad alta voce. */
+.sd-flusso li::after{content:"";position:absolute;pointer-events:none;
+  left:50%;bottom:-26px;width:2px;height:26px;transform:translateX(-50%);
+  background:linear-gradient(180deg,rgba(var(--acc),.55),rgba(var(--acc),.15))}
+.sd-flusso li::before{content:"";position:absolute;pointer-events:none;
+  left:50%;bottom:-22px;width:7px;height:7px;
+  border-right:2px solid rgba(var(--acc),.5);border-bottom:2px solid rgba(var(--acc),.5);
+  transform:translateX(-50%) rotate(45deg)}
+.sd-flusso li:last-child::after,.sd-flusso li:last-child::before{display:none}
+@media(min-width:820px){
+  .sd-flusso li::after{left:auto;right:-26px;bottom:auto;top:34px;width:26px;height:2px;
+    transform:none;background:linear-gradient(90deg,rgba(var(--acc),.55),rgba(var(--acc),.15))}
+  .sd-flusso li::before{left:auto;right:-22px;bottom:auto;top:30px;
+    transform:rotate(-45deg)}
+}
+.sd-nodo{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;margin-bottom:12px;
+  background:rgba(var(--acc),.12);border:1px solid rgba(var(--acc),.32);color:rgb(var(--acc))}
+.sd-nodo svg{width:21px;height:21px}
+.sd-flusso b{font-size:.95rem;margin-bottom:6px}
+.sd-testo{color:var(--muted);font-size:.85rem;line-height:1.55}
+.sd figcaption,.ore figcaption{color:var(--muted);font-size:.86rem;line-height:1.6;margin-top:16px}
+
+/* La linea delle 72 ore: tre tappe su una rotaia che va dal ciano al verde. In
+   verticale su schermo stretto, con la rotaia che diventa un filo a sinistra. */
+.ore{margin:22px 0 0}
+.ore-linea{list-style:none;margin:0;padding:0;display:grid;gap:22px;grid-template-columns:1fr;
+  position:relative}
+.ore-linea li{position:relative;padding-left:26px}
+.ore-linea li::before{content:"";position:absolute;left:0;top:6px;width:11px;height:11px;
+  border-radius:50%;background:var(--grad);pointer-events:none}
+.ore-linea::after{content:"";position:absolute;left:5px;top:12px;bottom:12px;width:1px;
+  background:linear-gradient(180deg,var(--cyan),var(--green));opacity:.4;pointer-events:none}
+@media(min-width:760px){
+  .ore-linea{grid-template-columns:repeat(3,1fr);gap:0 24px;padding-top:26px}
+  .ore-linea li{padding-left:0;padding-right:16px}
+  .ore-linea li::before{top:-26px;left:0}
+  /* La rotaia passa per il centro dei pallini: stanno a top:-26px dentro un
+     contenitore con 26px di padding, quindi il loro centro è a 5px dal bordo
+     alto del contenitore, non sopra di esso. Sfuma dopo l'ultima tappa: una
+     rotaia che arriva fino al bordo sembra dire che le tappe continuano. */
+  .ore-linea::after{left:5px;right:0;top:5px;bottom:auto;width:auto;height:1px;
+    background:linear-gradient(90deg,var(--cyan),var(--green) 70%,transparent)}
+}
+.ore-quando{display:block;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--cyan);margin-bottom:6px}
+.ore-linea b{display:block;margin-bottom:4px}
+.ore-testo{color:var(--muted);font-size:.9rem;line-height:1.6}

@@ -1,0 +1,68 @@
+---
+/**
+ * Lo schema di dove passano i dati di un cliente.
+ *
+ * È il disegno che questa pagina chiedeva da subito: la frase «ognuno di loro è
+ * un responsabile del trattamento e va nominato per iscritto» è astratta finché
+ * non si vede che da un solo modulo partono tre strade. Chi guarda lo schema
+ * riconosce il proprio sito in due secondi, e la nomina dei fornitori smette di
+ * sembrare burocrazia.
+ *
+ * È fatto con HTML e CSS, non con un'immagine né con un SVG di testo, per tre
+ * motivi: le parole restano parole (si selezionano, si traducono, le legge un
+ * lettore di schermo), si riflowano da sole su un telefono invece di rimpicciolire
+ * fino a essere illeggibili, e i colori vengono dalle stesse variabili del resto
+ * del sito — se cambia il gradiente, cambia anche questo.
+ *
+ * L'ordine dei nodi è un ordine vero (il dato parte dal visitatore e arriva ai
+ * fornitori), quindi è una lista ordinata e non un insieme di riquadri.
+ */
+import IconaGdpr from './IconaGdpr.astro';
+
+const tappe = [
+  {
+    icona: 'occhio',
+    titolo: 'Chi visita',
+    testo: 'Apre la pagina. Qui i dati sono già in gioco: indirizzo IP, cookie, richieste a domini di terzi.',
+    acc: '63,169,214',
+  },
+  {
+    icona: 'modulo',
+    titolo: 'Il modulo',
+    testo: 'Nome, email, messaggio. Ogni campo deve avere una ragione, e l’informativa sta accanto al pulsante.',
+    acc: '84,201,200',
+  },
+  {
+    icona: 'fornitori',
+    titolo: 'Chi lo riceve',
+    testo: 'Casella di posta, gestionale, servizio di newsletter, chi ospita il sito. Ognuno tratta per conto tuo.',
+    acc: '139,216,158',
+  },
+  {
+    icona: 'backup',
+    titolo: 'Dove resta',
+    testo: 'Database, archivi, backup. Il tempo di conservazione vale anche qui, e la cancellazione anche sulle copie.',
+    acc: '84,201,200',
+  },
+];
+---
+
+<figure class="sd">
+  <ol class="sd-flusso">
+    {
+      tappe.map((t) => (
+        <li style={`--acc:${t.acc}`}>
+          <span class="sd-nodo">
+            <IconaGdpr nome={t.icona} />
+          </span>
+          <b>{t.titolo}</b>
+          <span class="sd-testo">{t.testo}</span>
+        </li>
+      ))
+    }
+  </ol>
+  <figcaption>
+    Da un solo modulo partono tre o quattro strade, e ognuna è un nome da scrivere nel registro.
+    Questo è il disegno che si fa nella prima call, sul tuo sito e con i tuoi strumenti.
+  </figcaption>
+</figure>

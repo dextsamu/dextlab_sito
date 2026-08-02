@@ -170,6 +170,14 @@ jobs:
       - name: Una decorazione non intercetta i clic
         run: npm run --silent css
 
+      # IconaGdpr non disegna niente quando il nome non esiste: è voluto, ma vuol
+      # dire che «ochio» al posto di «occhio» non fa rumore. La pagina esce, la
+      # card ha un buco, e lo si scopre guardando quella card. Qui si controlla che
+      # ogni nome chiesto esista, che nessun tracciato sia lì per niente, e che le
+      # icone restino decorative e a colore ereditato.
+      - name: Nessuna icona chiesta e non disegnata
+        run: npm run --silent icone
+
       # Google Ads rifiuta un titolo di 31 caratteri e Meta taglia il testo a 125:
       # i conteggi accanto a ogni riga del kit non sono un ornamento, sono la sola
       # cosa che dice se un testo è pubblicabile. Qui si ricontano — e si verifica
@@ -1626,6 +1634,42 @@ jobs:
             if grep -qF "$atteso" <<<"$pagina"; then echo "  ok    la pagina dice: $atteso"
             else echo "::error::manca dalla pagina: $atteso"; fail=1; fi
           done
+          # I due disegni della pagina — dove passano i dati di un cliente e le 72
+          # ore dell'art. 33 — sono fatti di HTML e CSS proprio perché le parole
+          # restino parole. Il rovescio è che sono due componenti come tutti gli
+          # altri: uno li può togliere senza che niente si lamenti, e la pagina
+          # tornerebbe un muro di testo senza che nessun controllo se ne accorga.
+          # Si cercano le classi e non il testo dentro, perché il testo lo si
+          # riscrive e la struttura no.
+          for pezzo in sd-flusso ore-linea; do
+            if grep -qF "$pezzo" <<<"$pagina"; then echo "  ok    c'è il disegno: $pezzo"
+            else echo "::error::manca il disegno: $pezzo"; fail=1; fi
+          done
+          # Le tappe: quattro nodi nel percorso dei dati, tre nella linea delle ore.
+          # Se un ciclo si rompe, il disegno resta e si svuota.
+          uguale 'il percorso dei dati ha quattro nodi' \
+            "$(grep -o 'class="sd-nodo"' <<<"$pagina" | wc -l | tr -d ' ')" '4'
+          uguale 'la linea delle ore ha tre tappe' \
+            "$(grep -o 'class="ore-quando"' <<<"$pagina" | wc -l | tr -d ' ')" '3'
+          # Le 72 ore sono una durata, non una parola: chi legge la pagina con uno
+          # strumento vede ISO 8601 e non l'italiano.
+          if grep -qF 'datetime="PT72H"' <<<"$pagina"; then echo "  ok    le 72 ore sono una durata"
+          else echo "::error::le 72 ore non sono più marcate come durata"; fail=1; fi
+          # Un'icona per riquadro, in tutte e tre le griglie che ne hanno una. Il
+          # controllo statico (npm run icone) verifica che il nome esista; questo
+          # verifica che il ciclo che la mette in pagina non si sia svuotato.
+          uguale "ogni voce dell'adeguamento ha la sua icona" \
+            "$(grep -o 'class="gd-icona"' <<<"$pagina" | wc -l | tr -d ' ')" '6'
+          uguale 'ogni controllo ha la sua icona' \
+            "$(grep -o 'class="gd-ctrl-icona"' <<<"$pagina" | wc -l | tr -d ' ')" '6'
+          uguale 'ogni profilo ha la sua icona' \
+            "$(grep -o 'class="gd-icona piccola"' <<<"$pagina" | wc -l | tr -d ' ')" '4'
+          # Le icone sono decorative: `role="img"` è quello che le farebbe
+          # annunciare a un lettore di schermo prima della frase che dice già la
+          # stessa cosa.
+          uguale 'nessuna icona si annuncia da sola' \
+            "$(grep -o '<svg[^>]*role="img"' <<<"$pagina" | wc -l | tr -d ' ')" '0'
+
           # Gli articoli citati per numero sono la parte controllabile della
           # sezione sulla norma: se la tabella non viene resa, questi spariscono.
           uguale 'gli articoli del regolamento sono citati' \
