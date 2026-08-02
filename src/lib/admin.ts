@@ -232,6 +232,12 @@ export interface LeadRow {
   source: string;
   status: string;
   created_at: Date;
+  /** Origine del contatto: vuota per i lead diretti e per quelli di prima. */
+  camp_source: string;
+  camp_medium: string;
+  camp_name: string;
+  /** Pagina da cui è partito il contatto. */
+  pagina: string;
 }
 
 export const LEAD_STATUSES = [

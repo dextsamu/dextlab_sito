@@ -15,7 +15,8 @@
     "migrate": "node --env-file-if-exists=.env ./scripts/migrate.mjs",
     "create-admin": "node --env-file-if-exists=.env ./scripts/create-admin.mjs",
     "backup": "node --env-file-if-exists=.env ./scripts/backup.mjs",
-    "mail": "node --experimental-strip-types ./scripts/anteprima-mail.mjs"
+    "mail": "node --experimental-strip-types ./scripts/anteprima-mail.mjs",
+    "kit": "node ./scripts/kit-marketing.mjs"
   },
   "dependencies": {
     "@astrojs/node": "^11.0.3",

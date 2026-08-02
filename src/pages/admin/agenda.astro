@@ -9,6 +9,7 @@
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import CrudRow, { type FieldSpec } from '../../components/admin/CrudRow.astro';
 import { guardAdmin, handleAdminPost } from '../../lib/admin-actions.ts';
+import { etichettaCampagna } from '../../lib/campagne.ts';
 import { csrfToken } from '../../lib/auth.ts';
 import { contentRows, leadStats } from '../../lib/admin.ts';
 import { getSettings, settingOn, tryQuery } from '../../lib/db.ts';
@@ -214,6 +215,7 @@ const feed = cfg.chiaveIcs ? `${siteUrl()}/agenda.ics?k=${cfg.chiaveIcs}` : '';
               <th>Chi</th>
               <th>Contatti</th>
               <th>Note</th>
+              <th>Da dove</th>
               <th />
             </tr>
           </thead>
@@ -227,6 +229,16 @@ const feed = cfg.chiaveIcs ? `${siteUrl()}/agenda.ics?k=${cfg.chiaveIcs}` : '';
                   {a.phone && <div>{a.phone}</div>}
                 </td>
                 <td>{a.note || '—'}</td>
+                {/* L'origine della prenotazione. Una call prenotata è il
+                    contatto che vale di più: sapere quale canale l'ha portata è
+                    la sola informazione che permette di ripeterlo. */}
+                <td class="lead-da">
+                  {etichettaCampagna({
+                    source: a.camp_source ?? '',
+                    medium: a.camp_medium ?? '',
+                    name: a.camp_name ?? '',
+                  })}
+                </td>
                 <td>
                   {a.status === 'confermato' ? (
                     <>

@@ -9,7 +9,7 @@
  * che in realtà era arrivato.
  */
 import type { APIRoute } from 'astro';
-import { query, rateLimit, getSettings } from '../../lib/db.ts';
+import { query, rateLimit, getSettings, origineDaVisita } from '../../lib/db.ts';
 import { mailConfig, sendLeadMails, isMailUsable, type LeadMessage } from '../../lib/mail.ts';
 import { telegramConfig, notifyLead } from '../../lib/telegram.ts';
 
@@ -82,13 +82,34 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const subject = (subjectRaw || 'Nuovo contatto dal sito').slice(0, MAX_SUBJECT);
   const lead: LeadMessage = { name, email, subject, message, ip };
 
+  /*
+    Da dove arriva questo contatto. Il token nel campo nascosto è quello della
+    visita che ha reso il modulo, e su quella riga la campagna c'è già: qui si
+    ricopia, così il lead resta collegato all'annuncio anche fra sei mesi, quando
+    la riga della visita sarà stata cancellata. Se il token manca o non
+    corrisponde a niente il contatto è «diretto»: si registra l'assenza del dato,
+    non un'ipotesi.
+  */
+  const origine = await origineDaVisita(field('vt').trim());
+
   // 1. Persistenza: è il canale che non dipende da servizi esterni.
   let leadSaved = false;
   try {
     await query(
-      `INSERT INTO leads (name, email, subject, message, source, ip, status)
-       VALUES ($1, $2, $3, $4, 'form', $5, 'new')`,
-      [name, email, subject, message, ip || null]
+      `INSERT INTO leads (name, email, subject, message, source, ip, status,
+                          camp_source, camp_medium, camp_name, pagina)
+       VALUES ($1, $2, $3, $4, 'form', $5, 'new', $6, $7, $8, $9)`,
+      [
+        name,
+        email,
+        subject,
+        message,
+        ip || null,
+        origine.camp_source,
+        origine.camp_medium,
+        origine.camp_name,
+        origine.pagina,
+      ]
     );
     leadSaved = true;
   } catch (err) {
