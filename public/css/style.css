@@ -1495,3 +1495,56 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
   .gd-passi li{grid-template-columns:30px 1fr;gap:12px}
   .gd-passi li::before{width:28px;height:28px;font-size:.8rem}
 }
+/* Indice della pagina protezione dati: è lunga, e l'indice è l'unico modo di
+   arrivare a una sezione precisa senza scorrere. Due colonne dove c'è spazio. */
+.gd-indice{margin:34px 0 0;padding:20px 24px;border:1px solid var(--border);border-radius:14px;
+  background:var(--surface)}
+.gd-indice>p{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+  margin:0 0 12px}
+.gd-indice ol{list-style:none;margin:0;padding:0;counter-reset:voce;
+  display:grid;grid-template-columns:1fr;gap:8px 26px;font-size:.94rem}
+.gd-indice li{counter-increment:voce;display:flex;gap:10px;align-items:baseline}
+.gd-indice li::before{content:counter(voce,decimal-leading-zero);font-size:.72rem;color:var(--muted);
+  font-variant-numeric:tabular-nums;flex:none}
+.gd-indice a{color:var(--text);text-decoration:none;border-bottom:1px solid var(--border)}
+.gd-indice a:hover,.gd-indice a:focus-visible{border-bottom-color:var(--cyan);color:var(--cyan)}
+@media(min-width:700px){.gd-indice ol{grid-template-columns:1fr 1fr}}
+/* I sei controlli: come i passi, con in più la riga «come lo controlli» — che è la
+   parte per cui la sezione esiste, quindi si distingue invece di sciogliersi nel
+   testo. */
+.gd-audit{list-style:none;margin:0;padding:0;counter-reset:ctrl;display:flex;flex-direction:column;gap:22px}
+.gd-audit li{counter-increment:ctrl;display:grid;grid-template-columns:38px 1fr;gap:16px;align-items:start}
+.gd-audit li::before{content:counter(ctrl);width:34px;height:34px;border-radius:10px;display:grid;
+  place-items:center;font-weight:700;font-size:.88rem;color:var(--cyan);
+  background:var(--surface-2);border:1px solid var(--border-2)}
+.gd-audit b{display:block;margin-bottom:4px}
+.gd-audit span{display:block;color:var(--muted);line-height:1.65;font-size:.95rem}
+.gd-come{margin-top:8px;padding-left:12px;border-left:2px solid var(--border-2)}
+.gd-come em{color:var(--cyan);font-style:normal;font-weight:500}
+/* I profili: quello che hanno e quello che manca, distinti — la seconda riga è la
+   ragione per cui la sezione è utile. */
+.gd-profili{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:760px){.gd-profili{grid-template-columns:repeat(2,1fr)}}
+.gd-profili article{padding:20px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.gd-profili b{display:block;margin-bottom:10px}
+.gd-profilo-cosa{color:var(--muted);font-size:.92rem;line-height:1.6;margin:0 0 10px}
+.gd-profilo-manca{color:var(--text);font-size:.92rem;line-height:1.6;margin:0;padding-top:10px;
+  border-top:1px solid var(--border)}
+/* La tabella degli articoli scorre da sola su schermi stretti: il documento non
+   deve mai scorrere in orizzontale. */
+.gd-tabellone{overflow-x:auto;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+table.gd-norma{width:100%;border-collapse:collapse;font-size:.9rem;min-width:640px}
+table.gd-norma th,table.gd-norma td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--border);
+  vertical-align:top;line-height:1.55}
+table.gd-norma th{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+table.gd-norma tbody tr:last-child td{border-bottom:0}
+.gd-art{white-space:nowrap;font-weight:600;color:var(--cyan)}
+.gd-pratica{color:var(--muted)}
+/* Il vocabolario: termine e definizione, con il termine che si legge prima. */
+.gd-parole{margin:0}
+.gd-parole dt{font-weight:600;margin:0 0 6px}
+.gd-parole dd{margin:0 0 18px;color:var(--muted);line-height:1.65;font-size:.95rem}
+/* Cosa non faccio: la croce al posto della spunta, stesso impianto delle consegne. */
+.gd-no{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.gd-no li{position:relative;padding-left:30px;color:var(--muted);line-height:1.65}
+.gd-no li::before{content:"✕";position:absolute;left:6px;top:0;color:#ff8a8a;font-weight:700}
