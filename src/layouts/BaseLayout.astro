@@ -20,13 +20,34 @@ interface Props {
   /** Dati strutturati JSON-LD, già serializzati. */
   structuredData?: string;
   bodyClass?: string;
+  /**
+   * Immagine per l'anteprima social, se questa pagina ne ha una sua. Le pagine dei
+   * lavori passano la schermata del sito: è più utile del logo, perché dice di cosa
+   * parla la pagina.
+   */
+  image?: string;
 }
 
-const { title, description, path = '/', noindex = false, structuredData, bodyClass } = Astro.props;
+const {
+  title,
+  description,
+  path = '/',
+  noindex = false,
+  structuredData,
+  bodyClass,
+  image,
+} = Astro.props;
 
 const base = siteUrl();
 const canonical = new URL(path, base + '/').href;
-const ogImage = new URL('/assets/logo-v.png', base + '/').href;
+/*
+  L'anteprima predefinita è un'immagine 1200x630 disegnata per questo: prima era il
+  logo verticale, che ogni piattaforma ritagliava a modo suo — su LinkedIn e su
+  WhatsApp si vedeva una fetta di logo senza una parola. Le dimensioni sono
+  dichiarate perché alcune piattaforme non scaricano l'immagine prima di impaginare
+  l'anteprima, e senza i numeri lasciano un buco.
+*/
+const ogImage = new URL(image ?? '/assets/og.png', base + '/').href;
 ---
 
 <html lang="it">
@@ -74,8 +95,15 @@ const ogImage = new URL('/assets/logo-v.png', base + '/').href;
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
     <meta property="og:locale" content="it_IT" />
+    <meta property="og:site_name" content="Dext Lab" />
     <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={title} />
     <meta name="twitter:card" content="summary_large_image" />
+    {/* Twitter non legge og:image in tutti i casi: dichiararlo due volte costa una
+        riga e evita l'anteprima senza immagine. */}
+    <meta name="twitter:image" content={ogImage} />
 
     {/* is:inline esplicito: è un blocco di dati JSON-LD, non uno script da elaborare. */}
     {structuredData && <script type="application/ld+json" is:inline set:html={structuredData} />}

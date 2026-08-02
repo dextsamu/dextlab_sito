@@ -27,6 +27,8 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getWork, paragrafiLavoro, linkLavoro, didascalieLavoro } from '../../lib/content.ts';
 import { immagineLavoro, schermateLavoro } from '../../lib/assets.ts';
+import { bricioleJsonLd } from '../../lib/seo.ts';
+import { siteUrl } from '../../lib/env.ts';
 
 const { slug = '' } = Astro.params;
 const lavoro = await getWork(slug);
@@ -64,6 +66,20 @@ const schermate = lavoro
   : [];
 
 const anteprima = lavoro ? immagineLavoro(lavoro.url) : null;
+
+/*
+  Le briciole dicono a un motore di ricerca dove sta questa pagina: nei risultati
+  compaiono al posto dell'indirizzo nudo. Il percorso dichiarato è quello vero —
+  la sezione dei lavori in home — e non una gerarchia inventata per fare bella
+  figura, che è il modo in cui questo dato viene ignorato.
+
+  L'anteprima social è la schermata del sito del cliente, non il logo di Dext Lab:
+  chi vede il link condiviso capisce di cosa si parla. Il parametro con l'impronta
+  del contenuto va tolto, perché alcune piattaforme scartano gli indirizzi con la
+  stringa di ricerca quando scaricano l'immagine.
+*/
+const briciole = trovato ? bricioleJsonLd(lavoro!.title, `/lavori/${slug}`, siteUrl()) : null;
+const ogLavoro = anteprima ? anteprima.split('?')[0] : undefined;
 ---
 
 <BaseLayout
@@ -75,6 +91,8 @@ const anteprima = lavoro ? immagineLavoro(lavoro.url) : null;
   }
   path={`/lavori/${slug}`}
   noindex={!trovato}
+  image={ogLavoro}
+  structuredData={briciole ? JSON.stringify(briciole) : undefined}
 >
   <div class="bg-glow glow-1" aria-hidden="true"></div>
 
