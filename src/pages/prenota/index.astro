@@ -126,10 +126,12 @@ if (Astro.request.method === 'POST' && cfg.attiva) {
 
         return Astro.redirect(`/prenota/${token}`, 303);
       } catch (err) {
-        // 23505 è la violazione del vincolo univoco: quell'istante è stato preso
-        // fra il controllo e la scrittura. È il caso per cui esiste l'indice.
+        // 23505 è la violazione di un indice univoco, 23P01 quella del vincolo di
+        // non sovrapposizione: in entrambi i casi qualcuno ha preso quel tempo
+        // fra il controllo e la scrittura. È il caso per cui quei vincoli
+        // esistono — vedi le migrazioni 010 e 011.
         const codice = (err as { code?: string }).code;
-        if (codice === '23505') {
+        if (codice === '23505' || codice === '23P01') {
           errore = 'Quell’orario è stato preso in questo istante da qualcun altro. Scegline un altro.';
           scelto = '';
         } else {

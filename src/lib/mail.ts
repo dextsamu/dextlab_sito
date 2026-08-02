@@ -254,6 +254,145 @@ export async function sendAppointmentMails(
   return error ? { ok: false, error } : { ok: true };
 }
 
+/**
+ * Appuntamento spostato: a entrambi, con il .ics aggiornato.
+ *
+ * L'allegato porta lo stesso identificativo e una revisione più alta, quindi nel
+ * calendario di chi l'aveva salvato l'evento si sposta invece di sdoppiarsi.
+ */
+export async function sendMoveMails(
+  app: Appuntamento,
+  prima: Date,
+  cfg: MailConfig,
+  base: string,
+  siteName = 'Dext Lab'
+): Promise<{ ok: boolean; error?: string }> {
+  if (!isMailUsable(cfg)) return { ok: false, error: 'SMTP non configurato' };
+
+  const quando = quandoPerEsteso(app.starts_at);
+  const gestisci = new URL(`/prenota/${app.token}`, base + '/').href;
+  const ics = calendarioIcs([app], base, `Call con ${siteName}`);
+  const transport = createTransport(cfg);
+  let error: string | undefined;
+
+  try {
+    await transport.sendMail({
+      from: { name: cfg.fromName, address: cfg.from },
+      to: { name: app.name, address: app.email },
+      subject: `Appuntamento spostato — ${quando}`,
+      text: [
+        `Ciao ${app.name},`,
+        '',
+        `l'appuntamento è stato spostato: era ${quandoPerEsteso(prima)}, ora è ${quando}.`,
+        `Dura ${app.minutes} minuti, ora italiana.`,
+        '',
+        `Se ti serve spostarlo di nuovo o disdirlo: ${gestisci}`,
+        '',
+        'A presto,',
+        `${siteName}`,
+        '',
+      ].join('\n'),
+      icalEvent: { filename: 'appuntamento.ics', method: 'PUBLISH', content: ics },
+    });
+  } catch (err) {
+    error = (err as Error).message;
+  }
+
+  try {
+    await transport.sendMail({
+      from: { name: cfg.fromName, address: cfg.from },
+      to: cfg.to,
+      replyTo: { name: app.name, address: app.email },
+      subject: `[${siteName}] Call spostata — ${quando}`,
+      text: [
+        `${app.name} ha spostato l'appuntamento.`,
+        `Era:  ${quandoPerEsteso(prima)}`,
+        `Ora:  ${quando} (${app.minutes} minuti)`,
+        `Email: ${app.email}`,
+        app.phone ? `Telefono: ${app.phone}` : '',
+        '',
+        `Scheda: ${gestisci}`,
+        '',
+      ]
+        .filter((r) => r !== '')
+        .join('\n'),
+      icalEvent: { filename: 'appuntamento.ics', method: 'PUBLISH', content: ics },
+    });
+  } catch (err) {
+    console.warn('[mail] avviso di spostamento non inviato:', (err as Error).message);
+  }
+
+  return error ? { ok: false, error } : { ok: true };
+}
+
+/**
+ * Il promemoria, poche ore prima: al visitatore e a chi lo riceve.
+ *
+ * È la cosa che riduce le mancate presenze, e per questo è l'unica email che
+ * parte da sola senza che nessuno abbia premuto niente. Se l'invio al visitatore
+ * fallisce chi chiama non segna il promemoria come mandato, così al giro
+ * successivo si riprova: è l'opposto della conferma, dove l'appuntamento vale
+ * comunque perché è scritto.
+ */
+export async function sendReminderMails(
+  app: Appuntamento,
+  cfg: MailConfig,
+  base: string,
+  siteName = 'Dext Lab'
+): Promise<{ ok: boolean; error?: string }> {
+  if (!isMailUsable(cfg)) return { ok: false, error: 'SMTP non configurato' };
+
+  const quando = quandoPerEsteso(app.starts_at);
+  const gestisci = new URL(`/prenota/${app.token}`, base + '/').href;
+  const transport = createTransport(cfg);
+
+  try {
+    await transport.sendMail({
+      from: { name: cfg.fromName, address: cfg.from },
+      to: { name: app.name, address: app.email },
+      subject: `Promemoria: ci sentiamo ${quando}`,
+      text: [
+        `Ciao ${app.name},`,
+        '',
+        `un promemoria per la nostra call: ${quando}, ora italiana, ${app.minutes} minuti.`,
+        '',
+        `Se non ti va più bene puoi spostarla o disdirla da qui: ${gestisci}`,
+        'Meglio spostarla che non presentarsi — quel posto torna libero per qualcun altro.',
+        '',
+        'A presto,',
+        `${siteName}`,
+        '',
+      ].join('\n'),
+    });
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
+
+  try {
+    await transport.sendMail({
+      from: { name: cfg.fromName, address: cfg.from },
+      to: cfg.to,
+      replyTo: { name: app.name, address: app.email },
+      subject: `[${siteName}] Promemoria: call ${quando}`,
+      text: [
+        `Call in arrivo: ${quando} (${app.minutes} minuti).`,
+        `Nome:     ${app.name}`,
+        `Email:    ${app.email}`,
+        `Telefono: ${app.phone || 'non indicato'}`,
+        '',
+        app.note || 'Nessuna nota.',
+        '',
+        `Scheda: ${gestisci}`,
+        '',
+      ].join('\n'),
+    });
+  } catch (err) {
+    console.warn('[mail] promemoria a me non inviato:', (err as Error).message);
+  }
+
+  return { ok: true };
+}
+
 /** Avviso di disdetta, solo a chi riceve gli appuntamenti. */
 export async function sendCancellationMail(
   app: Appuntamento,

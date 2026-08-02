@@ -274,7 +274,7 @@ export const TABLE_FIELDS = {
   faqs: ['question', 'answer', 'sort', 'active'],
   works: ['title', 'url', 'summary', 'tags', 'proprio', 'story', 'links', 'shots', 'sort', 'active'],
   agenda_windows: ['weekday', 'from_time', 'to_time', 'sort', 'active'],
-  agenda_closures: ['day', 'reason', 'sort', 'active'],
+  agenda_closures: ['day', 'from_time', 'to_time', 'reason', 'sort', 'active'],
 } as const satisfies Record<ContentTable, readonly string[]>;
 
 const NUMERIC_FIELDS = new Set(['price', 'weeks', 'sort', 'stars', 'weekday']);
@@ -355,8 +355,10 @@ export const SETTING_KEYS = [
  */
 export const AGENDA_SETTING_KEYS = [
   'agenda_minuti',
+  'agenda_pausa',
   'agenda_preavviso',
   'agenda_giorni',
+  'agenda_promemoria',
   'agenda_ics_key',
 ] as const;
 

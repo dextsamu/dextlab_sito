@@ -739,6 +739,138 @@ jobs:
             done
           done
 
+          # 10) La pausa fra due call: gli orari devono distare durata + pausa, e un
+          # appuntamento deve occupare anche la pausa che gli sta intorno.
+          durata=$(qv "select v from settings where k='agenda_minuti'")
+          pausa=$(qv "select v from settings where k='agenda_pausa'")
+          passo=$((durata + pausa))
+          primi=$(curl -s http://127.0.0.1:4321/prenota | grep -o 'prenota?slot=[^"]*' | sed 's/.*slot=//' | head -2)
+          a=$(echo "$primi" | sed -n 1p); b=$(echo "$primi" | sed -n 2p)
+          # I due orari possono stare in fasce diverse (mattina/pomeriggio): il
+          # confronto vale solo se distano meno di due ore.
+          diff=$(qv "select round(extract(epoch from (timestamptz '$(printf '%b' "${b//%/\\x}")' - timestamptz '$(printf '%b' "${a//%/\\x}")')) / 60)")
+          if [ "$diff" -le 120 ] && [ "$diff" != "$passo" ]; then
+            echo "::error::i primi due orari distano $diff minuti, attesi $passo (durata $durata + pausa $pausa)"
+            fail=1
+          else
+            echo "  ok    gli orari distano $passo minuti, cioè durata più pausa"
+          fi
+
+          # 11) Un blocco parziale toglie solo le sue ore, non il giorno.
+          giorno2=$(qv "select to_char((now() + interval '4 days')::date, 'YYYY-MM-DD')")
+          prima_del_blocco=$(curl -s http://127.0.0.1:4321/prenota | grep -o "slot=$giorno2[^\"]*" | wc -l)
+          q "insert into agenda_closures (day, from_time, to_time, reason, sort) values ('$giorno2', '09:00', '11:00', 'Prova CI', 98)"
+          dopo_il_blocco=$(curl -s http://127.0.0.1:4321/prenota | grep -o "slot=$giorno2[^\"]*" | wc -l)
+          if [ "$prima_del_blocco" -gt 0 ] && [ "$dopo_il_blocco" -gt 0 ] && [ "$dopo_il_blocco" -lt "$prima_del_blocco" ]; then
+            echo "  ok    il blocco parziale toglie qualche orario ($prima_del_blocco → $dopo_il_blocco) e lascia il resto"
+          else
+            echo "::error::blocco parziale su $giorno2: orari $prima_del_blocco → $dopo_il_blocco, atteso un calo che non azzera"
+            fail=1
+          fi
+          # E senza orari, la stessa riga chiude il giorno intero: è la differenza
+          # fra le ferie e un impegno di mezz'ora.
+          q "update agenda_closures set from_time = '', to_time = '' where sort = 98"
+          n=$(curl -s http://127.0.0.1:4321/prenota | grep -o "slot=$giorno2" | wc -l)
+          [ "$n" = 0 ] \
+            && echo "  ok    senza orari la stessa riga chiude tutto il giorno" \
+            || { echo "::error::chiusura senza orari: $giorno2 offre ancora $n orari"; fail=1; }
+          # Un orario illeggibile vale come «tutto il giorno»: fra chiudere troppo e
+          # prenotare sopra un impegno che c'era già, il primo costa meno.
+          q "update agenda_closures set from_time = 'mattina', to_time = 'pranzo' where sort = 98"
+          n=$(curl -s http://127.0.0.1:4321/prenota | grep -o "slot=$giorno2" | wc -l)
+          [ "$n" = 0 ] \
+            && echo "  ok    e un orario che non si legge chiude il giorno, invece di aprirlo" \
+            || { echo "::error::chiusura con orario illeggibile: $giorno2 offre ancora $n orari"; fail=1; }
+          q "delete from agenda_closures where sort = 98"
+
+          # 12) Spostare: un solo passaggio, e quello vecchio resta valido se il
+          # nuovo non è libero. Cambia anche la revisione, che è ciò che dice ai
+          # calendari «l'evento che hai già è cambiato».
+          pag=$(curl -s http://127.0.0.1:4321/prenota)
+          primo=$(grep -o 'prenota?slot=[^"]*' <<<"$pag" | sed -n 1p | sed 's/.*slot=//')
+          secondo=$(grep -o 'prenota?slot=[^"]*' <<<"$pag" | sed -n 2p | sed 's/.*slot=//')
+          slot1=$(printf '%b' "${primo//%/\\x}"); slot2=$(printf '%b' "${secondo//%/\\x}")
+          post /tmp/sp1.html /prenota --data-urlencode "slot=$slot1" \
+            --data-urlencode 'name=Sposta CI' --data-urlencode 'email=sposta@esempio.example' >/dev/null
+          tk=$(grep -i '^location:' /tmp/sp1.html.head | sed 's|.*/prenota/||' | tr -d '\r')
+          grep -qF 'Sposta a un altro orario' <<<"$(curl -s "http://127.0.0.1:4321/prenota/$tk")" \
+            && echo "  ok    la scheda offre lo spostamento" \
+            || { echo "::error::la scheda non offre lo spostamento"; fail=1; }
+          # Gli orari per spostare sono pulsanti di un form, non link: un GET che
+          # modifica lo eseguono i precaricamenti del browser.
+          elenco=$(curl -s "http://127.0.0.1:4321/prenota/$tk?sposta=1")
+          grep -qF 'Scegli il nuovo orario' <<<"$elenco" \
+            && echo "  ok    e mostra gli orari liberi" \
+            || { echo "::error::l'elenco per spostare non compare"; fail=1; }
+          if grep -qE "href=\"/prenota/$tk\?sposta=1&(amp;)?slot=" <<<"$elenco"; then
+            echo "::error::gli orari per spostare sono link: un GET non deve cambiare i dati"
+            fail=1
+          else
+            echo "  ok    e sono pulsanti di un form, non link"
+          fi
+          # Il promemoria si segna prima dello spostamento, altrimenti il controllo
+          # qui sotto passerebbe da sé: reminded_at sarebbe nullo comunque, e non
+          # si vedrebbe la differenza fra «azzerato» e «mai scritto».
+          q "update appointments set reminded_at = now() where token = '$tk'"
+          post /tmp/sp2.html "/prenota/$tk" --data-urlencode 'azione=sposta' --data-urlencode "slot=$slot2" >/dev/null
+          letto=$(qv "select to_char(starts_at, 'YYYY-MM-DD\"T\"HH24:MI:SSOF') || '|' || version || '|' || coalesce(reminded_at::text, 'nullo') from appointments where token = '$tk'")
+          if grep -q '|1|nullo' <<<"$letto"; then
+            echo "  ok    lo spostamento alza la revisione e azzera il promemoria"
+          else
+            echo "::error::dopo lo spostamento la riga dice «$letto», attesi revisione 1 e promemoria nullo"
+            fail=1
+          fi
+          grep -qF 'SEQUENCE:1' <<<"$(curl -s "http://127.0.0.1:4321/prenota/$tk.ics")" \
+            && echo "  ok    e il .ics porta SEQUENCE:1, così i calendari aggiornano l'evento" \
+            || { echo "::error::il .ics dopo lo spostamento non porta SEQUENCE:1"; fail=1; }
+          # Spostare su un orario che non esiste non deve toccare quello valido.
+          quando_prima=$(qv "select starts_at from appointments where token = '$tk'")
+          post /tmp/sp3.html "/prenota/$tk" --data-urlencode 'azione=sposta' --data-urlencode 'slot=2035-01-02T02:00:00.000Z' >/dev/null
+          quando_dopo=$(qv "select starts_at from appointments where token = '$tk'")
+          [ "$quando_prima" = "$quando_dopo" ] \
+            && echo "  ok    uno spostamento verso un orario mai offerto non tocca l'appuntamento" \
+            || { echo "::error::l'appuntamento è stato spostato su un orario non offerto"; fail=1; }
+
+          # 13) Due appuntamenti non si sovrappongono nemmeno con durate diverse:
+          # è il vincolo stretto dalla 011, e vale dove vive.
+          base=$(qv "select to_char(date_trunc('hour', now()) + interval '30 days', 'YYYY-MM-DD\"T\"HH24:MI:SSOF')")
+          q "insert into appointments (name, email, starts_at, minutes, token)
+             values ('Lungo CI', 'l@esempio.example', '$base', 90, repeat('e', 32))"
+          q "insert into appointments (name, email, starts_at, minutes, token)
+             values ('Dentro CI', 'd@esempio.example', timestamptz '$base' + interval '30 minutes', 30, repeat('f', 32))" 2>/dev/null || true
+          n=$(qv "select count(*) from appointments where token in (repeat('e', 32), repeat('f', 32))")
+          [ "$n" = 1 ] \
+            && echo "  ok    un appuntamento dentro un altro più lungo viene rifiutato" \
+            || { echo "::error::$n appuntamenti accavallati accettati: il vincolo della 011 non c'è"; fail=1; }
+          # E la fine viene tenuta allineata dal database, non da chi scrive.
+          fine=$(qv "select ends_at = starts_at + interval '1 minute' * minutes from appointments where token = repeat('e', 32)")
+          [ "$fine" = t ] \
+            && echo "  ok    e la fine dell'appuntamento la calcola il database" \
+            || { echo "::error::ends_at non corrisponde a starts_at + durata"; fail=1; }
+          q "update appointments set minutes = 15 where token = repeat('e', 32)"
+          fine=$(qv "select ends_at = starts_at + interval '15 minutes' from appointments where token = repeat('e', 32)")
+          [ "$fine" = t ] \
+            && echo "  ok    anche dopo un cambio di durata" \
+            || { echo "::error::cambiata la durata, ends_at è rimasto quello di prima"; fail=1; }
+
+          # 14) Il promemoria: si scelgono solo gli appuntamenti dentro la finestra
+          # che NON sono stati prenotati dentro la finestra stessa — per chi prenota
+          # per domani, la conferma è già il promemoria.
+          q "delete from appointments"
+          q "insert into appointments (name, email, starts_at, minutes, token, created_at) values
+               ('Da avvisare CI',    'a@esempio.example', date_trunc('hour', now()) + interval '20 hours', 30, repeat('1', 32), now() - interval '3 days'),
+               ('Troppo lontano CI', 'b@esempio.example', date_trunc('hour', now()) + interval '40 hours', 30, repeat('2', 32), now() - interval '3 days'),
+               ('Prenotato ora CI',  'c@esempio.example', date_trunc('hour', now()) + interval '5 hours',  30, repeat('3', 32), now()),
+               ('Già avvisato CI',   'd@esempio.example', date_trunc('hour', now()) + interval '10 hours', 30, repeat('4', 32), now() - interval '3 days')"
+          q "update appointments set reminded_at = now() where token = repeat('4', 32)"
+          scelti=$(qv "select coalesce(string_agg(name, ',' order by starts_at), '') from appointments
+                        where status = 'confermato' and reminded_at is null and starts_at > now()
+                          and starts_at <= now() + make_interval(hours => 24)
+                          and created_at < starts_at - make_interval(hours => 24)")
+          [ "$scelti" = 'Da avvisare CI' ] \
+            && echo "  ok    il promemoria sceglie solo chi ha prenotato prima della finestra" \
+            || { echo "::error::il promemoria avrebbe scelto «$scelti», atteso solo «Da avvisare CI»"; fail=1; }
+
           # Si rimette tutto come l'hanno trovato le migrazioni.
           q "delete from appointments"
           q "update settings set v='' where k='agenda_attiva'"
