@@ -166,6 +166,42 @@
     'Stima': 'Estimate', 'Richiedi': 'Request',
     'Stima orientativa, non vincolante. Il preventivo finale è gratuito.':
       'Indicative, non-binding estimate. The final quote is free.',
+    /* Il configuratore con i prezzi spenti (vedi la 016). Le voci qui sotto
+       esistono solo in quello stato, e quelle sopra solo nell'altro: il dizionario
+       le tiene tutte, perché l'interruttore si può girare e un sito inglese con
+       quattro domande in italiano è mezzo tradotto — che è peggio di non essere
+       tradotto, perché sembra un errore invece di una scelta. */
+    'Richiesta in due minuti': 'A request in two minutes',
+    'Segna cosa ti serve: quello che scegli qui arriva con il tuo messaggio, e io ti rispondo con un preventivo scritto invece di chiederti le stesse cose per email.':
+      'Tick what you need: what you choose here travels with your message, so I answer with a written quote instead of asking you the same things by email.',
+    'Il contesto': 'Some context',
+    'Facoltativo, ma è la parte che mi fa rispondere con un preventivo invece che con altre domande.':
+      'Optional, but it is the part that lets me answer with a quote instead of more questions.',
+    'Da dove parti?': 'Where are you starting from?',
+    'Non ho ancora niente': 'I have nothing yet',
+    'Ho un sito e va rifatto': 'I have a site and it needs rebuilding',
+    'Ho un sito e va sistemato': 'I have a site and it needs fixing',
+    'Quando ti serve?': 'When do you need it?',
+    'Nessuna fretta': 'No rush',
+    'Entro un mese': 'Within a month',
+    'Ho una data fissata': 'I have a fixed date',
+    'Testi e immagini?': 'Copy and images?',
+    'Li ho pronti': 'I have them ready',
+    'In parte': 'Partly',
+    'Servono': 'They are needed',
+    'Chi lo aggiorna dopo?': 'Who updates it afterwards?',
+    'Voglio farlo da solo': 'I want to do it myself',
+    'Preferisco che te ne occupi tu': 'I would rather you took care of it',
+    'Non lo so ancora': 'I do not know yet',
+    'La tua richiesta': 'Your request',
+    'Ti rispondo entro 24 ore': 'I reply within 24 hours',
+    'Preventivo scritto, fisso, gratuito': 'A written, fixed, free quote',
+    'Nessun impegno finché non firmi': 'No commitment until you sign',
+    'Manda questa richiesta': 'Send this request',
+    'Copia il link di questa richiesta': 'Copy the link to this request',
+    'Progetto': 'Project', 'Manda': 'Send',
+    'Il prezzo dipende da cosa serve davvero: te lo mando per iscritto dopo una call gratuita di mezz’ora, ed è fisso.':
+      'The price depends on what is actually needed: I send it in writing after a free half-hour call, and it is fixed.',
     // faq
     'Domande frequenti': 'FAQ', 'Le risposte': 'Answers', 'prima ancora': 'before you', 'di chiedere': 'even ask',
     'Quanto costa un sito o una web app?': 'How much does a site or web app cost?',

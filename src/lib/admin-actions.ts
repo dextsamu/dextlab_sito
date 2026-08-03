@@ -21,6 +21,7 @@ import {
   agendaSettingsFromForm,
   localeSettingsFromForm,
   dpoSettingsFromForm,
+  prezziSettingsFromForm,
 } from './admin.ts';
 import { runBackup, deleteBackup } from './backup.ts';
 import { randomBytes } from 'node:crypto';
@@ -151,15 +152,25 @@ export async function handleAdminPost(context: APIContext, redirectTo: string): 
       }
       case 'save_dpo': {
         /*
-          L'interruttore da solo non pubblica niente: la pagina /gdpr chiede anche
-          almeno una qualifica mostrabile (vedi content.ts). Il messaggio lo dice,
-          perché altrimenti l'unico modo di scoprirlo sarebbe spuntare la casella e
-          trovare un 404.
+          Questo messaggio diceva «la pagina compare solo con almeno una qualifica
+          compilata». Era vero con la 014 e non lo è più dalla 015, che ha separato
+          le due cose: l'interruttore decide se il servizio è in vendita, la
+          qualifica decide se il sito dichiara una certificazione. Una spiegazione
+          rimasta indietro è peggio di nessuna spiegazione — mandava a cercare in
+          Contenuti la ragione di un 404 che non c'era.
         */
         await saveSettings(dpoSettingsFromForm(form));
+        setFlash(cookies, 'Servizio protezione dati aggiornato.');
+        break;
+      }
+      case 'save_prezzi': {
+        const acceso = prezziSettingsFromForm(form).prezzi_pubblici === '1';
+        await saveSettings(prezziSettingsFromForm(form));
         setFlash(
           cookies,
-          'Servizio protezione dati aggiornato. La pagina compare solo con almeno una qualifica compilata in Contenuti.'
+          acceso
+            ? 'Prezzi accesi: il configuratore torna a mostrare la stima e il chatbot elenca il listino.'
+            : 'Prezzi spenti: il configuratore raccoglie richieste e nessuna cifra esce dal sito. Il listino resta in Prezzi.'
         );
         break;
       }

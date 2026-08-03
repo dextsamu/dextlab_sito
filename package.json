@@ -18,7 +18,8 @@
     "mail": "node --experimental-strip-types ./scripts/anteprima-mail.mjs",
     "kit": "node ./scripts/kit-marketing.mjs",
     "css": "node ./scripts/decorazioni.mjs",
-    "icone": "node ./scripts/icone.mjs"
+    "icone": "node ./scripts/icone.mjs",
+    "traduzioni": "node ./scripts/traduzioni.mjs"
   },
   "dependencies": {
     "@astrojs/node": "^11.0.3",

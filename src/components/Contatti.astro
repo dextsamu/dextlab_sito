@@ -8,9 +8,23 @@ interface Props {
   zone?: string[];
   /** Token della visita: dice da quale campagna arriva chi scrive. */
   visitToken?: string | null;
+  /**
+   * Chiave del tipo di progetto mostrato selezionato dal configuratore.
+   *
+   * È il valore di partenza del campo nascosto cfg_tipo: senza JavaScript resta
+   * questo, ed è vero, perché senza JavaScript la scelta non si cambia.
+   */
+  tipoIniziale?: string;
 }
 
-const { contactEmail, calendly, agendaAttiva, zone = [], visitToken = null } = Astro.props;
+const {
+  contactEmail,
+  calendly,
+  agendaAttiva,
+  zone = [],
+  visitToken = null,
+  tipoIniziale = '',
+} = Astro.props;
 
 /*
   Con l'agenda accesa il pulsante resta dentro il sito: il link a Calendly
@@ -110,6 +124,25 @@ const prenotaFuori = !agendaAttiva;
         questo.
       */}
       {visitToken && <input type="hidden" name="vt" value={visitToken} />}
+      {/*
+        Il tipo di progetto scelto nel configuratore.
+
+        Le funzioni aggiunte e le quattro domande sul contesto sono campi veri che
+        stanno nel configuratore e appartengono a questo modulo con
+        form="contactForm". Il tipo di progetto no, ed è l'unica eccezione: quei
+        pulsanti sono <button> e non radio, li seleziona il JavaScript, e sono
+        agganciati ai pulsanti dell'hero — cambiarli in radio significava
+        riscrivere tre meccanismi che funzionano per guadagnare la coerenza di uno.
+        Quindi uno specchio: il JS ci scrive la chiave del tipo attivo a ogni
+        cambio.
+
+        Il valore di partenza è quello del primo tipo, cioè quello che la pagina
+        mostra già selezionato: senza JavaScript il campo dice il vero, perché
+        senza JavaScript la scelta non si può cambiare. Il server lo rilegge
+        comunque contro il listino, quindi una chiave inventata non arriva da
+        nessuna parte.
+      */}
+      <input type="hidden" name="cfg_tipo" id="cfgTipoCampo" value={tipoIniziale} />
       {/*
         DUE etichette, entrambe rese dal server, e il JavaScript non scrive testo
         da nessuna parte: cambia solo una classe.

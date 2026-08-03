@@ -9,9 +9,17 @@
  * che in realtà era arrivato.
  */
 import type { APIRoute } from 'astro';
-import { query, rateLimit, getSettings, origineDaVisita } from '../../lib/db.ts';
+import { query, rateLimit, getSettings, origineDaVisita, rowsActive, type PricingRow } from '../../lib/db.ts';
 import { mailConfig, sendLeadMails, isMailUsable, type LeadMessage } from '../../lib/mail.ts';
 import { telegramConfig, notifyLead } from '../../lib/telegram.ts';
+import { chiaveListino, formatWeeks } from '../../lib/content.ts';
+import {
+  DOMANDE,
+  rispostaLeggibile,
+  riepilogoTestuale,
+  richiestaVuota,
+  type Richiesta,
+} from '../../lib/richiesta.ts';
 
 const MAX_NAME = 120;
 const MAX_EMAIL = 190;
@@ -37,6 +45,55 @@ function isEmail(value: string): boolean {
   if (value.length > MAX_EMAIL) return false;
   // Volutamente permissiva: la validazione forte di un indirizzo è la consegna.
   return /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(value);
+}
+
+/**
+ * La richiesta configurata, ricostruita dal listino e non dal modulo.
+ *
+ * Il modulo manda chiavi («ecommerce», «seoavanzata»), non etichette. Le chiavi
+ * si cercano nel listino e si traducono indietro: quello che arriva nella email è
+ * sempre un'etichetta vera, e una chiave inventata sparisce invece di finire in
+ * una riga che sembra un dato. Stessa regola delle risposte alle quattro domande
+ * (vedi rispostaLeggibile in richiesta.ts).
+ *
+ * Le settimane si sommano qui e non si leggono dal modulo, per lo stesso motivo:
+ * un tempo che arriva da fuori non è una stima, è un valore che qualcuno ha
+ * scritto. Il listino è l'unica fonte.
+ *
+ * Se il database non risponde la richiesta esce vuota e il contatto arriva
+ * comunque: un messaggio senza il riepilogo è un contatto in meno da ricontattare,
+ * un errore 500 è un contatto perso.
+ */
+async function richiestaDalModulo(
+  tipoChiave: string,
+  funzioniChiavi: string[],
+  risposte: [string, string][]
+): Promise<Richiesta> {
+  let tipi: PricingRow[] = [];
+  let addons: PricingRow[] = [];
+  try {
+    [tipi, addons] = await Promise.all([
+      rowsActive<PricingRow>('pricing_types'),
+      rowsActive<PricingRow>('pricing_addons'),
+    ]);
+  } catch (err) {
+    console.error('[contact] listino non letto:', (err as Error).message);
+  }
+
+  const tipo = tipi.find((t) => chiaveListino(t.label) === tipoChiave);
+  // Nell'ordine del listino e non in quello di arrivo: il modulo li manda
+  // nell'ordine del documento, ma un valore ripetuto a mano li duplicherebbe.
+  const scelte = new Set(funzioniChiavi);
+  const funzioni = addons.filter((a) => scelte.has(chiaveListino(a.label)));
+
+  const settimane = (tipo?.weeks ?? 0) + funzioni.reduce((n, a) => n + a.weeks, 0);
+
+  return {
+    progetto: tipo?.label ?? '',
+    funzioni: funzioni.map((a) => a.label),
+    tempi: tipo ? formatWeeks(settimane) : '',
+    contesto: risposte,
+  };
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -80,7 +137,36 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   const subject = (subjectRaw || 'Nuovo contatto dal sito').slice(0, MAX_SUBJECT);
-  const lead: LeadMessage = { name, email, subject, message, ip };
+
+  /*
+    La richiesta configurata.
+
+    Prima l'unico modo in cui le scelte del configuratore arrivavano era una frase
+    che il JavaScript scriveva nel campo del messaggio: bastava che il visitatore
+    la cancellasse — o che non avesse il JavaScript — e la richiesta arrivava senza
+    dire cosa chiedeva. Adesso sono campi del modulo, e questo è il punto in cui si
+    rileggono.
+
+    Il riepilogo si ATTACCA al messaggio, non lo sostituisce: le parole di chi
+    scrive restano sue e in cima. Il blocco è separato da una riga che si riconosce
+    a occhio, perché chi legge la email deve capire in un colpo dove finisce quello
+    che gli è stato scritto e dove comincia quello che ha compilato un modulo.
+  */
+  const risposte: [string, string][] = [];
+  for (const d of DOMANDE) {
+    const testo = rispostaLeggibile(d.campo, clean(field(d.campo)));
+    if (testo !== '') risposte.push([d.etichetta, testo]);
+  }
+  const richiesta = await richiestaDalModulo(
+    clean(field('cfg_tipo')),
+    form.getAll('cfg_funzioni').flatMap((v) => (typeof v === 'string' ? [clean(v)] : [])),
+    risposte
+  );
+  const messaggioCompleto = richiestaVuota(richiesta)
+    ? message
+    : `${message}\n\n— Richiesta dal configuratore —\n${riepilogoTestuale(richiesta)}`;
+
+  const lead: LeadMessage = { name, email, subject, message: messaggioCompleto, ip };
 
   /*
     Da dove arriva questo contatto. Il token nel campo nascosto è quello della
@@ -103,7 +189,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
         name,
         email,
         subject,
-        message,
+        // Con il riepilogo attaccato: è la stessa cosa che legge chi riceve la
+        // email, e nel pannello il lead non deve dire di meno.
+        messaggioCompleto,
         ip || null,
         origine.camp_source,
         origine.camp_medium,
