@@ -1,0 +1,60 @@
+---
+/**
+ * La linea delle 72 ore.
+ *
+ * L'articolo 33 è l'unico punto del regolamento con un cronometro, e un elenco
+ * di cose da fare non fa vedere la cosa che conta: che il tempo parte da quando
+ * te ne accorgi, non da quando hai capito cos'è successo. Su una linea si vede.
+ *
+ * Come lo schema dei dati: HTML e CSS, non un'immagine. Le tappe sono una
+ * sequenza reale, quindi lista ordinata; i tempi sono in <time> perché sono
+ * durate e non decorazioni.
+ *
+ * Le tre tappe dicono solo quello che il regolamento prevede. Non c'è nessun
+ * consiglio su cosa scrivere al Garante: quello dipende dal caso, e questa è una
+ * pagina di servizi, non un modello da compilare.
+ */
+const tappe = [
+  {
+    quando: 'ora zero',
+    durata: 'PT0H',
+    titolo: 'Te ne accorgi',
+    testo:
+      'Il cronometro parte qui: dal momento in cui vieni a conoscenza della violazione, non da quando hai capito la causa.',
+  },
+  {
+    quando: 'subito dopo',
+    durata: null,
+    titolo: 'Valuti il rischio',
+    testo:
+      'Quali dati, quante persone, cosa può succedere a loro. La valutazione va messa per iscritto anche quando la conclusione è «nessun rischio».',
+  },
+  {
+    quando: 'entro 72 ore',
+    durata: 'PT72H',
+    titolo: 'Notifichi, se c’è un rischio',
+    testo:
+      'Notifica al Garante (art. 33). Se il rischio per le persone è elevato, vanno avvisate anche loro (art. 34).',
+  },
+];
+---
+
+<figure class="ore">
+  <ol class="ore-linea">
+    {
+      tappe.map((t) => (
+        <li>
+          <span class="ore-quando">
+            {t.durata ? <time datetime={t.durata}>{t.quando}</time> : t.quando}
+          </span>
+          <b>{t.titolo}</b>
+          <span class="ore-testo">{t.testo}</span>
+        </li>
+      ))
+    }
+  </ol>
+  <figcaption>
+    Le 72 ore sono poche solo se si comincia a decidere quel giorno. Le cinque righe qui sotto sono
+    la parte che si prepara adesso.
+  </figcaption>
+</figure>

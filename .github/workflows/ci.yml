@@ -170,6 +170,22 @@ jobs:
       - name: Una decorazione non intercetta i clic
         run: npm run --silent css
 
+      # IconaGdpr non disegna niente quando il nome non esiste: è voluto, ma vuol
+      # dire che «ochio» al posto di «occhio» non fa rumore. La pagina esce, la
+      # card ha un buco, e lo si scopre guardando quella card. Qui si controlla che
+      # ogni nome chiesto esista, che nessun tracciato sia lì per niente, e che le
+      # icone restino decorative e a colore ereditato.
+      - name: Nessuna icona chiesta e non disegnata
+        run: npm run --silent icone
+
+      # Le quattro domande del configuratore sono nate in richiesta.ts e nessuno le
+      # ha aggiunte al dizionario: il sito in inglese mostrava dodici pillole in
+      # italiano in mezzo a una pagina tradotta. Non lo dice nessun errore — va
+      # aperto il sito, premuto EN e guardato quel pezzo. Un sito mezzo tradotto
+      # sembra un guasto invece di una scelta.
+      - name: Le domande del configuratore sono tradotte
+        run: npm run --silent traduzioni
+
       # Google Ads rifiuta un titolo di 31 caratteri e Meta taglia il testo a 125:
       # i conteggi accanto a ogni riga del kit non sono un ornamento, sono la sola
       # cosa che dice se un testo è pubblicabile. Qui si ricontano — e si verifica
@@ -1461,6 +1477,149 @@ jobs:
           else echo "::error::atteso 403 per un host che solo somiglia al nostro, ricevuto $code"; fail=1; fi
           exit $fail
 
+      # Due cose che si rompono in silenzio, e la prima è la più costosa di tutte.
+      #
+      # 1) Un prezzo non basta non stamparlo. Stava in data-price su nove elementi
+      #    del configuratore: chi apriva il sorgente della pagina leggeva il
+      #    listino intero. Spegnere l'interruttore e vedere il riquadro vuoto dava
+      #    l'impressione che fosse fatta, e non lo era. Qui si guarda l'HTML
+      #    servito, non la pagina resa.
+      # 2) Le scelte del configuratore arrivavano solo come frase scritta dal
+      #    JavaScript nel campo del messaggio. Bastava cancellarla e la richiesta
+      #    non diceva più cosa chiedeva. Adesso sono campi del modulo, e il server
+      #    li rilegge contro il listino: una chiave inventata deve sparire, non
+      #    finire in una email con l'aria di un dato.
+      - name: Con i prezzi spenti nessuna cifra esce dal sito
+        run: |
+          fail=0
+          esegui() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -qc "$1"; }
+          sql() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -tAc "$1"; }
+          uguale() {
+            if [ "$2" = "$3" ]; then echo "  ok    $1: $2"
+            else echo "::error::$1: atteso «$3», trovato «$2»"; fail=1; fi
+          }
+          conta() { grep -o "$2" <<<"$1" | wc -l | tr -d ' '; }
+          imposta() {
+            esegui "INSERT INTO settings (k, v) VALUES ('prezzi_pubblici', '$1')
+                    ON CONFLICT (k) DO UPDATE SET v = '$1';"
+          }
+          chat() {
+            curl -s -X POST http://127.0.0.1:4321/api/chat -H 'Content-Type: application/json' \
+              -d '{"messages":[{"role":"user","content":"quanto costa un sito?"}]}'
+          }
+          esegui "DELETE FROM rate_limits WHERE rl_key LIKE 'chat%' OR rl_key LIKE 'contact%';"
+
+          # --- 1. Prezzi spenti: nessuna cifra, da nessuna parte -----------------
+          imposta ''
+          home=$(curl -s http://127.0.0.1:4321/)
+          uguale 'nessun data-price nel sorgente' "$(conta "$home" 'data-price')" '0'
+          uguale 'nessun simbolo di valuta' "$(conta "$home" '€')" '0'
+          uguale 'nessun riquadro del prezzo' "$(conta "$home" 'cfg-price')" '0'
+          uguale 'il riquadro mostra la richiesta' "$(conta "$home" 'cfg-riepilogo')" '1'
+          # Le cifre vere del listino, lette dal database e cercate negli attributi
+          # data-*. Le si cerca LÌ e non nel testo per una ragione imparata
+          # provando: a cifra nuda, «400» trovava width="400" del logo e «500»
+          # trovava maxlength="500", cioè la guardia falliva su una pagina giusta.
+          # Una guardia che grida al lupo la si impara a ignorare.
+          #
+          # Gli attributi data-* sono il posto dove il difetto è già stato: il
+          # listino usciva in data-price su nove elementi, invisibile guardando la
+          # pagina e leggibile aprendo il sorgente. Il controllo copre qualsiasi
+          # nome — data-price, data-costo, quello che verrà — e le cifre stampate
+          # come testo sono già coperte dal controllo sul simbolo di valuta qui
+          # sopra, perché è formatPrice a scriverle e ci mette sempre l'euro.
+          prezzi=$(sql "SELECT price FROM pricing_types WHERE active UNION SELECT price FROM pricing_addons WHERE active AND price > 0")
+          fuori=0
+          for p in $prezzi; do
+            if grep -q "data-[a-z0-9-]*=\"$p\"" <<<"$home"; then
+              echo "::error::la cifra $p del listino esce in un attributo data-*"
+              fuori=1
+            fi
+          done
+          uguale 'nessuna cifra del listino negli attributi' "$fuori" '0'
+          uguale 'il chatbot non elenca prezzi' "$(chat | grep -c '€' || true)" '0'
+
+          # --- 2. Le scelte sono campi veri del modulo ---------------------------
+          # Contati contro il listino, non contro un numero scritto qui: una voce
+          # aggiunta dal pannello deve comparire, e questa guardia deve accorgersene.
+          nAddon=$(sql "SELECT count(*) FROM pricing_addons WHERE active")
+          uguale 'una casella per ogni funzione del listino' \
+            "$(conta "$home" 'name="cfg_funzioni"')" "$nAddon"
+          uguale 'il tipo di progetto viaggia col modulo' "$(conta "$home" 'name="cfg_tipo"')" '1'
+          for d in cfg_partenza cfg_quando cfg_materiali cfg_dopo; do
+            uguale "le tre risposte di $d" "$(conta "$home" "name=\"$d\"")" '3'
+          done
+          # L'aggancio che fa funzionare tutto: i campi stanno in un'altra sezione
+          # della pagina e appartengono al modulo dei contatti. Senza questo
+          # attributo il browser non li manderebbe, e non se ne accorgerebbe nessuno
+          # fino al primo contatto arrivato muto.
+          uguale 'i campi appartengono al modulo dei contatti' \
+            "$(conta "$home" 'form="contactForm"')" "$((nAddon + 12))"
+
+          # --- 3. Una richiesta configurata arriva, e solo quello che esiste ------
+          esegui "DELETE FROM leads WHERE email = 'cfg@ci.example';"
+          curl -s -o /dev/null -X POST http://127.0.0.1:4321/api/contact \
+            -d 'name=Prova CI' -d 'email=cfg@ci.example' -d 'message=Le mie parole.' \
+            -d 'cfg_tipo=ecommerce' \
+            --data-urlencode 'cfg_funzioni=seoavanzata' \
+            --data-urlencode 'cfg_funzioni=chiavemaiesistita' \
+            -d 'cfg_partenza=rifare' -d 'cfg_quando=inventato'
+          arrivato=$(sql "SELECT message FROM leads WHERE email = 'cfg@ci.example' ORDER BY id DESC LIMIT 1")
+          for atteso in 'Le mie parole.' 'Progetto: E-commerce' 'Funzioni: SEO avanzata' \
+                         'Da dove parte: Ho un sito e va rifatto'; do
+            if grep -qF "$atteso" <<<"$arrivato"; then echo "  ok    la richiesta dice: $atteso"
+            else echo "::error::la richiesta non dice: $atteso"; fail=1; fi
+          done
+          # Le chiavi inventate: nessuna traccia, né la chiave né una riga vuota.
+          for mai in 'chiavemaiesistita' 'inventato' 'Quando serve'; do
+            if grep -qF "$mai" <<<"$arrivato"; then
+              echo "::error::«$mai» è finito nella richiesta"; fail=1
+            else echo "  ok    scartato: $mai"; fi
+          done
+
+          # Un contatto senza configurazione resta le sue parole e nient'altro: il
+          # blocco non deve comparire vuoto.
+          esegui "DELETE FROM rate_limits WHERE rl_key LIKE 'contact%';"
+          esegui "DELETE FROM leads WHERE email = 'nudo@ci.example';"
+          curl -s -o /dev/null -X POST http://127.0.0.1:4321/api/contact \
+            -d 'name=Prova CI' -d 'email=nudo@ci.example' -d 'message=Solo parole.'
+          uguale 'senza configurazione nessun blocco' \
+            "$(sql "SELECT message FROM leads WHERE email = 'nudo@ci.example' ORDER BY id DESC LIMIT 1")" \
+            'Solo parole.'
+
+          # --- 4. Riaccesi: le cifre tornano, e le domande restano ---------------
+          # L'interruttore deve funzionare nei due sensi. Una guardia che prova solo
+          # lo spegnimento passerebbe anche se il codice avesse cancellato i prezzi
+          # invece di nasconderli, e il giorno della partita IVA non tornerebbe niente.
+          imposta '1'
+          esegui "DELETE FROM rate_limits WHERE rl_key LIKE 'chat%';"
+          acceso=$(curl -s http://127.0.0.1:4321/)
+          nTipi=$(sql "SELECT count(*) FROM pricing_types WHERE active")
+          uguale 'i data-price tornano' "$(conta "$acceso" 'data-price')" "$((nTipi + nAddon))"
+          # Controprova del controllo qui sopra: con i prezzi accesi le cifre del
+          # listino DEVONO comparire negli attributi. Se questa riga passasse a zero
+          # vorrebbe dire che quel controllo non è in grado di trovarle, cioè che
+          # passa sempre.
+          dentro=0
+          for p in $prezzi; do
+            if grep -q "data-[a-z0-9-]*=\"$p\"" <<<"$acceso"; then dentro=$((dentro + 1)); fi
+          done
+          uguale 'accesi, le cifre si trovano davvero' "$dentro" "$(wc -w <<<"$prezzi" | tr -d ' ')"
+          uguale 'il riquadro del prezzo torna' "$(conta "$acceso" 'cfg-price')" '1'
+          uguale 'il riepilogo lascia il posto alla cifra' "$(conta "$acceso" 'cfg-riepilogo')" '0'
+          uguale 'il chatbot elenca il listino' "$(chat | grep -c '€' || true)" '1'
+          # Le domande sul contesto non dipendono dal prezzo: sono un miglioramento
+          # della richiesta, non un ripiego per la mancanza della cifra.
+          uguale 'le domande restano anche con i prezzi accesi' \
+            "$(conta "$acceso" 'name="cfg_partenza"')" '3'
+
+          # Si rimette come la trova la migrazione 016: spenti.
+          imposta ''
+          uguale 'lo stato torna quello della migrazione' \
+            "$(conta "$(curl -s http://127.0.0.1:4321/)" 'data-price')" '0'
+
+          exit $fail
+
       # L'attribuzione è la sola cosa che rende la pubblicità misurabile: se il
       # contatto non porta con sé la campagna, dopo un mese di annunci l'unica
       # frase possibile è «mi pare che vada meglio». Questa guardia prova le due
@@ -1626,6 +1785,42 @@ jobs:
             if grep -qF "$atteso" <<<"$pagina"; then echo "  ok    la pagina dice: $atteso"
             else echo "::error::manca dalla pagina: $atteso"; fail=1; fi
           done
+          # I due disegni della pagina — dove passano i dati di un cliente e le 72
+          # ore dell'art. 33 — sono fatti di HTML e CSS proprio perché le parole
+          # restino parole. Il rovescio è che sono due componenti come tutti gli
+          # altri: uno li può togliere senza che niente si lamenti, e la pagina
+          # tornerebbe un muro di testo senza che nessun controllo se ne accorga.
+          # Si cercano le classi e non il testo dentro, perché il testo lo si
+          # riscrive e la struttura no.
+          for pezzo in sd-flusso ore-linea; do
+            if grep -qF "$pezzo" <<<"$pagina"; then echo "  ok    c'è il disegno: $pezzo"
+            else echo "::error::manca il disegno: $pezzo"; fail=1; fi
+          done
+          # Le tappe: quattro nodi nel percorso dei dati, tre nella linea delle ore.
+          # Se un ciclo si rompe, il disegno resta e si svuota.
+          uguale 'il percorso dei dati ha quattro nodi' \
+            "$(grep -o 'class="sd-nodo"' <<<"$pagina" | wc -l | tr -d ' ')" '4'
+          uguale 'la linea delle ore ha tre tappe' \
+            "$(grep -o 'class="ore-quando"' <<<"$pagina" | wc -l | tr -d ' ')" '3'
+          # Le 72 ore sono una durata, non una parola: chi legge la pagina con uno
+          # strumento vede ISO 8601 e non l'italiano.
+          if grep -qF 'datetime="PT72H"' <<<"$pagina"; then echo "  ok    le 72 ore sono una durata"
+          else echo "::error::le 72 ore non sono più marcate come durata"; fail=1; fi
+          # Un'icona per riquadro, in tutte e tre le griglie che ne hanno una. Il
+          # controllo statico (npm run icone) verifica che il nome esista; questo
+          # verifica che il ciclo che la mette in pagina non si sia svuotato.
+          uguale "ogni voce dell'adeguamento ha la sua icona" \
+            "$(grep -o 'class="gd-icona"' <<<"$pagina" | wc -l | tr -d ' ')" '6'
+          uguale 'ogni controllo ha la sua icona' \
+            "$(grep -o 'class="gd-ctrl-icona"' <<<"$pagina" | wc -l | tr -d ' ')" '6'
+          uguale 'ogni profilo ha la sua icona' \
+            "$(grep -o 'class="gd-icona piccola"' <<<"$pagina" | wc -l | tr -d ' ')" '4'
+          # Le icone sono decorative: `role="img"` è quello che le farebbe
+          # annunciare a un lettore di schermo prima della frase che dice già la
+          # stessa cosa.
+          uguale 'nessuna icona si annuncia da sola' \
+            "$(grep -o '<svg[^>]*role="img"' <<<"$pagina" | wc -l | tr -d ' ')" '0'
+
           # Gli articoli citati per numero sono la parte controllabile della
           # sezione sulla norma: se la tabella non viene resa, questi spariscono.
           uguale 'gli articoli del regolamento sono citati' \
@@ -1939,18 +2134,38 @@ jobs:
             else echo "  ok    assente: $2"; fi
           }
           present 'Landing su misura'   'tipo progetto personalizzato'
-          present 'data-price="690"'    'prezzo reale del cliente'
           present 'Recensione autentica del cliente' 'recensione reale'
           present 'Domanda personalizzata'           'FAQ reale'
           present 'wa.me/393339998877'  'numero WhatsApp reale'
           present 'contatti@dextlab.it' 'email di contatto reale'
           absent  'Vecchio pacchetto'   'tipo disattivato'
-          # Se comparissero questi, il sito starebbe servendo i fallback.
-          absent  'data-price="4500"'   'prezzo predefinito del codice'
+          # Se comparisse questa, il sito starebbe servendo i fallback.
           absent  'Marco R.'            'recensione predefinita del codice'
           n=$(grep -o 'class="cfg-type' <<<"$html" | wc -l)
           [ "$n" = "2" ] || { echo "::error::tipi nel configuratore: $n, attesi 2"; fail=1; }
           echo "  ok    tipi nel configuratore: $n"
+          # Il conteggio qui sopra è anche la prova che questi non sono i fallback:
+          # il listino scritto nel codice ha quattro tipi di progetto, questo ne ha
+          # due. Prima la stessa prova la dava data-price="4500", che non esiste più
+          # in pagina — vedi qui sotto.
+
+          # Il prezzo del cliente. La prova stava in data-price="690" letto dalla
+          # home, ed è saltata quando i prezzi hanno smesso di uscire sul sito
+          # (016): non perché il dato fosse perso, ma perché il marcatore usato per
+          # cercarlo non viene più pubblicato. Il dato è ancora quello che questo
+          # job deve verificare — è una colonna arrivata da PHP — quindi si accende
+          # l'interruttore, si guarda, e si rimette come stava. Cercarlo nel
+          # database sarebbe stato più comodo e avrebbe verificato meno: che il
+          # valore ci sia in una tabella non dice che arrivi in pagina.
+          esegui() { psql -h 127.0.0.1 -U dext -d dext -qc "$1"; }
+          esegui "INSERT INTO settings (k, v) VALUES ('prezzi_pubblici', '1')
+                  ON CONFLICT (k) DO UPDATE SET v = '1';"
+          html=$(curl -s http://127.0.0.1:4321/)
+          present 'data-price="690"'    'prezzo reale del cliente, con i prezzi accesi'
+          absent  'data-price="4500"'   'prezzo predefinito del codice'
+          esegui "UPDATE settings SET v = '' WHERE k = 'prezzi_pubblici';"
+          html=$(curl -s http://127.0.0.1:4321/)
+          absent  'data-price'          'qualsiasi prezzo, con l-interruttore rimesso a posto'
           exit $fail
 
       - name: Il login funziona con l'hash prodotto da PHP

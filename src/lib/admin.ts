@@ -464,6 +464,23 @@ export function dpoSettingsFromForm(form: FormData): Record<string, string> {
   return out;
 }
 
+/**
+ * L'interruttore dei prezzi sul sito, nel suo form come gli altri.
+ *
+ * Sta da solo per la stessa ragione di tutte le liste qui sopra: un form HTML non
+ * manda le caselle non spuntate, quindi una chiave che finisse nell'elenco
+ * generale verrebbe spenta ogni volta che si salva un form che non la contiene.
+ */
+const PREZZI_TOGGLES = new Set(['prezzi_pubblici']);
+
+export function prezziSettingsFromForm(form: FormData): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const key of PREZZI_TOGGLES) {
+    out[key] = form.get(key) !== null ? '1' : '';
+  }
+  return out;
+}
+
 export function settingsFromForm(form: FormData): Record<string, string> {
   const out: Record<string, string> = {};
   for (const key of SETTING_KEYS) {

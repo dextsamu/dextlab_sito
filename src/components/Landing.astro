@@ -23,7 +23,7 @@ import WhatsAppFloat from './WhatsAppFloat.astro';
 import ChatWidget from './ChatWidget.astro';
 import CookieBanner from './CookieBanner.astro';
 import VisitBeacon from './VisitBeacon.astro';
-import { getLandingContent } from '../lib/content.ts';
+import { getLandingContent, chiaveListino } from '../lib/content.ts';
 import { siteUrl } from '../lib/env.ts';
 import { versioned } from '../lib/assets.ts';
 import { datiLocali, attivitaJsonLd, faqJsonLd, graficoJsonLd } from '../lib/seo.ts';
@@ -113,7 +113,11 @@ const structuredData = graficoJsonLd([
       Vedi il commento in About.astro. */}
   <About qualifiche={content.credenziali} dpoAttivo={content.dpoAttivo} />
   {content.reviews.length > 0 && <Recensioni reviews={content.reviews} />}
-  <Configuratore types={content.types} addons={content.addons} />
+  <Configuratore
+    types={content.types}
+    addons={content.addons}
+    prezziPubblici={content.prezziPubblici}
+  />
   <Faq faqs={content.faqs} />
   <Contatti
     contactEmail={content.contactEmail}
@@ -121,6 +125,7 @@ const structuredData = graficoJsonLd([
     agendaAttiva={content.agendaAttiva}
     zone={locali.zone}
     visitToken={Astro.locals.visitToken}
+    tipoIniziale={content.types[0] ? chiaveListino(content.types[0].label) : ''}
   />
   <Footer mostraDpo={content.dpoAttivo} />
   <WhatsAppFloat href={content.whatsappLink} />

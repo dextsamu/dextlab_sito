@@ -4,6 +4,7 @@ import CrudRow, { type FieldSpec } from '../../components/admin/CrudRow.astro';
 import { guardAdmin, handleAdminPost } from '../../lib/admin-actions.ts';
 import { csrfToken } from '../../lib/auth.ts';
 import { contentRows, leadStats } from '../../lib/admin.ts';
+import { getSettings, settingOn } from '../../lib/db.ts';
 
 const denied = guardAdmin(Astro);
 if (denied) return denied;
@@ -20,15 +21,38 @@ const fields: FieldSpec[] = [
   { name: 'active', type: 'check', placeholder: '' },
 ];
 
-const [types, addons, leads] = await Promise.all([
+const [types, addons, leads, s] = await Promise.all([
   contentRows('pricing_types'),
   contentRows('pricing_addons'),
   leadStats(),
+  getSettings(),
 ]);
+
+/*
+  Se i prezzi non escono sul sito questa pagina deve dirlo, in cima e prima di
+  qualsiasi campo. Senza, si modifica una cifra, si va a guardare il sito, non
+  cambia niente, e si conclude che il pannello è rotto: il difetto peggiore di
+  un'impostazione nascosta è che fa sembrare guasto quello che funziona.
+*/
+const prezziOn = settingOn(s, 'prezzi_pubblici');
 ---
 
 <AdminLayout current="pricing" title="Prezzi" newLeads={leads.newCount}>
   <h1>Prezzi configuratore</h1>
+
+  {
+    !prezziOn && (
+      <div class="maint-box on" style="margin-bottom:20px">
+        <p class="ck big" style="color:#febc2e">Questi prezzi non escono sul sito</p>
+        <p class="hint" style="margin:8px 0 0">
+          Le settimane sì — il configuratore mostra i tempi — le cifre no: non vengono nemmeno
+          mandate al browser, e il chatbot non le nomina. Il configuratore raccoglie richieste, e il
+          preventivo lo scrivi tu. Restano qui perché sono il tuo riferimento per scriverlo. Per
+          pubblicarle: <a href="/admin/impostazioni">Impostazioni → Prezzi sul sito</a>.
+        </p>
+      </div>
+    )
+  }
 
   <section class="block">
     <h2>Tipi di progetto</h2>

@@ -4,7 +4,7 @@ import { guardAdmin, handleAdminPost } from '../../lib/admin-actions.ts';
 import { csrfToken } from '../../lib/auth.ts';
 import { leadStats, contentRows } from '../../lib/admin.ts';
 import { qualificaMostrabile } from '../../lib/content.ts';
-import { getSettings, setting, settingOn, type CredentialRow } from '../../lib/db.ts';
+import { getSettings, setting, settingOn, rowsActive, type CredentialRow, type PricingRow } from '../../lib/db.ts';
 import { mailConfig, diagnosiSmtp, isMailUsable } from '../../lib/mail.ts';
 import { siteUrl } from '../../lib/env.ts';
 import { previewToken } from '../../lib/preview.ts';
@@ -30,6 +30,14 @@ const [s, leads, qualifiche] = await Promise.all([
 */
 const qualificheOk = qualifiche.filter((c) => c.active && qualificaMostrabile(c)).length;
 const dpoOn = settingOn(s, 'dpo_attiva');
+
+/*
+  I prezzi sul sito. Il conteggio dei tipi di progetto serve a una cosa sola: dire
+  quante cifre si stanno pubblicando quando l'interruttore è acceso. «Mostra i
+  prezzi» senza sapere quanti sono è un interruttore di cui non si vede l'effetto.
+*/
+const prezziOn = settingOn(s, 'prezzi_pubblici');
+const listinoTipi = (await rowsActive<PricingRow>('pricing_types')).length;
 
 /*
   Cosa non torna nella configurazione della posta, calcolato aprendo la pagina e
@@ -315,6 +323,53 @@ const secretHint = (key: string) =>
 
     <button type="submit" name="action" value="save_dpo" class="btn-save">
       Salva il servizio
+    </button>
+  </form>
+
+  <form method="post" class="settings-form" style="margin-top:26px">
+    <input type="hidden" name="csrf" value={csrf} />
+
+    <h2>Prezzi sul sito</h2>
+    <p class="hint">
+      Spenti, il configuratore non mostra nessuna cifra e nemmeno la manda al browser: chi apre il
+      sorgente della pagina non trova il listino. Diventa un raccoglitore di richieste — il
+      visitatore segna cosa gli serve, da dove parte, quando e cosa ha già in mano, e tutto arriva
+      insieme al suo messaggio. <strong>Il listino resta dov'è</strong>, in{' '}
+      <a href="/admin/prezzi">Prezzi</a>: è il riferimento con cui scrivi un preventivo, e serve
+      acceso il giorno in cui riaccendi questa casella.
+    </p>
+    <div class:list={['maint-box', { on: prezziOn }]}>
+      <label class="ck big" for="prezzi_pubblici">
+        <input
+          type="checkbox"
+          id="prezzi_pubblici"
+          name="prezzi_pubblici"
+          checked={prezziOn}
+        />
+        Mostra i prezzi sul sito
+        {prezziOn && <strong>attivi</strong>}
+      </label>
+      <p class="hint" style="margin-top:0">
+        {
+          prezziOn ? (
+            <>
+              Il configuratore mostra la stima e il chatbot elenca il listino ({listinoTipi} tipi di
+              progetto). Un prezzo pubblicato è un'offerta: tienili accesi solo se sei in condizione
+              di fatturarla.
+            </>
+          ) : (
+            <>
+              Nessuna cifra esce dal sito, in nessuna pagina: né il configuratore né il chatbot. È lo
+              stato giusto finché non c'è una partita IVA con cui fatturare quello che il prezzo
+              promette.
+            </>
+          )
+        }
+      </p>
+    </div>
+
+    <button type="submit" name="action" value="save_prezzi" class="btn-save">
+      Salva i prezzi
     </button>
   </form>
 </AdminLayout>

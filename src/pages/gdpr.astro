@@ -41,6 +41,9 @@
  * resterebbero invisibili.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
+import IconaGdpr from '../components/IconaGdpr.astro';
+import SchemaDati from '../components/SchemaDati.astro';
+import Ore72 from '../components/Ore72.astro';
 import { getLandingContent } from '../lib/content.ts';
 import { datiLocali, servizioJsonLd } from '../lib/seo.ts';
 import { siteUrl } from '../lib/env.ts';
@@ -115,31 +118,43 @@ const indice = [
 const compreso = [
   {
     titolo: 'Il banner dei cookie che funziona',
+    icona: 'cookie',
+    acc: '63,169,214',
     testo:
       'Nessuna traccia prima del consenso, e il rifiuto che vale quanto l’accettazione. Un banner con il solo «Accetta» non è un consenso: è un avviso.',
   },
   {
     titolo: "L'informativa scritta per il tuo sito",
+    icona: 'informativa',
+    acc: '84,201,200',
     testo:
       'Quali dati raccogli davvero, dove finiscono, per quanto restano. Non un modello scaricato in cui il nome dell’azienda è l’unica cosa cambiata.',
   },
   {
     titolo: 'Il registro dei trattamenti del sito',
+    icona: 'registro',
+    acc: '139,216,158',
     testo:
       'Cosa fa il sito con i dati, un trattamento per riga: form, statistiche, prenotazioni, newsletter. È il documento che serve avere quando qualcuno lo chiede.',
   },
   {
     titolo: 'I fornitori messi in fila',
+    icona: 'fornitori',
+    acc: '63,169,214',
     testo:
       'Chi ospita il sito, chi manda le email, chi conta le visite: ognuno è un responsabile del trattamento e va nominato per iscritto. È la parte che manca più spesso.',
   },
   {
     titolo: 'Una ragione per ogni campo del modulo',
+    icona: 'base',
+    acc: '84,201,200',
     testo:
       'Perché chiedi quel dato: un contratto, un obbligo, un consenso. È la domanda che decide se quel campo può esistere, e viene prima di qualsiasi informativa — un campo senza risposta si toglie, e il modulo converte meglio.',
   },
   {
     titolo: 'Per quanto lo tieni, e poi cosa',
+    icona: 'tempo',
+    acc: '139,216,158',
     testo:
       'La norma non dà un numero di mesi: lo decidi tu, lo scrivi, e serve che scada davvero. Un archivio che cresce per sempre è la cosa che rende impossibile rispondere a chi chiede la cancellazione.',
   },
@@ -169,6 +184,7 @@ const consegne = [
 const controlli = [
   {
     titolo: 'Cosa parte prima del «sì»',
+    icona: 'occhio',
     testo:
       'Sono le richieste che il sito manda a domini di terzi appena si apre: mappe, video, caratteri, statistiche, pulsanti social.',
     come:
@@ -176,6 +192,7 @@ const controlli = [
   },
   {
     titolo: 'Se il rifiuto vale davvero',
+    icona: 'rifiuto',
     testo:
       'Un banner con «Accetta» in evidenza e il rifiuto nascosto in un sottomenu non raccoglie un consenso libero, e lo scorrimento della pagina non è un sì.',
     come:
@@ -183,6 +200,7 @@ const controlli = [
   },
   {
     titolo: 'Cosa chiedono i moduli, e perché',
+    icona: 'modulo',
     testo:
       'Campo per campo: nome, telefono, data di nascita, codice fiscale. Ognuno deve avere una ragione, e le spunte già segnate non valgono come consenso.',
     come:
@@ -190,6 +208,7 @@ const controlli = [
   },
   {
     titolo: 'Dove finiscono i messaggi',
+    icona: 'posta',
     testo:
       'Un modulo che manda a un servizio esterno oltre che a te: quel servizio tratta dati per conto tuo, quindi è un responsabile e va nominato per iscritto.',
     come:
@@ -197,6 +216,7 @@ const controlli = [
   },
   {
     titolo: 'Chi conta le visite, e con quale IP',
+    icona: 'statistiche',
     testo:
       'Le statistiche sono il punto in cui un sito piccolo sbaglia più spesso, perché si installano in un minuto e portano dati fuori.',
     come:
@@ -204,6 +224,7 @@ const controlli = [
   },
   {
     titolo: 'Backup, archivi e vecchi elenchi',
+    icona: 'backup',
     testo:
       'La cancellazione vale anche sulle copie: un contatto eliminato dal gestionale ma vivo in un backup di due anni non è cancellato.',
     come:
@@ -248,6 +269,7 @@ const passi = [
 const perChi = [
   {
     chi: 'Ristoranti, bar, locali',
+    icona: 'locale',
     cosa:
       'Prenotazioni per modulo o messaggio, newsletter delle serate, wifi per i clienti, telecamere, foto pubblicate sui social.',
     manca:
@@ -255,12 +277,14 @@ const perChi = [
   },
   {
     chi: 'Negozi online',
+    icona: 'negozio',
     cosa: 'Ordini, pagamenti, spedizioni, carrelli abbandonati, recensioni, resi.',
     manca:
       'Le nomine dei fornitori che toccano i dati — piattaforma, corriere, chi manda le email — e la ragione per cui si fa marketing: per un ordine la base è il contratto, per la pubblicità serve altro.',
   },
   {
     chi: 'Associazioni, sagre, feste',
+    icona: 'associazione',
     cosa:
       'Elenco dei soci, volontari, iscrizioni alle attività, foto della festa, cassa e prevendite.',
     manca:
@@ -268,6 +292,7 @@ const perChi = [
   },
   {
     chi: 'Studi e professionisti',
+    icona: 'studio',
     cosa: 'Appuntamenti, schede dei clienti, referti, note, fatture.',
     manca:
       'Qui il quadro cambia: se ci sono dati sulla salute sono dati particolari, servono misure più serie e spesso una valutazione d’impatto. È il caso in cui conviene parlarne prima di toccare qualsiasi cosa.',
@@ -567,7 +592,10 @@ const nonFaccio = [
           <h2>Adeguamento di un sito</h2>
           <div class="gd-griglia">
             {compreso.map((c) => (
-              <article>
+              <article style={`--acc:${c.acc}`}>
+                <span class="gd-icona">
+                  <IconaGdpr nome={c.icona} />
+                </span>
                 <b>{c.titolo}</b>
                 <p>{c.testo}</p>
               </article>
@@ -599,6 +627,9 @@ const nonFaccio = [
           <ol class="gd-audit">
             {controlli.map((c) => (
               <li>
+                <span class="gd-ctrl-icona">
+                  <IconaGdpr nome={c.icona} />
+                </span>
                 <div>
                   <b>{c.titolo}</b>
                   <span>{c.testo}</span>
@@ -609,6 +640,10 @@ const nonFaccio = [
               </li>
             ))}
           </ol>
+          {/* Lo schema sta qui e non in cima: dopo i sei controlli, chi legge sa
+              già cosa si guarda, e il disegno gli fa vedere perché — da un modulo
+              partono tre strade, e ognuna è un nome nel registro. */}
+          <SchemaDati />
         </section>
 
         <section class="gd-blocco" id="passi">
@@ -638,7 +673,12 @@ const nonFaccio = [
           <div class="gd-profili">
             {perChi.map((p) => (
               <article>
-                <b>{p.chi}</b>
+                <b>
+                  <span class="gd-icona piccola">
+                    <IconaGdpr nome={p.icona} />
+                  </span>
+                  {p.chi}
+                </b>
                 <p class="gd-profilo-cosa">{p.cosa}</p>
                 <p class="gd-profilo-manca">{p.manca}</p>
               </article>
@@ -707,6 +747,7 @@ const nonFaccio = [
             quando te ne accorgi. Non è una scadenza che si rispetta improvvisando, ed è anche
             l'unica cosa che si può preparare adesso, quando non serve.
           </p>
+          <Ore72 />
           <ul class="gd-consegne">
             {guai.map((g) => (
               <li>{g}</li>

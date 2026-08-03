@@ -90,6 +90,15 @@ export interface LandingContent {
    * pagina dichiara una certificazione, non se il servizio è in vendita.
    */
   dpoAttivo: boolean;
+  /**
+   * I prezzi si mostrano sul sito.
+   *
+   * Spento è lo stato normale finché non c'è una partita IVA: un prezzo fisso in
+   * pagina è un'offerta, e chi non può fatturare non è in condizione di onorarla.
+   * Il listino resta nel database — è il riferimento con cui si scrive un
+   * preventivo — ma nessuna cifra viene mandata al browser. Vedi la 016.
+   */
+  prezziPubblici: boolean;
   contactEmail: string;
   calendly: string;
   /** L'agenda del sito è accesa: la sezione contatti prenota qui, non su Calendly. */
@@ -321,6 +330,7 @@ export async function getLandingContent(settings?: Settings): Promise<LandingCon
     // attestato d'esempio è un'affermazione falsa su una persona.
     credenziali: qualifiche,
     dpoAttivo: settingOn(s, 'dpo_attiva'),
+    prezziPubblici: settingOn(s, 'prezzi_pubblici'),
     contactEmail: setting(s, 'contact_email', 'info@dextlab.it'),
     calendly: setting(s, 'calendly', 'https://calendly.com/dextlab/call'),
     agendaAttiva: settingOn(s, 'agenda_attiva'),

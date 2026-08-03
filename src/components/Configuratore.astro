@@ -1,26 +1,65 @@
 ---
-import { initialEstimate, chiaveListino, type PricingItem } from '../lib/content.ts';
+/**
+ * Il configuratore.
+ *
+ * Era un preventivo istantaneo: due scelte, una cifra, e la cifra era tutto.
+ * Adesso è un generatore di richiesta, e la differenza non è cosmetica.
+ *
+ * Il motivo del cambio è amministrativo (vedi la 016): senza partita IVA un
+ * prezzo fisso in pagina è un'offerta che chi la pubblica non può onorare. Ma
+ * togliere la cifra e lasciare il resto avrebbe prodotto un configuratore senza
+ * scopo — si scelgono due voci e poi? Quindi il pezzo cambia lavoro: mette
+ * insieme la richiesta che permette di scrivere un preventivo, cioè cosa serve,
+ * da dove si parte, quando, e cosa c'è già in mano.
+ *
+ * DUE COSE CHE VALE LA PENA SAPERE PRIMA DI MODIFICARLO.
+ *
+ * 1. Le scelte sono campi veri di un modulo, non stato del JavaScript. Le
+ *    funzioni aggiunte e le quattro domande sul contesto hanno `name`, `value` e
+ *    `form="contactForm"`: appartengono al modulo dei contatti anche stando in
+ *    un'altra sezione della pagina, e viaggiano con l'invio senza che nessuno le
+ *    ricopi. Prima l'unico modo in cui la configurazione arrivava era una frase
+ *    che il JavaScript scriveva nel campo del messaggio: bastava che il
+ *    visitatore la cancellasse — o non avesse il JavaScript — e la richiesta
+ *    arrivava senza dire cosa chiedeva.
+ *
+ * 2. Con i prezzi spenti le cifre NON escono dal server. Non sono nascoste con
+ *    il CSS e non stanno in un data-price: non vengono scritte. Un listino
+ *    leggibile aprendo il sorgente della pagina è un listino pubblicato, e
+ *    l'interruttore serve proprio a non pubblicarlo.
+ */
+import { initialEstimate, chiaveListino, formatWeeks, type PricingItem } from '../lib/content.ts';
+import { DOMANDE } from '../lib/richiesta.ts';
 
 interface Props {
   types: PricingItem[];
   addons: PricingItem[];
+  /** I prezzi si mostrano. Spento finché non c'è la partita IVA: vedi la 016. */
+  prezziPubblici: boolean;
 }
 
-const { types, addons } = Astro.props;
+const { types, addons, prezziPubblici } = Astro.props;
 
-// La stima iniziale è calcolata lato server con la stessa formula di
-// public/js/main.js, così il primo rendering non mostra numeri che il JS
-// corregge subito dopo.
-const estimate = initialEstimate(types);
+// Con i prezzi accesi la stima iniziale è calcolata lato server con la stessa
+// formula di public/js/main.js, così il primo rendering non mostra numeri che il
+// JS corregge subito dopo. Spenti, del riquadro resta il tempo — che non è un
+// prezzo, ed è l'informazione che chi chiede un sito vuole davvero sapere subito.
+const estimate = prezziPubblici ? initialEstimate(types) : null;
+const primo = types[0];
+const tempoIniziale = formatWeeks(primo?.weeks ?? 1);
 ---
 
 <section class="section" id="preventivo">
   <div class="container">
     <div class="section-head aperta reveal">
-      <span class="eyebrow">Preventivo istantaneo</span>
+      <span class="eyebrow">{prezziPubblici ? 'Preventivo istantaneo' : 'Richiesta in due minuti'}</span>
       <h2>Configura il tuo <span class="grad">progetto</span></h2>
       <p class="section-lead">
-        Stima indicativa in tempo reale. Nessun impegno: serve a darci un punto di partenza.
+        {
+          prezziPubblici
+            ? 'Stima indicativa in tempo reale. Nessun impegno: serve a darci un punto di partenza.'
+            : 'Segna cosa ti serve: quello che scegli qui arriva con il tuo messaggio, e io ti rispondo con un preventivo scritto invece di chiederti le stesse cose per email.'
+        }
       </p>
     </div>
 
@@ -34,7 +73,7 @@ const estimate = initialEstimate(types);
                 <button
                   type="button"
                   class:list={['cfg-type', { active: i === 0 }]}
-                  data-price={t.price}
+                  data-price={prezziPubblici ? t.price : undefined}
                   data-weeks={t.weeks}
                   data-k={chiaveListino(t.label)}
                 >
@@ -51,9 +90,19 @@ const estimate = initialEstimate(types);
             {
               addons.map((a) => (
                 <label class="cfg-addon">
+                  {/*
+                    name, value e form: la spunta È il dato. Il value è la chiave
+                    del listino e non l'etichetta, perché il server la rilegge
+                    contro il listino e la traduce indietro — così quello che
+                    arriva nella richiesta è sempre un'etichetta vera, anche se
+                    qualcuno manda a mano un valore che non esiste.
+                  */}
                   <input
                     type="checkbox"
-                    data-price={a.price}
+                    name="cfg_funzioni"
+                    value={chiaveListino(a.label)}
+                    form="contactForm"
+                    data-price={prezziPubblici ? a.price : undefined}
                     data-weeks={a.weeks}
                     data-k={chiaveListino(a.label)}
                   />
@@ -63,26 +112,98 @@ const estimate = initialEstimate(types);
             }
           </div>
         </div>
+
+        {/*
+          Le quattro domande senza cui un preventivo non si scrive. Sono radio
+          vere con form="contactForm": funzionano senza JavaScript, si spostano
+          con le frecce come un gruppo di radio deve fare, e arrivano al server
+          senza che nessuno le ricopi. Tutte facoltative — una domanda
+          obbligatoria in mezzo a un modulo di contatto perde contatti, non ne
+          raccoglie di migliori.
+          Il perché di queste quattro e non altre è scritto in src/lib/richiesta.ts.
+        */}
+        <div class="config-block">
+          <h3><span class="cfg-n">3.</span> Il contesto</h3>
+          <p class="cfg-facolt">
+            Facoltativo, ma è la parte che mi fa rispondere con un preventivo invece che con altre
+            domande.
+          </p>
+          <div class="cfg-domande">
+            {
+              DOMANDE.map((d) => (
+                <fieldset class="cfg-domanda">
+                  <legend>{d.titolo}</legend>
+                  <div class="cfg-scelte">
+                    {d.scelte.map((s) => (
+                      <label class="cfg-scelta">
+                        <input type="radio" name={d.campo} value={s.v} form="contactForm" />
+                        <span>{s.testo}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              ))
+            }
+          </div>
+        </div>
       </div>
 
       <aside class="config-result">
-        <p class="cfg-label">Stima indicativa</p>
-        <div class="cfg-price">
-          <span id="cfgMin">{estimate.min}</span> – <span id="cfgMax">{estimate.max}</span>
-        </div>
-        <!-- Filetto che si riempie a ogni ricalcolo, come un passo di build. -->
-        <div class="cfg-bar" id="cfgBar" aria-hidden="true"><i></i></div>
-        <!-- Riempito dal JS a ogni cambio e svuotato dopo qualche secondo: dice
-             quanto è costata l'ultima scelta, che il solo totale non mostra.
-             aria-live perché la variazione è l'informazione, non la decorazione. -->
-        <p class="cfg-delta" id="cfgDelta" aria-live="polite"></p>
-        <p class="cfg-time">Tempi: <strong id="cfgTime">{estimate.weeks}</strong></p>
-        <ul class="cfg-includes">
-          <li>Design su misura</li>
-          <li>Responsive + performance</li>
-          <li>Supporto post-lancio</li>
-        </ul>
-        <a href="#contatti" class="btn btn-primary btn-block" id="cfgCta">Richiedi questo preventivo</a>
+        {
+          prezziPubblici ? (
+            <Fragment>
+              <p class="cfg-label">Stima indicativa</p>
+              <div class="cfg-price">
+                <span id="cfgMin">{estimate!.min}</span> – <span id="cfgMax">{estimate!.max}</span>
+              </div>
+              {/* Filetto che si riempie a ogni ricalcolo, come un passo di build. */}
+              <div class="cfg-bar" id="cfgBar" aria-hidden="true"><i /></div>
+              {/* Riempito dal JS a ogni cambio e svuotato dopo qualche secondo: dice
+                  quanto è costata l'ultima scelta, che il solo totale non mostra.
+                  aria-live perché la variazione è l'informazione, non la decorazione. */}
+              <p class="cfg-delta" id="cfgDelta" aria-live="polite" />
+            </Fragment>
+          ) : (
+            <Fragment>
+              <p class="cfg-label">La tua richiesta</p>
+              {/*
+                Il riepilogo di cosa parte. Con la cifra al centro non serviva: la
+                cifra era la conferma che la scelta era stata registrata. Senza,
+                quella conferma va data in parole — ed è anche l'unica cosa che dice
+                al visitatore cosa sto per ricevere, prima di mandarlo.
+                Il server lo scrive con il primo tipo selezionato, il JS lo
+                aggiorna: senza JavaScript resta vero, perché senza JavaScript la
+                scelta non cambia.
+              */}
+              <ul class="cfg-riepilogo" id="cfgRiepilogo" aria-live="polite">
+                <li>{primo?.label ?? 'Progetto'}</li>
+              </ul>
+            </Fragment>
+          )
+        }
+        <p class="cfg-time">Tempi: <strong id="cfgTime">{prezziPubblici ? estimate!.weeks : tempoIniziale}</strong></p>
+        {
+          prezziPubblici ? (
+            <ul class="cfg-includes">
+              <li>Design su misura</li>
+              <li>Responsive + performance</li>
+              <li>Supporto post-lancio</li>
+            </ul>
+          ) : (
+            /* Al posto del prezzo, cosa succede dopo. Il riquadro non può restare
+               muto nel punto in cui prima c'era la cifra: chi lo guarda si sta
+               chiedendo quanto costa, e la risposta onesta — «dipende, e te lo
+               scrivo» — è meglio del silenzio. */
+            <ul class="cfg-includes">
+              <li>Ti rispondo entro 24 ore</li>
+              <li>Preventivo scritto, fisso, gratuito</li>
+              <li>Nessun impegno finché non firmi</li>
+            </ul>
+          )
+        }
+        <a href="#contatti" class="btn btn-primary btn-block" id="cfgCta">
+          {prezziPubblici ? 'Richiedi questo preventivo' : 'Manda questa richiesta'}
+        </a>
         <!-- Il preventivo si calcolava e poi moriva qui: chi lo otteneva doveva
              fidarsi della memoria, e dall'altra parte non si sapeva mai cosa
              avesse scelto. Con le scelte scritte nell'indirizzo la
@@ -93,20 +214,30 @@ const estimate = initialEstimate(types);
              potrebbe copiare niente, e un pulsante che non fa nulla è peggio di
              un pulsante che non c'è. -->
         <button type="button" class="cfg-link" id="cfgLink" hidden>
-          Copia il link di questo preventivo
+          {prezziPubblici ? 'Copia il link di questo preventivo' : 'Copia il link di questa richiesta'}
         </button>
         <p class="cfg-link-esito" id="cfgLinkEsito" role="status"></p>
-        <p class="cfg-note">Stima orientativa, non vincolante. Il preventivo finale è gratuito.</p>
+        <p class="cfg-note">
+          {
+            prezziPubblici
+              ? 'Stima orientativa, non vincolante. Il preventivo finale è gratuito.'
+              : 'Il prezzo dipende da cosa serve davvero: te lo mando per iscritto dopo una call gratuita di mezz’ora, ed è fisso.'
+          }
+        </p>
       </aside>
     </div>
   </div>
 
-  <!-- Su telefono il riquadro della stima finisce sotto le opzioni: scegliendo
-       si perde di vista il totale. Questa barra compare solo quando il
-       configuratore è a schermo, e solo su viewport stretti (vedi CSS). -->
+  <!-- Su telefono il riquadro finisce sotto le opzioni: scegliendo si perde di
+       vista cosa si sta chiedendo. Questa barra compare solo quando il
+       configuratore è a schermo, e solo su viewport stretti (vedi CSS).
+       Con i prezzi spenti mostra il tipo di progetto invece della cifra: il
+       promemoria serve comunque, cambia solo cosa c'è da ricordare. -->
   <div class="cfg-sticky" id="cfgSticky" aria-hidden="true">
-    <span class="cfg-sticky-label">Stima</span>
-    <span class="cfg-sticky-val" id="cfgStickyVal">{estimate.min} – {estimate.max}</span>
-    <a href="#contatti" class="cfg-sticky-cta">Richiedi</a>
+    <span class="cfg-sticky-label">{prezziPubblici ? 'Stima' : 'Progetto'}</span>
+    <span class="cfg-sticky-val" id="cfgStickyVal">
+      {prezziPubblici ? `${estimate!.min} – ${estimate!.max}` : (primo?.label ?? '')}
+    </span>
+    <a href="#contatti" class="cfg-sticky-cta">{prezziPubblici ? 'Richiedi' : 'Manda'}</a>
   </div>
 </section>

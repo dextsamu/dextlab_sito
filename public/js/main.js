@@ -626,6 +626,10 @@
     const elEcoSr = document.getElementById('cfgEchoSr');
     const elLink = document.getElementById('cfgLink');
     const elLinkEsito = document.getElementById('cfgLinkEsito');
+    // Con i prezzi spenti (vedi la 016) questi due esistono e cfgMin/cfgMax no:
+    // il riquadro mostra cosa si sta chiedendo invece di quanto costa.
+    const elRiepilogo = document.getElementById('cfgRiepilogo');
+    const elTipoCampo = document.getElementById('cfgTipoCampo');
     // Stesso raggruppamento di src/lib/content.ts, e per lo stesso motivo: non
     // dipendere dai dati locale di ICU, che sul server possono mancare e far
     // uscire "4500" dove qui usciva "4.500".
@@ -660,6 +664,51 @@
     /** Valori attualmente mostrati, per sapere da dove far partire il conteggio. */
     let mostrati = null;
     let timerDelta = null;
+
+    /* ---- Le tre cose che valgono con o senza prezzo --------------------------
+       Erano in coda a compute(). Con i prezzi spenti compute() esce prima —
+       niente cifre da animare — ma queste tre devono succedere comunque, e
+       riscriverle nel ramo senza prezzo avrebbe voluto dire due copie del
+       raccordo con l'hero: quella che si aggiorna e quella che si dimentica. */
+
+    /** Il pallino dell'hero segue la scelta fatta qui in fondo.
+        Il confronto è sull'attributo e non sul testo: con il sito in inglese le
+        etichette sono tradotte, il confronto non trovava niente, e il pallino
+        restava fermo sulla prima voce qualunque cosa si scegliesse. */
+    const allineaHero = (active) => {
+      if (!eroeTipi) return;
+      const k = chiave(active);
+      eroeTipi
+        .querySelectorAll('.hero-tipo')
+        .forEach((b) => b.classList.toggle('active', chiave(b) === k));
+    };
+
+    /** Il tempo, nel riquadro e nell'hero. Non è un prezzo: si mostra sempre. */
+    const aggiornaTempo = (weeks) => {
+      const en = document.documentElement.lang === 'en';
+      const wTxt = en
+        ? weeks <= 1 ? 'about 1 week' : weeks <= 6 ? `about ${weeks} weeks` : `${weeks}+ weeks`
+        : weeks <= 1 ? 'circa 1 settimana' : weeks <= 6 ? `circa ${weeks} settimane` : `${weeks}+ settimane`;
+      if (elTime) elTime.textContent = wTxt;
+      if (eroeTime) eroeTime.textContent = wTxt;
+    };
+
+    /** Il messaggio precompilato. Con `stima` vuota non nomina nessuna cifra:
+        è il caso normale finché i prezzi sono spenti. Le scelte arrivano comunque
+        come campi del modulo — questo testo è la cortesia di trovare il campo già
+        scritto, non il modo in cui la richiesta viaggia. */
+    const messaggio = (label, extras, stima) => {
+      const en = document.documentElement.lang === 'en';
+      const pezzi = `${label.trim()}${extras.length ? ' + ' + extras.join(', ') : ''}`;
+      if (stima === '') {
+        return en
+          ? `Hi, I'd like a quote for: ${pezzi}.`
+          : `Ciao, vorrei un preventivo per: ${pezzi}.`;
+      }
+      return en
+        ? `Hi, I'd like a quote for: ${pezzi} (estimate ${stima}).`
+        : `Ciao, vorrei un preventivo per: ${pezzi} (stima ${stima}).`;
+    };
 
     /* ---- Il preventivo come indirizzo ----------------------------------------
        Le scelte finiscono nel frammento: #p=ecommerce+seoavanzata+multilingua.
@@ -726,6 +775,42 @@
           extras.push(a.parentElement.querySelector('span').textContent);
         }
       });
+
+      /* Lo specchio del tipo scelto dentro il modulo dei contatti. Le funzioni e
+         le domande sul contesto sono campi veri e viaggiano da sé; il tipo è fatto
+         di <button>, quindi qualcuno deve scriverlo, e quel qualcuno è qui —
+         l'unico punto che sa sempre quale pulsante è attivo. Vedi il commento nel
+         modulo in Contatti.astro. */
+      if (elTipoCampo) elTipoCampo.value = chiave(active) || '';
+
+      /* Il riepilogo di cosa si sta chiedendo. Esiste solo con i prezzi spenti:
+         con la cifra al centro del riquadro la conferma della scelta era la cifra
+         stessa, senza va detta in parole. Si riscrive per intero a ogni cambio —
+         sono cinque voci, e un aggiornamento differenziale qui sarebbe complessità
+         senza guadagno. */
+      if (elRiepilogo) {
+        elRiepilogo.textContent = '';
+        const voci = [label.trim(), ...extras];
+        for (const v of voci) {
+          const li = document.createElement('li');
+          li.textContent = v;
+          elRiepilogo.appendChild(li);
+        }
+      }
+
+      /* Con i prezzi spenti il server non manda nessun data-price: NaN sarebbe il
+         risultato di ogni somma, e le cifre non hanno dove andare perché il
+         riquadro del prezzo non è nemmeno nel markup. Si esce qui, dopo aver fatto
+         tutto quello che non riguarda il prezzo. */
+      if (!elMin || !elMax) {
+        aggiornaTempo(weeks);
+        if (elStickyVal) elStickyVal.textContent = label.trim();
+        allineaHero(active);
+        elCta.dataset.msg = messaggio(label, extras, '');
+        scriviIndirizzo();
+        return;
+      }
+
       const min = Math.round((price * 0.9) / 10) * 10;
       const max = Math.round((price * 1.3) / 10) * 10;
 
@@ -764,35 +849,12 @@
       }
       mostrati = { min, max, weeks };
       if (elStickyVal) elStickyVal.textContent = `${fmt(min)} – ${fmt(max)}`;
-      // Nell'hero si rispecchiano il tempo e il pallino selezionato, non il
-      // prezzo: quello resta qui, dove accanto ci sono le funzioni che lo
-      // compongono. Il pallino serve perché scegliendo qui in fondo l'hero
-      // mostrava il tempo giusto con l'opzione sbagliata accesa.
-      // Anche qui il confronto è sull'attributo: con il sito in inglese
-      // b.dataset.label (italiano) non corrispondeva mai al testo tradotto, e il
-      // pallino dell'hero restava fermo sulla prima voce qualunque cosa si
-      // scegliesse in fondo.
-      if (eroeTipi) {
-        const k = chiave(active);
-        eroeTipi
-          .querySelectorAll('.hero-tipo')
-          .forEach((b) => b.classList.toggle('active', chiave(b) === k));
-      }
-
-      const en = document.documentElement.lang === 'en';
-      const wTxt = en
-        ? weeks <= 1 ? 'about 1 week' : weeks <= 6 ? `about ${weeks} weeks` : `${weeks}+ weeks`
-        : weeks <= 1 ? 'circa 1 settimana' : weeks <= 6 ? `circa ${weeks} settimane` : `${weeks}+ settimane`;
-      elTime.textContent = wTxt;
-      if (eroeTime) eroeTime.textContent = wTxt;
+      allineaHero(active);
+      aggiornaTempo(weeks);
       // I valori nel messaggio vengono dal calcolo, non da textContent: durante
       // il conteggio quello contiene cifre intermedie, e un clic sul pulsante a
       // metà animazione avrebbe precompilato il form con una stima inesistente.
-      const stima = `${fmt(min)}–${fmt(max)}`;
-      const msg = en
-        ? `Hi, I'd like a quote for: ${label}${extras.length ? ' + ' + extras.join(', ') : ''} (estimate ${stima}).`
-        : `Ciao, vorrei un preventivo per: ${label}${extras.length ? ' + ' + extras.join(', ') : ''} (stima ${stima}).`;
-      elCta.dataset.msg = msg;
+      elCta.dataset.msg = messaggio(label, extras, `${fmt(min)}–${fmt(max)}`);
       scriviIndirizzo();
     };
 
@@ -827,9 +889,17 @@
       // arriva.
       if (!elEco || !elEcoVis) return;
       const en = document.documentElement.lang === 'en';
-      const testo = en
-        ? `> quote of ${fmt(mostrati.min)}–${fmt(mostrati.max)} copied into the form below`
-        : `> preventivo di ${fmt(mostrati.min)}–${fmt(mostrati.max)} copiato nel form qui sotto`;
+      /* Con i prezzi spenti non c'è nessuna cifra da confermare — e `mostrati`
+         resta null, perché compute() esce prima di calcolarla: leggerlo qui era
+         un errore in attesa del primo clic. Si conferma quello che è appena
+         successo davvero, cioè che la richiesta è finita nel modulo. */
+      const testo = mostrati
+        ? en
+          ? `> quote of ${fmt(mostrati.min)}–${fmt(mostrati.max)} copied into the form below`
+          : `> preventivo di ${fmt(mostrati.min)}–${fmt(mostrati.max)} copiato nel form qui sotto`
+        : en
+          ? '> your request has been copied into the form below'
+          : '> la tua richiesta è finita nel form qui sotto';
       elEco.hidden = false;
       if (elEcoSr) elEcoSr.textContent = testo; // annunciato una volta, intero
       if (menoMoto.matches) {
