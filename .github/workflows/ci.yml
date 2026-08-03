@@ -2134,18 +2134,38 @@ jobs:
             else echo "  ok    assente: $2"; fi
           }
           present 'Landing su misura'   'tipo progetto personalizzato'
-          present 'data-price="690"'    'prezzo reale del cliente'
           present 'Recensione autentica del cliente' 'recensione reale'
           present 'Domanda personalizzata'           'FAQ reale'
           present 'wa.me/393339998877'  'numero WhatsApp reale'
           present 'contatti@dextlab.it' 'email di contatto reale'
           absent  'Vecchio pacchetto'   'tipo disattivato'
-          # Se comparissero questi, il sito starebbe servendo i fallback.
-          absent  'data-price="4500"'   'prezzo predefinito del codice'
+          # Se comparisse questa, il sito starebbe servendo i fallback.
           absent  'Marco R.'            'recensione predefinita del codice'
           n=$(grep -o 'class="cfg-type' <<<"$html" | wc -l)
           [ "$n" = "2" ] || { echo "::error::tipi nel configuratore: $n, attesi 2"; fail=1; }
           echo "  ok    tipi nel configuratore: $n"
+          # Il conteggio qui sopra è anche la prova che questi non sono i fallback:
+          # il listino scritto nel codice ha quattro tipi di progetto, questo ne ha
+          # due. Prima la stessa prova la dava data-price="4500", che non esiste più
+          # in pagina — vedi qui sotto.
+
+          # Il prezzo del cliente. La prova stava in data-price="690" letto dalla
+          # home, ed è saltata quando i prezzi hanno smesso di uscire sul sito
+          # (016): non perché il dato fosse perso, ma perché il marcatore usato per
+          # cercarlo non viene più pubblicato. Il dato è ancora quello che questo
+          # job deve verificare — è una colonna arrivata da PHP — quindi si accende
+          # l'interruttore, si guarda, e si rimette come stava. Cercarlo nel
+          # database sarebbe stato più comodo e avrebbe verificato meno: che il
+          # valore ci sia in una tabella non dice che arrivi in pagina.
+          esegui() { psql -h 127.0.0.1 -U dext -d dext -qc "$1"; }
+          esegui "INSERT INTO settings (k, v) VALUES ('prezzi_pubblici', '1')
+                  ON CONFLICT (k) DO UPDATE SET v = '1';"
+          html=$(curl -s http://127.0.0.1:4321/)
+          present 'data-price="690"'    'prezzo reale del cliente, con i prezzi accesi'
+          absent  'data-price="4500"'   'prezzo predefinito del codice'
+          esegui "UPDATE settings SET v = '' WHERE k = 'prezzi_pubblici';"
+          html=$(curl -s http://127.0.0.1:4321/)
+          absent  'data-price'          'qualsiasi prezzo, con l-interruttore rimesso a posto'
           exit $fail
 
       - name: Il login funziona con l'hash prodotto da PHP
