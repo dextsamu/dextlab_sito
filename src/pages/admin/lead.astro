@@ -13,14 +13,49 @@ const { response } = await handleAdminPost(Astro, '/admin/lead');
 if (response) return response;
 
 const csrf = csrfToken(Astro.cookies);
-const [leads, stats] = await Promise.all([recentLeads(), leadStats()]);
+
+/*
+  Due elenchi, non uno: i contatti veri e lo spam. Il secondo si apre con
+  ?stato=spam, che è un link normale — niente JavaScript, come il resto del
+  pannello.
+
+  Sono separati perché lo spam arriva a decine: etichettarlo e lasciarlo in mezzo
+  avrebbe spostato il fastidio dalla posta a questa pagina invece di toglierlo.
+*/
+const soloSpam = Astro.url.searchParams.get('stato') === 'spam';
+const [leads, stats] = await Promise.all([recentLeads(300, soloSpam), leadStats()]);
+const quantoSpam = stats.byStatus.find((s) => s.status === 'spam')?.count ?? 0;
 ---
 
 <AdminLayout current="leads" title="Lead" newLeads={stats.newCount}>
   <h1>
-    Lead ricevuti
+    {soloSpam ? 'Spam riconosciuto' : 'Lead ricevuti'}
     <a class="btn-s" href="/admin/lead.csv">Esporta CSV</a>
   </h1>
+
+  {/*
+    Il passaggio fra i due elenchi. Il conteggio dello spam si mostra SEMPRE,
+    anche a zero: un riconoscimento automatico che nessuno controlla è un
+    riconoscimento di cui non si sa se sbaglia, e il primo giorno vale la pena
+    aprirlo per vedere cosa ha preso.
+  */}
+  <p class="hint" style="margin:-6px 0 16px">
+    {
+      soloSpam ? (
+        <>
+          Questi contatti sono stati salvati ma <strong>non</strong> ti sono stati notificati. In
+          fondo a ogni messaggio c'è il motivo. Se uno è buono, rimettilo a «Nuovo» dal menu a
+          destra. <a href="/admin/lead">← torna ai lead veri</a>
+        </>
+      ) : (
+        <>
+          <a href="/admin/lead?stato=spam">Spam riconosciuto: {quantoSpam}</a> — salvato ma non
+          notificato. Vale la pena aprirlo di tanto in tanto: se ci trovi un contatto vero, il
+          riconoscimento è troppo severo e va corretto.
+        </>
+      )
+    }
+  </p>
 
   <table class="leads">
     <thead>
