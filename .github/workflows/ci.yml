@@ -836,9 +836,35 @@ jobs:
           fi
 
           # 11) Un blocco parziale toglie solo le sue ore, non il giorno.
-          giorno2=$(qv "select to_char((now() + interval '4 days')::date, 'YYYY-MM-DD')")
+          #
+          # Il giorno e l'ora del blocco si RICAVANO dagli orari che l'agenda offre
+          # davvero, non da un offset dal giorno di oggi. Prima era
+          # «now() + 4 days» con un blocco fisso 09:00–11:00, e quella riga
+          # falliva ogni volta che la CI girava di mercoledì: quattro giorni dopo è
+          # domenica, l'agenda è chiusa, zero orari, e la guardia pretendeva un
+          # calo da un giorno che non ne aveva. Stessa famiglia della guardia
+          # sulla pausa fra gli orari, che falliva a seconda dell'ORA — una
+          # guardia che dipende dal calendario è peggio di una guardia che non c'è,
+          # perché insegna a ignorare il rosso.
+          #
+          # Si prende il giorno con più orari e si chiude da mezzanotte al secondo
+          # orario: così il calo c'è per costruzione e non azzera, qualunque sia la
+          # settimana. Le ore sono in Europe/Rome come le chiusure (vedi FUSO in
+          # src/lib/agenda.ts): confrontare un orario UTC con una chiusura locale
+          # sbaglierebbe di due ore in agosto.
+          scelta=$(curl -s http://127.0.0.1:4321/prenota | grep -o '<a href="/prenota?slot=[^"]*"' | sed 's/.*slot=//;s/"//' | python3 -c "import sys,urllib.parse,datetime,collections,zoneinfo;R=zoneinfo.ZoneInfo('Europe/Rome');v=[datetime.datetime.fromisoformat(urllib.parse.unquote(x.strip()).replace('Z','+00:00')).astimezone(R) for x in sys.stdin if x.strip()];g=collections.defaultdict(list);[g[d.date().isoformat()].append(d) for d in v];c=[(k,sorted(s)) for k,s in g.items() if len(s)>=3];print('' if not c else (lambda k,s: k+' '+s[1].strftime('%H:%M'))(*max(c,key=lambda kv:len(kv[1]))))")
+          giorno2=${scelta%% *}
+          fino_a=${scelta##* }
+          if [ -z "$giorno2" ]; then
+            echo "::error::nessun giorno con almeno tre orari: il blocco parziale non è misurabile"
+            fail=1
+            giorno2=$(qv "select to_char((now() + interval '4 days')::date, 'YYYY-MM-DD')")
+            fino_a=11:00
+          else
+            echo "  ok    giorno scelto dagli orari offerti: $giorno2, blocco fino a $fino_a"
+          fi
           prima_del_blocco=$(curl -s http://127.0.0.1:4321/prenota | grep -o "slot=$giorno2[^\"]*" | wc -l)
-          q "insert into agenda_closures (day, from_time, to_time, reason, sort) values ('$giorno2', '09:00', '11:00', 'Prova CI', 98)"
+          q "insert into agenda_closures (day, from_time, to_time, reason, sort) values ('$giorno2', '00:00', '$fino_a', 'Prova CI', 98)"
           dopo_il_blocco=$(curl -s http://127.0.0.1:4321/prenota | grep -o "slot=$giorno2[^\"]*" | wc -l)
           if [ "$prima_del_blocco" -gt 0 ] && [ "$dopo_il_blocco" -gt 0 ] && [ "$dopo_il_blocco" -lt "$prima_del_blocco" ]; then
             echo "  ok    il blocco parziale toglie qualche orario ($prima_del_blocco → $dopo_il_blocco) e lascia il resto"
