@@ -19,7 +19,8 @@
     "kit": "node ./scripts/kit-marketing.mjs",
     "css": "node ./scripts/decorazioni.mjs",
     "icone": "node ./scripts/icone.mjs",
-    "traduzioni": "node ./scripts/traduzioni.mjs"
+    "traduzioni": "node ./scripts/traduzioni.mjs",
+    "spam": "node --experimental-strip-types ./scripts/spam.mjs"
   },
   "dependencies": {
     "@astrojs/node": "^11.0.3",

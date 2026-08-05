@@ -186,6 +186,14 @@ jobs:
       - name: Le domande del configuratore sono tradotte
         run: npm run --silent traduzioni
 
+      # Il banco di prova del riconoscimento spam. La metà che conta è la prima:
+      # otto contatti plausibili che NON devono mai risultare spam. Aggiungere un
+      # indizio è facile, accorgersi che da domani scarta il falegname che incolla
+      # l'indirizzo del suo sito è quasi impossibile leggendo il codice — ed è già
+      # capitato due volte scrivendo questa cosa.
+      - name: Nessun contatto vero finisce nello spam
+        run: npm run --silent spam -- --verifica
+
       # Google Ads rifiuta un titolo di 31 caratteri e Meta taglia il testo a 125:
       # i conteggi accanto a ogni riga del kit non sono un ornamento, sono la sola
       # cosa che dice se un testo è pubblicabile. Qui si ricontano — e si verifica
@@ -1475,6 +1483,97 @@ jobs:
             -F 'name=X' -F 'email=x@y.it' -F 'message=z')
           if [ "$code" = "403" ]; then echo "  ok    host che inizia come il nostro -> 403"
           else echo "::error::atteso 403 per un host che solo somiglia al nostro, ricevuto $code"; fail=1; fi
+          exit $fail
+
+      # Lo spam dal modulo dava fastidio in un posto solo — la posta — e la cura
+      # rischia di essere peggiore del male: un filtro che scarta un cliente vero
+      # costa molto più di dieci email di spazzatura. Quindi questa guardia prova
+      # le due direzioni sull'endpoint vero, e la seconda è quella importante.
+      #
+      # Il banco di prova (npm run spam) copre il punteggio; qui si copre il
+      # comportamento: che la riga si salvi sempre, che le notifiche partano solo
+      # per i contatti buoni, e che a chi manda si risponda sempre la stessa cosa.
+      - name: Lo spam si salva e non si notifica, i contatti veri passano
+        run: |
+          fail=0
+          sql() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -tAc "$1"; }
+          esegui() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -qc "$1"; }
+          uguale() {
+            if [ "$2" = "$3" ]; then echo "  ok    $1: $2"
+            else echo "::error::$1: atteso «$3», trovato «$2»"; fail=1; fi
+          }
+          # Ogni invio parte da un limite pulito: cinque contatti ogni quindici
+          # minuti, e qui se ne mandano più di cinque.
+          manda() {
+            esegui "DELETE FROM rate_limits WHERE rl_key LIKE 'contact%';"
+            curl -s -X POST http://127.0.0.1:4321/api/contact "$@"
+          }
+          stato() { sql "SELECT status FROM leads WHERE email = '$1' ORDER BY id DESC LIMIT 1"; }
+          esegui "DELETE FROM leads WHERE email LIKE '%@spamci.example';"
+
+          # --- Riconosciuti: salvati, non notificati ----------------------------
+          risposta=$(manda -d 'name=SEO' -d 'email=bbcode@spamci.example' \
+            --data-urlencode 'message=Nice site [url=http://x.example]here[/url] http://y.example')
+          uguale 'a chi manda spam si risponde come sempre' \
+            "$(python3 -c "import sys,json;print(json.loads(sys.argv[1])['ok'])" "$risposta")" 'True'
+          uguale 'il BBCode finisce nello spam' "$(stato bbcode@spamci.example)" 'spam'
+
+          manda -o /dev/null -d 'name=Ivan' -d 'email=cirillico@spamci.example' \
+            --data-urlencode 'message=Здравствуйте, предлагаем услуги продвижения сайта.'
+          uguale 'un alfabeto estraneo finisce nello spam' "$(stato cirillico@spamci.example)" 'spam'
+
+          manda -o /dev/null -d 'name=Bot' -d 'email=trappola@spamci.example' \
+            -d 'website=http://preso.example' -d 'message=Ciao come stai, ti scrivo per il sito.'
+          uguale 'il campo trappola finisce nello spam' "$(stato trappola@spamci.example)" 'spam'
+          # Prima il campo trappola faceva buttare via il contatto senza lasciare
+          # traccia: se un giorno prendesse un cliente vero, non lo si scoprirebbe.
+          uguale 'e la riga resta comunque salvata' \
+            "$(sql "SELECT count(*) FROM leads WHERE email = 'trappola@spamci.example'")" '1'
+          # Il motivo è leggibile nel pannello: senza, «spam» è un verdetto e non
+          # una cosa che una persona può controllare.
+          if sql "SELECT message FROM leads WHERE email = 'trappola@spamci.example'" \
+             | grep -qF 'Riconosciuto come spam'; then
+            echo "  ok    il lead dice perché è stato riconosciuto"
+          else echo "::error::il lead non dice perché è stato riconosciuto"; fail=1; fi
+
+          # --- LA PARTE CHE CONTA: i contatti veri passano ----------------------
+          # Un cliente che incolla l'indirizzo del suo sito attuale in un modulo di
+          # rifacimento, e che arriva senza token di visita valido (pagina lasciata
+          # aperta più di dodici ore). Questa combinazione valeva esattamente la
+          # soglia di prima e veniva scartata: è il motivo per cui la soglia è tre.
+          manda -o /dev/null -d 'name=Giulia Rossi' -d 'email=vero1@spamci.example' \
+            -d 'subject=Rifacimento sito' \
+            --data-urlencode 'message=Il nostro sito adesso e https://www.trattoriarossi.it e va rifatto da zero.'
+          uguale 'il cliente che incolla il suo sito passa' "$(stato vero1@spamci.example)" 'new'
+
+          manda -o /dev/null -d 'name=Marco Bianchi' -d 'email=vero2@spamci.example' \
+            --data-urlencode 'message=Buongiorno, avrei bisogno di un sito per la mia falegnameria.'
+          uguale 'un preventivo normale passa' "$(stato vero2@spamci.example)" 'new'
+
+          manda -o /dev/null -d 'name=Luca' -d 'email=vero3@spamci.example' -d 'message=Quanto costa?'
+          uguale 'un messaggio brevissimo passa' "$(stato vero3@spamci.example)" 'new'
+
+          # --- Il pannello li tiene separati ------------------------------------
+          esegui "DELETE FROM rate_limits WHERE rl_key LIKE 'login%';"
+          jar=/tmp/spam.jar; rm -f $jar
+          csrf=$(curl -s -c $jar http://127.0.0.1:4321/admin | grep -oE '[a-f0-9]{64}' | head -1)
+          curl -s -b $jar -c $jar -o /dev/null -H 'Origin: http://127.0.0.1:4321' \
+            -X POST http://127.0.0.1:4321/admin \
+            -d "csrf=$csrf&username=ci_admin&password=password-ci-molto-lunga"
+          normale=$(curl -s -b $jar http://127.0.0.1:4321/admin/lead)
+          soloSpam=$(curl -s -b $jar 'http://127.0.0.1:4321/admin/lead?stato=spam')
+          uguale 'lo spam non compare fra i lead veri' \
+            "$(grep -o 'lead-spam' <<<"$normale" | wc -l | tr -d ' ')" '0'
+          uguale 'e nel suo elenco ci sono solo quelli' \
+            "$(grep -o '<tr class="lead-' <<<"$soloSpam" | wc -l | tr -d ' ')" \
+            "$(grep -o 'lead-spam' <<<"$soloSpam" | wc -l | tr -d ' ')"
+          # Deve restare possibile smentire il riconoscimento: senza questo, un
+          # falso positivo è definitivo.
+          if grep -q 'value="new"' <<<"$soloSpam"; then
+            echo "  ok    uno spam si può rimettere a «Nuovo»"
+          else echo "::error::dal pannello non si può correggere un falso positivo"; fail=1; fi
+
+          esegui "DELETE FROM leads WHERE email LIKE '%@spamci.example';"
           exit $fail
 
       # Due cose che si rompono in silenzio, e la prima è la più costosa di tutte.

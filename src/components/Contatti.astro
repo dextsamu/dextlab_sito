@@ -1,4 +1,6 @@
 ---
+import { marcaOra } from '../lib/spam.ts';
+
 interface Props {
   contactEmail: string;
   calendly: string;
@@ -35,6 +37,12 @@ const {
 */
 const prenotaHref = agendaAttiva ? '/prenota' : calendly;
 const prenotaFuori = !agendaAttiva;
+
+/*
+  La marca temporale firmata del rendering. Vedi il campo nascosto in fondo al
+  modulo e src/lib/spam.ts.
+*/
+const marcaTempo = marcaOra();
 ---
 
 <section class="section section-contact" id="contatti">
@@ -143,6 +151,24 @@ const prenotaFuori = !agendaAttiva;
         nessuna parte.
       */}
       <input type="hidden" name="cfg_tipo" id="cfgTipoCampo" value={tipoIniziale} />
+      {/*
+        Quando questa pagina è stata costruita, firmato.
+
+        Serve a misurare quanto tempo passa fra l'apertura e l'invio, che è il
+        segnale più pulito che esista per distinguere una persona da un programma:
+        tre secondi non bastano a leggere il modulo, non parliamo di compilarlo.
+
+        È FIRMATO con APP_SECRET perché altrimenti non servirebbe a niente — un
+        bot che vede un campo con dentro un numero lo cambia. Firmato, cambiarlo
+        rende la marca invalida, e una marca invalida vale come assente: non
+        aggrava e non salva, perché una pagina rimasta in cache da prima di questa
+        modifica il campo non ce l'ha e chi la usa non ha fatto niente di male.
+
+        Non è un campo che decide da solo di rifiutare: nessun campo lo è. Vedi
+        src/lib/spam.ts — qui si sceglie solo se far partire la notifica, il
+        contatto viene salvato sempre.
+      */}
+      <input type="hidden" name="t" value={marcaTempo} />
       {/*
         DUE etichette, entrambe rese dal server, e il JavaScript non scrive testo
         da nessuna parte: cambia solo una classe.

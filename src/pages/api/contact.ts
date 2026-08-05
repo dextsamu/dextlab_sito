@@ -9,7 +9,17 @@
  * che in realtà era arrivato.
  */
 import type { APIRoute } from 'astro';
-import { query, rateLimit, getSettings, origineDaVisita, rowsActive, type PricingRow } from '../../lib/db.ts';
+import {
+  query,
+  rateLimit,
+  getSettings,
+  origineDaVisita,
+  visitaRecente,
+  messaggioGiaArrivato,
+  rowsActive,
+  type PricingRow,
+} from '../../lib/db.ts';
+import { valutaContatto, secondiDaMarca } from '../../lib/spam.ts';
 import { mailConfig, sendLeadMails, isMailUsable, type LeadMessage } from '../../lib/mail.ts';
 import { telegramConfig, notifyLead } from '../../lib/telegram.ts';
 import { chiaveListino, formatWeeks } from '../../lib/content.ts';
@@ -109,12 +119,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return typeof v === 'string' ? v : '';
   };
 
-  // Honeypot: i bot compilano tutti i campi, gli umani non vedono questo.
-  // Si risponde come in caso di successo per non rivelare il meccanismo.
-  if (field('website').trim() !== '') {
-    return ok('Messaggio inviato! Ti rispondo entro 24 ore.');
-  }
-
   const ip = locals.clientIp;
   if (!(await rateLimit('contact', 5, 900, ip))) {
     return fail(
@@ -169,6 +173,28 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const lead: LeadMessage = { name, email, subject, message: messaggioCompleto, ip };
 
   /*
+    Spam o no. La decisione riguarda SOLO la notifica: il lead viene salvato in
+    ogni caso, con stato «spam» invece di «nuovo», e dal pannello si può rimettere
+    a nuovo con un clic. Il conto dei danni è spiegato in src/lib/spam.ts, e si
+    riassume così: un contatto perso è l'unico errore irreparabile.
+
+    Il campo trappola era gestito qui sopra con un ritorno anticipato: il
+    contatto veniva buttato e non restava traccia da nessuna parte. Adesso è un
+    segnale come gli altri e la riga si conserva — se un giorno la trappola
+    prendesse un cliente vero, senza la riga non lo si scoprirebbe mai.
+  */
+  const ripetuto = await messaggioGiaArrivato(message, email);
+  const esitoSpam = valutaContatto(
+    { name, email, subject, message },
+    {
+      secondi: secondiDaMarca(field('t').trim()),
+      visitaValida: await visitaRecente(field('vt').trim()),
+      ripetuto,
+      trappola: field('website').trim() !== '',
+    }
+  );
+
+  /*
     Da dove arriva questo contatto. Il token nel campo nascosto è quello della
     visita che ha reso il modulo, e su quella riga la campagna c'è già: qui si
     ricopia, così il lead resta collegato all'annuncio anche fra sei mesi, quando
@@ -184,15 +210,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
     await query(
       `INSERT INTO leads (name, email, subject, message, source, ip, status,
                           camp_source, camp_medium, camp_name, pagina)
-       VALUES ($1, $2, $3, $4, 'form', $5, 'new', $6, $7, $8, $9)`,
+       VALUES ($1, $2, $3, $4, 'form', $5, $6, $7, $8, $9, $10)`,
       [
         name,
         email,
         subject,
         // Con il riepilogo attaccato: è la stessa cosa che legge chi riceve la
-        // email, e nel pannello il lead non deve dire di meno.
-        messaggioCompleto,
+        // email, e nel pannello il lead non deve dire di meno. Quando è spam si
+        // aggiungono i motivi: chi apre il pannello deve poter capire in due
+        // secondi PERCHÉ è finito lì, e decidere che avevamo torto.
+        esitoSpam.spam
+          ? `${messaggioCompleto}\n\n— Riconosciuto come spam —\n${esitoSpam.motivi.join('\n')}`
+          : messaggioCompleto,
         ip || null,
+        esitoSpam.spam ? 'spam' : 'new',
         origine.camp_source,
         origine.camp_medium,
         origine.camp_name,
@@ -202,6 +233,25 @@ export const POST: APIRoute = async ({ request, locals }) => {
     leadSaved = true;
   } catch (err) {
     console.error('[contact] lead non salvato:', (err as Error).message);
+  }
+
+  /*
+    Riconosciuto come spam: la riga è salvata, le notifiche no, e a chi ha mandato
+    si risponde come sempre. Le due cose sono deliberate.
+
+    Niente notifica è il punto di tutto il lavoro: la posta e Telegram sono la
+    ragione per cui lo spam dà fastidio, il database no — lì una riga in più non
+    disturba nessuno e resta consultabile.
+
+    La risposta identica serve a non insegnare niente a chi prova: un modulo che
+    risponde «sei un bot» dice al programma quale campo cambiare al giro dopo, e
+    chi manda spam in serie prova finché non passa.
+  */
+  if (esitoSpam.spam) {
+    console.warn(
+      `[contact] spam da ${ip ?? '(ip ignoto)'}: ${esitoSpam.motivi.join('; ')}. Salvato: ${leadSaved}.`
+    );
+    return ok('Messaggio inviato! Ti rispondo entro 24 ore.');
   }
 
   const settings = await getSettings();

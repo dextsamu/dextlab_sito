@@ -386,6 +386,71 @@ export async function origineDaVisita(token: string): Promise<OrigineContatto> {
   };
 }
 
+/**
+ * Il token corrisponde a una visita reale e recente.
+ *
+ * Sta separata da origineDaVisita, che non può rispondere a questa domanda: una
+ * visita senza campagna e senza percorso restituisce gli stessi campi vuoti di un
+ * token inventato, quindi «origine vuota» non vuol dire «non è passato dal sito».
+ * Per il riconoscimento dello spam la differenza è tutta: un invio che non passa
+ * da una pagina resa è un indizio, una visita diretta non è niente.
+ *
+ * Un errore del database vale «valida»: se non possiamo verificare, non
+ * addebitiamo il dubbio a chi scrive.
+ */
+export async function visitaRecente(token: string): Promise<boolean> {
+  if (!/^[a-f0-9]{16}$/.test(token)) return false;
+  try {
+    const righe = await query<{ uno: number }>(
+      `SELECT 1 AS uno FROM visits
+        WHERE token = $1 AND created_at > now() - interval '12 hours' LIMIT 1`,
+      [token]
+    );
+    return righe.length > 0;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Lo stesso testo è già arrivato nelle ultime 24 ore, DA UN ALTRO INDIRIZZO.
+ *
+ * La ripetizione identica è la firma di un programma. Ma due condizioni servono a
+ * non prendere due persone, e le ho aggiunte entrambe dopo che la guardia ha
+ * scartato due contatti buoni:
+ *
+ *   indirizzo diverso   stesso testo dallo stesso indirizzo è una persona che
+ *                       rimanda perché non ha ricevuto risposta, e succede. È un
+ *                       bot quando lo stesso testo gira fra indirizzi diversi,
+ *                       che è esattamente come funziona lo spam in serie.
+ *   almeno 60 caratteri un «Buongiorno, vorrei un preventivo» identico fra due
+ *                       clienti diversi è plausibile; sessanta caratteri
+ *                       identici in fila non lo sono più.
+ *
+ * Si confronta il testo del modulo e non l'intero messaggio salvato, perché a
+ * quello viene attaccato il riepilogo del configuratore.
+ *
+ * Un errore del database vale «non ripetuto»: il dubbio non si addebita a chi
+ * scrive.
+ */
+export async function messaggioGiaArrivato(messaggio: string, email: string): Promise<boolean> {
+  const testo = messaggio.trim().toLowerCase();
+  if (testo.length < 60) return false;
+  try {
+    const righe = await query<{ uno: number }>(
+      `SELECT 1 AS uno FROM leads
+        WHERE created_at > now() - interval '24 hours'
+          AND lower(email) <> $2
+          AND lower(left(message, 400)) LIKE $1 || '%'
+        LIMIT 1`,
+      [testo.slice(0, 200), email.trim().toLowerCase()]
+    );
+    return righe.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 /** Marca una visita come umana (chiamata dal beacon JS: i bot raramente lo eseguono). */
 export async function markHuman(token: string): Promise<void> {
   if (!/^[a-f0-9]{16}$/.test(token)) return;

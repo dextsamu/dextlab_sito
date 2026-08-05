@@ -132,6 +132,7 @@ export async function leadStats(): Promise<LeadStats> {
       { status: 'new', label: 'Nuovi', count: statusCounts.get('new') ?? 0 },
       { status: 'read', label: 'Letti', count: statusCounts.get('read') ?? 0 },
       { status: 'done', label: 'Gestiti', count: statusCounts.get('done') ?? 0 },
+      { status: 'spam', label: 'Spam', count: statusCounts.get('spam') ?? 0 },
     ],
     bySource: sourceRows.map((r) => ({ source: r.source || 'form', count: Number(r.c) })),
   };
@@ -240,18 +241,35 @@ export interface LeadRow {
   pagina: string;
 }
 
+/*
+  Lo stato «spam» sta in questo elenco e non a parte, ed è la scelta che conta:
+  essendo qui, compare nel menu di ogni lead, quindi con un clic si rimette a
+  «Nuovo» un contatto che il riconoscimento ha sbagliato — e si segna come spam a
+  mano uno che è passato. Un lead marcato spam dal server non è una condanna, è
+  un'opinione che una persona può correggere.
+*/
 export const LEAD_STATUSES = [
   { value: 'new', label: 'Nuovo' },
   { value: 'read', label: 'Letto' },
   { value: 'done', label: 'Gestito' },
+  { value: 'spam', label: 'Spam' },
 ] as const;
 
 export function isLeadStatus(value: string): boolean {
   return LEAD_STATUSES.some((s) => s.value === value);
 }
 
-export async function recentLeads(limit = 300): Promise<LeadRow[]> {
-  return tryQuery<LeadRow>('SELECT * FROM leads ORDER BY id DESC LIMIT $1', [limit]);
+/**
+ * I lead da mostrare nel pannello: per difetto quelli veri, su richiesta lo spam.
+ *
+ * Sono due elenchi separati e non uno con una colonna in più, perché il problema
+ * dello spam è che è tanto: dieci righe di spazzatura in mezzo ai contatti veri
+ * rendono inutile la pagina anche se ogni riga è etichettata. Mescolarli
+ * significherebbe aver spostato il fastidio dalla posta al pannello.
+ */
+export async function recentLeads(limit = 300, soloSpam = false): Promise<LeadRow[]> {
+  const dove = soloSpam ? "status = 'spam'" : "status <> 'spam'";
+  return tryQuery<LeadRow>(`SELECT * FROM leads WHERE ${dove} ORDER BY id DESC LIMIT $1`, [limit]);
 }
 
 export async function allLeadsForExport(): Promise<LeadRow[]> {
