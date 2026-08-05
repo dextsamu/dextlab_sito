@@ -22,11 +22,11 @@
  *
  *   CERTI    da soli bastano. Sono cose che una persona che scrive dall'Italia a
  *            un web designer non fa MAI: riempire un campo che non vede, scrivere
- *            BBCode, scrivere in cirillico.
- *   INDIZI   valgono punti. Da due punti in su è spam. Ognuno preso da solo ha un
- *            uso legittimo — un cliente che incolla l'indirizzo del suo sito
- *            attuale è la cosa più normale del mondo — quindi nessuno decide da
- *            solo.
+ *            BBCode, scrivere in cirillico, mandare in meno di tre secondi.
+ *   INDIZI   valgono punti, e da tre in su è spam (vedi SOGLIA). Ognuno preso da
+ *            solo ha un uso legittimo — un cliente che incolla l'indirizzo del
+ *            suo sito attuale è la cosa più normale del mondo — quindi nessuno
+ *            decide da solo.
  *
  * Il file è puro: nessun accesso al database, nessuna lettura di richiesta. Gli
  * arriva già calcolato quello che non può sapere (il tempo di compilazione, se il
@@ -150,6 +150,66 @@ const ALFABETI_ESTRANEI = new RegExp(
 const IMPAGINAZIONE = /\[url[=\]]|\[\/url\]|\[link|<a\s+href|<\/a>|\[b\]|<script/i;
 
 /**
+ * Un'offerta di servizi rivolta A NOI.
+ *
+ * È il tipo di spam che tutto il resto non vede: prosa pulita, nessun link,
+ * nessun marcatore, alfabeto latino, tempi umani. Sono agenzie che propongono di
+ * rifare il sito a un web designer. Il primo che è arrivato è passato con ZERO
+ * punti, provato con il messaggio vero — questa regola nasce da quello.
+ *
+ * Il discriminante non sono le parole «sito» o «presenza online», che le scrive
+ * anche un cliente: è la PERSONA. Un cliente scrive «puoi aiutarmi», «il MIO
+ * sito», «vorrei migliorare la MIA presenza». Un venditore scrive «posso
+ * aiutarti», «il VOSTRO sito», «saremmo felici di condividere qualche idea». Le
+ * stesse parole con i possessivi girati, e girati come chi chiede un preventivo
+ * non fa mai.
+ *
+ * Vale due punti e non è una certezza: è l'unica regola che dipende dalla lingua,
+ * e una regola che dipende dalla lingua prima o poi sbaglia. Da sola non decide.
+ */
+const OFFERTA_A_NOI = new RegExp(
+  [
+    'poss(o|iamo) aiutar(ti|vi|la)',
+    'condivider[ei] (un paio di |alcune |qualche )?idee',
+    'offr(o|iamo) (i (nostri|miei) )?servizi',
+    '(migliorare|potenziare|rifare) (la|il) (vostr|tu)[oa]',
+    // «la vostra presenza online» e non «il tuo sito»: il secondo lo scrive chi
+    // fa un complimento — «ho visto il tuo sito e mi piace» — e con un link nel
+    // messaggio avrebbe fatto tre punti, cioè avrei scartato un cliente per aver
+    // detto una cosa gentile. La presenza online no: nessuno se ne complimenta.
+    '(la|il) (vostr|tu)[oa] presenza online',
+    // Tolta «siete disponibili per una...»: «sei disponibile per una call la
+    // settimana prossima?» è una frase da cliente, non da venditore. Era la
+    // regola con il rischio più alto e il potere discriminante più basso — questo
+    // messaggio si riconosce comunque dalle altre tre.
+    // Le stesse cose in inglese: arrivano tradotte a macchina e spesso l'oggetto
+    // resta nella lingua d'origine.
+    'can (i|we) help you',
+    'quick question about',
+    "(would|we'd) (love|like) to share",
+    'boost your',
+    'improve your (website|site|online presence)',
+    'increase your (sales|traffic|ranking)',
+  ].join('|'),
+  'i'
+);
+
+/**
+ * Un indirizzo Gmail con troppi punti nella parte locale.
+ *
+ * Gmail IGNORA i punti: `p.r.an.a.bhu.e.co.d.e2@gmail.com` e
+ * `pranabhuecode2@gmail.com` sono la stessa casella. Chi ne mette nove non ha
+ * sbagliato a digitare: sta facendo passare un indirizzo per molti, ed è il modo
+ * con cui si aggirano i limiti per indirizzo e i controlli sulle ripetizioni. Un
+ * indirizzo vero ne ha zero, uno, al massimo due.
+ */
+function gmailTravestita(email: string): boolean {
+  const [locale = '', dominio = ''] = email.toLowerCase().split('@');
+  if (dominio !== 'gmail.com' && dominio !== 'googlemail.com') return false;
+  return (locale.match(/\./g) ?? []).length >= 4;
+}
+
+/**
  * Quanti indirizzi web ci sono in un testo.
  *
  * L'alternativa consuma l'indirizzo INTERO fino allo spazio, e non è un
@@ -215,6 +275,16 @@ export function valutaContatto(
   if (ctx.ripetuto) {
     punti += 2;
     motivi.push('lo stesso messaggio è già arrivato di recente');
+  }
+
+  if (OFFERTA_A_NOI.test(tutto)) {
+    punti += 2;
+    motivi.push('offre servizi a noi invece di chiederne');
+  }
+
+  if (gmailTravestita(campi.email)) {
+    punti += 2;
+    motivi.push('indirizzo Gmail con i punti sparsi per sembrare un altro');
   }
 
   if (!ctx.visitaValida) {

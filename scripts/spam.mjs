@@ -96,6 +96,32 @@ const VERI = [
     ctx: { ...base, secondi: 8 },
   },
   {
+    // Le due frasi che la regola «offre servizi a noi» avrebbe preso nella sua
+    // prima versione: un complimento al nostro sito con il link al proprio (che
+    // faceva tre punti) e una domanda del tutto normale sulla disponibilità.
+    // Restano qui perché quella regola dipende dalla lingua, ed è la sola del
+    // gruppo che può sbagliare su una persona.
+    nome: 'complimento al nostro sito, con il link al proprio',
+    campi: {
+      name: 'Davide Longo',
+      email: 'davide@esempio.it',
+      subject: 'Sito nuovo',
+      message:
+        'Ho visto il tuo sito e mi piace molto. Il mio è https://www.officinalongo.it e vorrei rifarlo così.',
+    },
+    ctx: base,
+  },
+  {
+    nome: 'chiede una call, come fa un cliente',
+    campi: {
+      name: 'Chiara Fabbri',
+      email: 'chiara@esempio.it',
+      subject: 'Disponibilità',
+      message: 'Buongiorno, sei disponibile per una call la settimana prossima? Vorrei un preventivo.',
+    },
+    ctx: base,
+  },
+  {
     nome: 'accenti e apostrofi italiani',
     campi: {
       name: "Niccolò D'Angelo",
@@ -184,6 +210,23 @@ const FINTI = [
       email: 'x@esempio.example',
       subject: 'Ciao',
       message: 'Scrivimi su http://offerte-seo.example per la promozione.',
+    },
+    ctx: base,
+  },
+  {
+    // LO SPAM VERO arrivato a dextlab.it il 5 agosto 2026, dal modulo. Con le
+    // regole di prima passava con ZERO punti: prosa pulita, nessun link, nessun
+    // marcatore, alfabeto latino, tempi umani. È il messaggio da cui nascono le
+    // due regole «offre servizi a noi» e «Gmail travestita». Il contesto è quello
+    // più favorevole possibile — token valido e compilazione con calma — perché è
+    // così che è arrivato.
+    nome: 'agenzia che offre di rifare il nostro sito (caso reale)',
+    campi: {
+      name: 'Pranab P',
+      email: 'p.r.an.a.bhu.e.co.d.e2@gmail.com',
+      subject: 'Quick question about dextlab.it',
+      message:
+        'Ciao! Per Dext Lab, un sito più moderno potrebbe attrarre più clienti. Saremmo felici di condividere un paio di idee su come migliorare la vostra presenza online. Siete disponibili per una breve chiacchierata?',
     },
     ctx: base,
   },

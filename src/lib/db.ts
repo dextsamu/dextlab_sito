@@ -436,6 +436,19 @@ export async function visitaRecente(token: string): Promise<boolean> {
 export async function messaggioGiaArrivato(messaggio: string, email: string): Promise<boolean> {
   const testo = messaggio.trim().toLowerCase();
   if (testo.length < 60) return false;
+  /* Il confronto è sull'indirizzo LETTERALE, e ci ho ragionato due volte perché
+     la prima l'ho girato dal verso sbagliato.
+     
+     Avevo normalizzato l'indirizzo (su Gmail i punti non contano, quindi
+     p.r.an.a.bhu.e.co.d.e2@ e pranabhuecode2@ sono la stessa casella) pensando di
+     smascherare chi cambia punteggiatura a ogni invio. Fa l'opposto: vedendo
+     «stesso mittente» conclude «è una persona che rimanda», cioè applica
+     l'esenzione proprio a chi la maschera la usa per evadere.
+     
+     Il caso innocente è una PERSONA che rimanda perché non ha avuto risposta, e
+     quella riscrive dallo stesso indirizzo scritto nello stesso modo. Quindi
+     l'esenzione vale sul letterale. Chi ruota le maschere risulta «mittente
+     diverso» e prende i suoi punti — che è quello che deve succedere. */
   try {
     const righe = await query<{ uno: number }>(
       `SELECT 1 AS uno FROM leads
