@@ -22,7 +22,17 @@
  */
 import { valutaContatto, SOGLIA } from '../src/lib/spam.ts';
 
-const base = { secondi: 40, visitaValida: true, ripetuto: false, trappola: false };
+const base = {
+  secondi: 40,
+  visitaValida: true,
+  ripetuto: false,
+  trappola: false,
+  // Il dominio del sito arriva dal chiamante anche qui, con lo stesso valore che
+  // ha in produzione: le due regole che lo usano — non contare le menzioni del
+  // nostro dominio, e riconoscere chi ne registra uno che lo imita — non si
+  // possono provare senza.
+  dominioSito: 'dextlab.it',
+};
 
 const VERI = [
   {
@@ -118,6 +128,20 @@ const VERI = [
       email: 'chiara@esempio.it',
       subject: 'Disponibilità',
       message: 'Buongiorno, sei disponibile per una call la settimana prossima? Vorrei un preventivo.',
+    },
+    ctx: base,
+  },
+  {
+    // Nomina il nostro dominio scritto nudo. Da quando contiamo anche i domini
+    // senza schema, senza l'esclusione del nostro questa frase avrebbe fatto un
+    // punto per aver detto il nostro nome.
+    nome: 'nomina dextlab.it e il proprio sito, entrambi nudi',
+    campi: {
+      name: 'Elena Bruni',
+      email: 'elena@esempio.it',
+      subject: 'Preventivo',
+      message:
+        'Ho trovato dextlab.it cercando su Google. Il mio sito è pasticceriabruni.it e vorrei rifarlo.',
     },
     ctx: base,
   },
@@ -227,6 +251,23 @@ const FINTI = [
       subject: 'Quick question about dextlab.it',
       message:
         'Ciao! Per Dext Lab, un sito più moderno potrebbe attrarre più clienti. Saremmo felici di condividere un paio di idee su come migliorare la vostra presenza online. Siete disponibili per una breve chiacchierata?',
+    },
+    ctx: base,
+  },
+  {
+    // IL SECONDO SPAM VERO, arrivato il 6 agosto 2026 dal modulo, il giorno dopo
+    // il rilascio delle prime regole. Passava con ZERO punti per due motivi che
+    // erano entrambi buchi miei: i link sono scritti NUDI («helpindex.org», senza
+    // schema e senza www) e il mittente usa un dominio registrato per somigliare
+    // al nostro. Da qui nascono il conteggio dei domini nudi e la regola del
+    // dominio imitatore.
+    nome: 'registrazione su Google da un dominio che imita il nostro (caso reale)',
+    campi: {
+      name: 'Philipp',
+      email: 'domains@search-dextlab.it',
+      subject: 'Nuovo contatto dal sito',
+      message:
+        "Dear Sir/Madam\n\nRegister dextlab.it in Google's Search Index and have it show up in Google search results!\n\nInclude dextlab.it today:\n\nhelpindex.org",
     },
     ctx: base,
   },

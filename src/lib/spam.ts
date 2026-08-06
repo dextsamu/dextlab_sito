@@ -100,6 +100,19 @@ export interface Contesto {
   ripetuto: boolean;
   /** Il campo trappola era compilato. */
   trappola: boolean;
+  /**
+   * Il nostro dominio, minuscolo e senza «www.» — per esempio `dextlab.it`.
+   *
+   * Serve a due cose che senza di lui non si possono fare: non contare come «link
+   * a un altro sito» il nostro stesso indirizzo (chi scrive lo nomina, ed è
+   * normale), e riconoscere un mittente che si è registrato un dominio che
+   * IMITA il nostro. Arriva da fuori invece di essere letto da qui perché così il
+   * banco di prova può passarlo senza dipendere da una variabile d'ambiente, e
+   * quello che si prova è esattamente quello che gira.
+   *
+   * Vuoto è ammesso: le due regole si spengono, e nient'altro cambia.
+   */
+  dominioSito: string;
 }
 
 export interface Esito {
@@ -149,6 +162,15 @@ const ALFABETI_ESTRANEI = new RegExp(
    programma che compila moduli in serie. */
 const IMPAGINAZIONE = /\[url[=\]]|\[\/url\]|\[link|<a\s+href|<\/a>|\[b\]|<script/i;
 
+/*
+  I suffissi con cui riconosco un dominio scritto nudo. L'elenco è chiuso di
+  proposito: un `\w+\.\w+` avrebbe contato «file.txt», «art. 33» e ogni frase in
+  cui manca lo spazio dopo il punto.
+*/
+const SUFFISSI =
+  'it|com|net|org|eu|io|co|info|biz|shop|online|site|store|xyz|top|club|link|' +
+  'de|fr|es|uk|ch|at|nl|be|pl|ru|cn|in|us|me|tv|cc';
+
 /**
  * Un'offerta di servizi rivolta A NOI.
  *
@@ -190,6 +212,14 @@ const OFFERTA_A_NOI = new RegExp(
     'boost your',
     'improve your (website|site|online presence)',
     'increase your (sales|traffic|ranking)',
+    // Il classico «registriamo il tuo sito su Google», vecchio di vent'anni e
+    // arrivato di nuovo il 6 agosto 2026. Nessun cliente chiede a NOI di
+    // registrare il NOSTRO sito: è sempre una proposta.
+    "google.s search index",
+    'register .{0,40} in google',
+    '(show up|appear) in google search',
+    'search engine submission',
+    'submit your (site|website)',
   ].join('|'),
   'i'
 );
@@ -210,7 +240,7 @@ function gmailTravestita(email: string): boolean {
 }
 
 /**
- * Quanti indirizzi web ci sono in un testo.
+ * Quanti indirizzi web ci sono in un testo, escluso il nostro dominio.
  *
  * L'alternativa consuma l'indirizzo INTERO fino allo spazio, e non è un
  * dettaglio: con `https?:\/\/|www\.` — due alternative che possono comparire
@@ -218,9 +248,43 @@ function gmailTravestita(email: string): boolean {
  * due link fanno due punti, cioè spam. Il banco di prova ha scartato al primo
  * giro il cliente che incolla il proprio sito, che è la cosa più normale che
  * possa scrivere in un modulo di rifacimento.
+ * I domini scritti NUDI si contano anche loro: `helpindex.org`, senza schema e
+ * senza «www.». Questo è arrivato dopo il secondo spam passato — «Register
+ * dextlab.it in Google's Search Index … helpindex.org» — che cercando solo
+ * `http://` e `www.` faceva zero link, cioè zero punti. Chi manda queste cose
+ * scrive i domini nudi proprio perché i filtri cercano gli schemi.
+ *
+ * L'alternativa con lo schema resta PRIMA, così un indirizzo conta una volta
+ * qualunque forma abbia: l'espressione scandisce da sinistra e in
+ * `https://www.foo.it` vince l'alternativa più lunga.
+ *
+ * Il nostro dominio non si conta: chi scrive lo nomina («ho visto dextlab.it»), e
+ * fargliene pesare la menzione come un link a un altro sito sarebbe assurdo.
  */
-function contaLink(testo: string): number {
-  return (testo.match(/(?:https?:\/\/|www\.)\S+/gi) ?? []).length;
+function contaLink(testo: string, dominioSito = ''): number {
+  const re = new RegExp(`(?:https?://|www\\.)\\S+|\\b[a-z0-9][a-z0-9-]*\\.(?:${SUFFISSI})\\b`, 'gi');
+  const trovati = testo.match(re) ?? [];
+  if (dominioSito === '') return trovati.length;
+  const nudo = (x: string) => x.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '');
+  return trovati.filter((x) => !nudo(x).startsWith(dominioSito.toLowerCase())).length;
+}
+
+/**
+ * Il mittente scrive da un dominio che IMITA il nostro.
+ *
+ * `domains@search-dextlab.it` non è un errore di battitura: è un dominio
+ * registrato per sembrare noi, e nessuno che voglia un preventivo lo fa. Vale due
+ * punti — è fra i segnali più precisi del gruppo — ma non è una certezza, perché
+ * un giorno può esistere un cliente il cui nome contiene il nostro per caso.
+ */
+function dominioImitatore(email: string, dominioSito: string): boolean {
+  if (dominioSito === '') return false;
+  const marchio = dominioSito.toLowerCase().split('.')[0] ?? '';
+  // Sotto i quattro caratteri un marchio è troppo comune per distinguere niente.
+  if (marchio.length < 4) return false;
+  const dominio = (email.toLowerCase().split('@')[1] ?? '').replace(/^www\./, '');
+  if (dominio === '' || dominio === dominioSito.toLowerCase()) return false;
+  return dominio.includes(marchio);
 }
 
 /**
@@ -263,7 +327,7 @@ export function valutaContatto(
   }
 
   // ---- Indizi --------------------------------------------------------------
-  const link = contaLink(campi.message);
+  const link = contaLink(campi.message, ctx.dominioSito);
   if (link >= 2) {
     punti += 2;
     motivi.push(`${link} indirizzi web nel messaggio`);
@@ -287,6 +351,11 @@ export function valutaContatto(
     motivi.push('indirizzo Gmail con i punti sparsi per sembrare un altro');
   }
 
+  if (dominioImitatore(campi.email, ctx.dominioSito)) {
+    punti += 2;
+    motivi.push(`scrive da un dominio che imita il nostro (${campi.email.split('@')[1] ?? ''})`);
+  }
+
   if (!ctx.visitaValida) {
     punti += 1;
     motivi.push('inviato senza passare da una pagina del sito');
@@ -294,7 +363,7 @@ export function valutaContatto(
 
   // Due punti e non uno: un nome vero non contiene un indirizzo web né una
   // chiocciola. È l'indizio più forte fra i deboli, e da solo non basta comunque.
-  if (contaLink(campi.name) > 0 || campi.name.includes('@')) {
+  if (contaLink(campi.name, ctx.dominioSito) > 0 || campi.name.includes('@')) {
     punti += 2;
     motivi.push('il nome contiene un indirizzo');
   }

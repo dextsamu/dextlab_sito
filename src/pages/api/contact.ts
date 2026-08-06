@@ -20,6 +20,7 @@ import {
   type PricingRow,
 } from '../../lib/db.ts';
 import { valutaContatto, secondiDaMarca } from '../../lib/spam.ts';
+import { siteUrl } from '../../lib/env.ts';
 import { mailConfig, sendLeadMails, isMailUsable, type LeadMessage } from '../../lib/mail.ts';
 import { telegramConfig, notifyLead } from '../../lib/telegram.ts';
 import { chiaveListino, formatWeeks } from '../../lib/content.ts';
@@ -104,6 +105,16 @@ async function richiestaDalModulo(
     tempi: tipo ? formatWeeks(settimane) : '',
     contesto: risposte,
   };
+}
+
+/** L'host del sito, minuscolo e senza «www.». Vuoto se SITE_URL non è leggibile:
+    le due regole che lo usano si spengono e nient'altro cambia. */
+function dominioDelSito(): string {
+  try {
+    return new URL(siteUrl()).hostname.toLowerCase().replace(/^www\./, '');
+  } catch {
+    return '';
+  }
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -191,6 +202,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       visitaValida: await visitaRecente(field('vt').trim()),
       ripetuto,
       trappola: field('website').trim() !== '',
+      // Il nostro dominio: serve a non contare come «link a un altro sito» la
+      // menzione del nostro, e a riconoscere chi scrive da un dominio che lo
+      // imita (domains@search-dextlab.it). Da siteUrl() e non scritto a mano,
+      // così in CI vale l'host della CI e non quello di produzione.
+      dominioSito: dominioDelSito(),
     }
   );
 

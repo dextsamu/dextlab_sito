@@ -1609,6 +1609,28 @@ jobs:
             "$(stato pr.anab.hu.ecode2@gmail.com)" 'spam'
           esegui "DELETE FROM leads WHERE email LIKE '%gmail.com';"
 
+          # --- Il secondo spam vero, del 6 agosto 2026 ---------------------------
+          # Passava con zero punti per due buchi: i link scritti NUDI
+          # («helpindex.org», senza schema e senza www) e un mittente su un dominio
+          # registrato per somigliare al nostro.
+          #
+          # ATTENZIONE a cosa prova questo passo e cosa no. Qui SITE_URL è
+          # http://127.0.0.1:4321, quindi «il nostro dominio» è 127.0.0.1: la regola
+          # del dominio imitatore è SPENTA (il marchio «127» è troppo corto) e le
+          # menzioni di dextlab.it contano come link altrui. Il messaggio viene
+          # riconosciuto comunque, per i domini nudi e per le frasi. Le due regole
+          # legate al dominio si provano dove si possono provare davvero, cioè nel
+          # banco (npm run spam), che riceve il dominio come dato invece di leggerlo
+          # dall'ambiente — è il motivo per cui lo riceve come dato.
+          esegui "DELETE FROM leads WHERE email = 'domains@search-dextlab.it';"
+          manda -o /dev/null -d 'name=Philipp' -d 'email=domains@search-dextlab.it' \
+            --data-urlencode "message=Dear Sir/Madam
+          Register dextlab.it in Google's Search Index and have it show up in Google search results!
+          Include dextlab.it today: helpindex.org"
+          uguale 'la registrazione su Google con i link nudi finisce nello spam' \
+            "$(stato domains@search-dextlab.it)" 'spam'
+          esegui "DELETE FROM leads WHERE email = 'domains@search-dextlab.it';"
+
           # --- Il pannello li tiene separati ------------------------------------
           esegui "DELETE FROM rate_limits WHERE rl_key LIKE 'login%';"
           jar=/tmp/spam.jar; rm -f $jar
