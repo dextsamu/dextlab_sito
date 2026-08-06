@@ -146,6 +146,41 @@ const VERI = [
     ctx: base,
   },
   {
+    // Le quattro frasi italiane su cui il conteggio dei domini nudi sbagliava
+    // appena l'ho aggiunto: contava un indirizzo web dove c'era un'email nel
+    // corpo, un'abbreviazione, o solo uno spazio mancante dopo il punto. Ognuna
+    // faceva un punto a un cliente vero. Da qui vengono le due regole che salvano
+    // la situazione: suffisso minuscolo e nessuna chiocciola davanti.
+    nome: "lascia la propria email nel corpo del messaggio",
+    campi: {
+      name: 'Mario Rossi',
+      email: 'mario@esempio.it',
+      subject: 'Contatto',
+      message: 'Buongiorno, richiamami o scrivimi a mario.rossi@gmail.com quando puoi.',
+    },
+    ctx: base,
+  },
+  {
+    nome: 'spazio mancante dopo il punto',
+    campi: {
+      name: 'Franco Sala',
+      email: 'franco@esempio.it',
+      subject: 'Informazioni',
+      message: 'Ho visto il vostro sito.In particolare mi interessa il configuratore.',
+    },
+    ctx: base,
+  },
+  {
+    nome: 'abbreviazione con il punto',
+    campi: {
+      name: 'Rita Moro',
+      email: 'rita@esempio.it',
+      subject: 'E-commerce',
+      message: 'Vorrei un e-commerce p.es. con pagamenti e spedizioni incluse nel preventivo.',
+    },
+    ctx: base,
+  },
+  {
     nome: 'accenti e apostrofi italiani',
     campi: {
       name: "Niccolò D'Angelo",

@@ -163,13 +163,33 @@ const ALFABETI_ESTRANEI = new RegExp(
 const IMPAGINAZIONE = /\[url[=\]]|\[\/url\]|\[link|<a\s+href|<\/a>|\[b\]|<script/i;
 
 /*
-  I suffissi con cui riconosco un dominio scritto nudo. L'elenco è chiuso di
-  proposito: un `\w+\.\w+` avrebbe contato «file.txt», «art. 33» e ogni frase in
-  cui manca lo spazio dopo il punto.
+  I suffissi con cui riconosco un dominio scritto nudo, e le due regole che lo
+  rendono affidabile. L'elenco è chiuso di proposito — un `\w+\.\w+` avrebbe
+  contato «file.txt» e «art. 33» — ma da solo non bastava: provandolo su frasi
+  italiane plausibili contava come indirizzo web «p.es.», «mario.rossi@gmail.com»
+  e «ho visto il vostro sito.In particolare…», cioè uno spazio mancante dopo il
+  punto. Ognuna faceva un punto a un cliente vero.
+
+  Le due regole che risolvono, e che valgono più di qualsiasi lista:
+
+  1. IL SUFFISSO DEVE ESSERE MINUSCOLO. Un dominio si scrive «helpindex.org»; una
+     frase a cui manca lo spazio continua con la maiuscola — «sito.In»,
+     «mille.Info». È il discriminante più forte e costa una lettera di codice: la
+     ricerca dei domini nudi non usa il flag «i».
+  2. NON DEVE ESSERE PRECEDUTO DA UNA CHIOCCIOLA. «gmail.com» dentro
+     «mario.rossi@gmail.com» è un indirizzo di posta, non un link, e lasciare la
+     propria email nel messaggio è una delle cose più normali che un cliente possa
+     fare.
+
+  Restano fuori dall'elenco i suffissi di due lettere che sono anche parole
+  italiane o inglesi comuni — «in», «es», «me», «at», «co», «us», «be», «tv»,
+  «cc», «de», «ch» — perché con quelli la regola della maiuscola non basta:
+  «problema.in pratica» è tutto minuscolo. Si perde un po' di copertura sui domini
+  in .co scritti nudi, e si guadagna di non scartare chi scrive di fretta.
 */
 const SUFFISSI =
-  'it|com|net|org|eu|io|co|info|biz|shop|online|site|store|xyz|top|club|link|' +
-  'de|fr|es|uk|ch|at|nl|be|pl|ru|cn|in|us|me|tv|cc';
+  'it|com|net|org|eu|io|info|biz|shop|online|site|store|xyz|top|club|link|' +
+  'fr|uk|nl|pl|ru|cn';
 
 /**
  * Un'offerta di servizi rivolta A NOI.
@@ -262,8 +282,18 @@ function gmailTravestita(email: string): boolean {
  * fargliene pesare la menzione come un link a un altro sito sarebbe assurdo.
  */
 function contaLink(testo: string, dominioSito = ''): number {
-  const re = new RegExp(`(?:https?://|www\\.)\\S+|\\b[a-z0-9][a-z0-9-]*\\.(?:${SUFFISSI})\\b`, 'gi');
-  const trovati = testo.match(re) ?? [];
+  /* Due passaggi e non un'alternativa sola, perché i due casi vogliono regole
+     diverse: gli indirizzi con lo schema si cercano senza badare alle maiuscole
+     (HTTP:// esiste), i domini nudi solo minuscoli. Il primo passaggio cancella
+     quello che ha trovato, così `https://www.foo.it` non viene contato una seconda
+     volta dal secondo. */
+  const conSchema = /(?:https?:\/\/|www\.)\S+/gi;
+  const nudi = new RegExp(`(?<![@\\w])[a-z0-9][a-z0-9-]*\\.(?:${SUFFISSI})\\b`, 'g');
+
+  const primi = testo.match(conSchema) ?? [];
+  const secondi = testo.replace(conSchema, ' ').match(nudi) ?? [];
+  const trovati = [...primi, ...secondi];
+
   if (dominioSito === '') return trovati.length;
   const nudo = (x: string) => x.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '');
   return trovati.filter((x) => !nudo(x).startsWith(dominioSito.toLowerCase())).length;
@@ -303,6 +333,11 @@ export function valutaContatto(
   let certo = false;
 
   const tutto = `${campi.name}\n${campi.subject}\n${campi.message}`;
+  /* Normalizzato una volta qui: il tipo lo pretende, ma questo file è chiamato
+     anche da script senza tipi (il banco di prova) e la sua prima riga di
+     documentazione promette che nessun errore qui dentro può impedire il
+     salvataggio di un contatto. Una promessa così non si mantiene con un tipo. */
+  const dominio = (ctx.dominioSito ?? '').toLowerCase();
 
   // ---- Certi ---------------------------------------------------------------
   if (ctx.trappola) {
@@ -327,7 +362,7 @@ export function valutaContatto(
   }
 
   // ---- Indizi --------------------------------------------------------------
-  const link = contaLink(campi.message, ctx.dominioSito);
+  const link = contaLink(campi.message, dominio);
   if (link >= 2) {
     punti += 2;
     motivi.push(`${link} indirizzi web nel messaggio`);
@@ -351,7 +386,7 @@ export function valutaContatto(
     motivi.push('indirizzo Gmail con i punti sparsi per sembrare un altro');
   }
 
-  if (dominioImitatore(campi.email, ctx.dominioSito)) {
+  if (dominioImitatore(campi.email, dominio)) {
     punti += 2;
     motivi.push(`scrive da un dominio che imita il nostro (${campi.email.split('@')[1] ?? ''})`);
   }
@@ -363,7 +398,7 @@ export function valutaContatto(
 
   // Due punti e non uno: un nome vero non contiene un indirizzo web né una
   // chiocciola. È l'indizio più forte fra i deboli, e da solo non basta comunque.
-  if (contaLink(campi.name, ctx.dominioSito) > 0 || campi.name.includes('@')) {
+  if (contaLink(campi.name, dominio) > 0 || campi.name.includes('@')) {
     punti += 2;
     motivi.push('il nome contiene un indirizzo');
   }
