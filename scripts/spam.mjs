@@ -22,7 +22,17 @@
  */
 import { valutaContatto, SOGLIA } from '../src/lib/spam.ts';
 
-const base = { secondi: 40, visitaValida: true, ripetuto: false, trappola: false };
+const base = {
+  secondi: 40,
+  visitaValida: true,
+  ripetuto: false,
+  trappola: false,
+  // Il dominio del sito arriva dal chiamante anche qui, con lo stesso valore che
+  // ha in produzione: le due regole che lo usano — non contare le menzioni del
+  // nostro dominio, e riconoscere chi ne registra uno che lo imita — non si
+  // possono provare senza.
+  dominioSito: 'dextlab.it',
+};
 
 const VERI = [
   {
@@ -118,6 +128,55 @@ const VERI = [
       email: 'chiara@esempio.it',
       subject: 'Disponibilità',
       message: 'Buongiorno, sei disponibile per una call la settimana prossima? Vorrei un preventivo.',
+    },
+    ctx: base,
+  },
+  {
+    // Nomina il nostro dominio scritto nudo. Da quando contiamo anche i domini
+    // senza schema, senza l'esclusione del nostro questa frase avrebbe fatto un
+    // punto per aver detto il nostro nome.
+    nome: 'nomina dextlab.it e il proprio sito, entrambi nudi',
+    campi: {
+      name: 'Elena Bruni',
+      email: 'elena@esempio.it',
+      subject: 'Preventivo',
+      message:
+        'Ho trovato dextlab.it cercando su Google. Il mio sito è pasticceriabruni.it e vorrei rifarlo.',
+    },
+    ctx: base,
+  },
+  {
+    // Le quattro frasi italiane su cui il conteggio dei domini nudi sbagliava
+    // appena l'ho aggiunto: contava un indirizzo web dove c'era un'email nel
+    // corpo, un'abbreviazione, o solo uno spazio mancante dopo il punto. Ognuna
+    // faceva un punto a un cliente vero. Da qui vengono le due regole che salvano
+    // la situazione: suffisso minuscolo e nessuna chiocciola davanti.
+    nome: "lascia la propria email nel corpo del messaggio",
+    campi: {
+      name: 'Mario Rossi',
+      email: 'mario@esempio.it',
+      subject: 'Contatto',
+      message: 'Buongiorno, richiamami o scrivimi a mario.rossi@gmail.com quando puoi.',
+    },
+    ctx: base,
+  },
+  {
+    nome: 'spazio mancante dopo il punto',
+    campi: {
+      name: 'Franco Sala',
+      email: 'franco@esempio.it',
+      subject: 'Informazioni',
+      message: 'Ho visto il vostro sito.In particolare mi interessa il configuratore.',
+    },
+    ctx: base,
+  },
+  {
+    nome: 'abbreviazione con il punto',
+    campi: {
+      name: 'Rita Moro',
+      email: 'rita@esempio.it',
+      subject: 'E-commerce',
+      message: 'Vorrei un e-commerce p.es. con pagamenti e spedizioni incluse nel preventivo.',
     },
     ctx: base,
   },
@@ -227,6 +286,23 @@ const FINTI = [
       subject: 'Quick question about dextlab.it',
       message:
         'Ciao! Per Dext Lab, un sito più moderno potrebbe attrarre più clienti. Saremmo felici di condividere un paio di idee su come migliorare la vostra presenza online. Siete disponibili per una breve chiacchierata?',
+    },
+    ctx: base,
+  },
+  {
+    // IL SECONDO SPAM VERO, arrivato il 6 agosto 2026 dal modulo, il giorno dopo
+    // il rilascio delle prime regole. Passava con ZERO punti per due motivi che
+    // erano entrambi buchi miei: i link sono scritti NUDI («helpindex.org», senza
+    // schema e senza www) e il mittente usa un dominio registrato per somigliare
+    // al nostro. Da qui nascono il conteggio dei domini nudi e la regola del
+    // dominio imitatore.
+    nome: 'registrazione su Google da un dominio che imita il nostro (caso reale)',
+    campi: {
+      name: 'Philipp',
+      email: 'domains@search-dextlab.it',
+      subject: 'Nuovo contatto dal sito',
+      message:
+        "Dear Sir/Madam\n\nRegister dextlab.it in Google's Search Index and have it show up in Google search results!\n\nInclude dextlab.it today:\n\nhelpindex.org",
     },
     ctx: base,
   },
