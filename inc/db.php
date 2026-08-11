@@ -1,6 +1,6 @@
 <?php
 /**
- * Connessione DB (PDO MySQL) + helper.
+ * Connessione DB (PDO PostgreSQL) + helper.
  * Espone db() che ritorna un'istanza PDO singleton, o null se non configurato.
  */
 
