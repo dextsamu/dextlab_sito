@@ -24,7 +24,7 @@ cd /opt/dextlab/deploy-docker
 cp .env.example .env
 nano .env   # imposta ACME_EMAIL e le password DB
 ```
-`config.php` legge già le env `DB_*` (con fallback ai valori Keliweb): su Docker usa quelle del `.env`.
+`config.php` legge già le env `DB_*` (con fallback ai default in `config.example.php`): su Docker usa quelle del `.env`.
 
 ## 3. Avvia
 ```bash
@@ -49,7 +49,7 @@ Due strade:
 > ⚠️ Un dump proveniente dalla vecchia installazione MySQL su Keliweb **non** è importabile così: è SQL MySQL e va convertito prima (es. `pgloader`). Vale solo per backup generati dalla versione PostgreSQL attuale.
 
 ## 5. Email
-Su VPS `mail()` non funziona senza MTA → in Admin → Impostazioni attiva **SMTP** (casella Keliweb o servizio esterno) e carica PHPMailer (`composer require phpmailer/phpmailer` dentro il container, o monta la cartella).
+Su VPS `mail()` non funziona senza MTA → in Admin → Impostazioni attiva **SMTP** (casella del provider o servizio esterno) e carica PHPMailer (`composer require phpmailer/phpmailer` dentro il container, o monta la cartella).
 
 ## Sicurezza
 - PostgreSQL **non** espone porte all'esterno (solo rete interna Docker `proxy`). ✅
@@ -62,4 +62,4 @@ Su VPS `mail()` non funziona senza MTA → in Admin → Impostazioni attiva **SM
 Per aggiungere altri siti: nuovi servizi con le stesse label Traefik (Host diverso). Traefik gestisce routing + SSL per tutti in automatico. Tieni **un solo** Traefik per VPS.
 
 ## Rollback
-Il sito su Keliweb resta funzionante finché non sposti il DNS. Sposta il record A solo quando il VPS risponde correttamente su un dominio/hosts di test.
+La migrazione da Keliweb è conclusa: il VPS è l'unico ambiente attivo, non esiste più un fallback su hosting condiviso. Per un rollback applicativo torna al commit precedente e ricostruisci: `docker compose up -d --build`. Verifica sempre su un dominio di test (o via `hosts`) prima di spostare il record A.
