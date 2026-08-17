@@ -1,7 +1,18 @@
 ---
-export const prerender = true;
-
+/**
+ * Come /privacy, niente prerender: anche qui serve sapere chi si obbliga, e il
+ * dato sta nelle impostazioni (vedi la 017). Prima questa pagina diceva soltanto
+ * «Dext Lab», che è un marchio e non un soggetto: dei termini che non identificano
+ * chi assume gli obblighi non vincolano nessuno.
+ */
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getSettings } from '../lib/db.ts';
+import { titolare, identificazione } from '../lib/titolare.ts';
+
+const t = titolare(await getSettings());
+
+/* Data dell'ultima modifica del testo, a mano. La ragione è spiegata in privacy.astro. */
+const aggiornata = 'agosto 2026';
 ---
 
 <BaseLayout
@@ -15,17 +26,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   <main class="legal container">
     <a href="/" class="back">← Torna al sito</a>
     <h1>Termini e Condizioni</h1>
-    <p class="legal-date">Ultimo aggiornamento: giugno 2026</p>
-
-    <p class="note">
-      ⚠️ Modello base. Adatta clausole, tempi e condizioni economiche alla tua attività e fai
-      verificare il testo prima della pubblicazione.
-    </p>
+    <p class="legal-date">Ultimo aggiornamento: {aggiornata}</p>
 
     <h2>1. Oggetto</h2>
     <p>
       Questi termini regolano l'uso del sito dextlab.it e i servizi di realizzazione siti web, web
-      app, e-commerce e consulenza informatica offerti da Dext Lab.
+      app, e-commerce e consulenza informatica offerti da {identificazione(t)}.
     </p>
 
     <h2>2. Servizi</h2>
@@ -70,6 +76,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </p>
 
     <h2>8. Contatti</h2>
-    <p>Per qualsiasi domanda: <a href="mailto:info@dextlab.it">info@dextlab.it</a>.</p>
+    <p>Per qualsiasi domanda: <a href={`mailto:${t.email}`}>{t.email}</a>.</p>
   </main>
 </BaseLayout>

@@ -1,11 +1,31 @@
 ---
 /**
- * Prerender: contenuto statico che non dipende dal database, quindi viene
- * generato in fase di build e servito senza toccare Postgres.
+ * Niente prerender, e la ragione è il titolare del trattamento.
+ *
+ * Prima questa pagina era statica perché il testo non dipendeva dal database — ma
+ * il testo conteneva «[Ragione sociale / Nome e Cognome], [indirizzo], P.IVA
+ * [numero]», cioè l'unica cosa che l'art. 13 GDPR chiede davvero, scritta come
+ * segnaposto. Il dato ora sta nelle impostazioni (vedi la 017) perché il giorno in
+ * cui arriva la partita IVA la pagina deve aggiornarsi dal pannello: un'informativa
+ * che per essere corretta richiede un rilascio resta sbagliata per settimane.
+ *
+ * Il costo è una query su una pagina che quasi nessuno apre. Il ritorno è che non
+ * esiste più uno stato in cui questa pagina mente.
  */
-export const prerender = true;
-
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getSettings } from '../lib/db.ts';
+import { titolare, identificazione } from '../lib/titolare.ts';
+
+const t = titolare(await getSettings());
+
+/*
+  La data si aggiorna a mano, e deve restare a mano: è la data dell'ULTIMA MODIFICA
+  DEL TESTO, non della pagina. Legandola alla build cambierebbe a ogni rilascio,
+  dicendo al visitatore che l'informativa è stata rivista quando non l'ha toccata
+  nessuno — che è esattamente il tipo di affermazione falsa che una pagina legale
+  non può contenere. Chi cambia il testo qui sotto cambia anche questa riga.
+*/
+const aggiornata = 'agosto 2026';
 ---
 
 <BaseLayout
@@ -19,17 +39,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   <main class="legal container">
     <a href="/" class="back">← Torna al sito</a>
     <h1>Privacy Policy</h1>
-    <p class="legal-date">Ultimo aggiornamento: giugno 2026</p>
-
-    <p class="note">
-      ⚠️ Modello base. Completa con i tuoi dati (titolare, P.IVA, indirizzo) e fai verificare il
-      testo prima della pubblicazione.
-    </p>
+    <p class="legal-date">Ultimo aggiornamento: {aggiornata}</p>
 
     <h2>1. Titolare del trattamento</h2>
     <p>
-      Dext Lab — [Ragione sociale / Nome e Cognome], [indirizzo], P.IVA [numero]. Email:
-      <a href="mailto:info@dextlab.it">info@dextlab.it</a>.
+      {identificazione(t)}. Email: <a href={`mailto:${t.email}`}>{t.email}</a>.
     </p>
 
     <h2>2. Dati raccolti</h2>
@@ -70,8 +84,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <h2>6. I tuoi diritti</h2>
     <p>
       Puoi richiedere accesso, rettifica, cancellazione, limitazione, portabilità e opposizione
-      scrivendo a <a href="mailto:info@dextlab.it">info@dextlab.it</a>. Hai diritto di reclamo al
-      Garante per la protezione dei dati personali.
+      scrivendo a <a href={`mailto:${t.email}`}>{t.email}</a>. Hai diritto di reclamo al Garante per
+      la protezione dei dati personali.
     </p>
 
     <h2>7. Cookie</h2>
