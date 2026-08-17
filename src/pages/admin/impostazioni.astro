@@ -6,6 +6,7 @@ import { leadStats, contentRows } from '../../lib/admin.ts';
 import { qualificaMostrabile } from '../../lib/content.ts';
 import { getSettings, setting, settingOn, rowsActive, type CredentialRow, type PricingRow } from '../../lib/db.ts';
 import { mailConfig, diagnosiSmtp, isMailUsable } from '../../lib/mail.ts';
+import { titolare, titolareCompleto } from '../../lib/titolare.ts';
 import { siteUrl } from '../../lib/env.ts';
 import { previewToken } from '../../lib/preview.ts';
 
@@ -48,6 +49,13 @@ const listinoTipi = (await rowsActive<PricingRow>('pricing_types')).length;
 */
 const cfgMail = mailConfig(s);
 const guaiMail = diagnosiSmtp(cfgMail);
+
+/*
+  Chi tratta i dati, per l'avviso qui sotto. Stessa logica della diagnosi SMTP: il
+  pannello deve dire che una pagina legale è incompleta appena si apre, non farlo
+  scoprire da un cliente che apre /privacy prima di scrivere.
+*/
+const chiTratta = titolare(s);
 const mailUsabile = isMailUsable(cfgMail);
 
 const maintenanceOn = settingOn(s, 'maintenance');
@@ -206,6 +214,35 @@ const secretHint = (key: string) =>
 
     <label for="biz_name">Nome dell'attività</label>
     <input id="biz_name" name="biz_name" value={setting(s, 'biz_name')} placeholder="Dext Lab" />
+
+    {
+      !titolareCompleto(chiTratta) && (
+        <div class="maint-box on" style="margin-top:14px">
+          <p class="ck big" style="color:#febc2e">L'informativa non dice chi tratta i dati</p>
+          <p class="hint" style="margin:8px 0 0">
+            Il campo qui sotto è vuoto, quindi <strong>/privacy</strong> e <strong>/termini</strong>{' '}
+            nominano soltanto il marchio. L'art. 13 GDPR chiede identità e recapito del titolare, e
+            il modulo del sito raccoglie nome, email e messaggio: il titolare esiste dal primo
+            contatto, con o senza partita IVA. Scrivi nome e cognome e le due pagine si sistemano da
+            sole.
+          </p>
+        </div>
+      )
+    }
+    <label for="legal_titolare">Titolare del trattamento</label>
+    <input
+      id="legal_titolare"
+      name="legal_titolare"
+      value={setting(s, 'legal_titolare')}
+      placeholder="Nome e Cognome"
+    />
+    <p class="hint">
+      Nome e cognome finché sei persona fisica, la ragione sociale quando ci sarà una società.
+      Compare su <a href="/privacy">/privacy</a> e su <a href="/termini">/termini</a>: è il soggetto
+      che risponde dei dati e che assume gli obblighi, e non è il marchio qui sopra.
+      <strong>La partita IVA si compila più in basso e finché è vuota le pagine non la nominano</strong>{' '}
+      — «in corso di attribuzione» su una pagina legale attira la domanda invece di chiuderla.
+    </p>
     <label for="biz_phone">Telefono pubblico</label>
     <input id="biz_phone" name="biz_phone" value={setting(s, 'biz_phone')} placeholder="+39 333 1234567" />
     <label for="biz_city">Città di riferimento</label>

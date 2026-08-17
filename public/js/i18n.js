@@ -227,10 +227,10 @@
     // La chiave comprende "Dext Lab — " perché il nodo di testo del footer parte
     // dopo lo <span> dell'anno: senza il prefisso non combacia e resta in italiano.
     'Dext Lab — Tecnologia e design su misura.': 'Dext Lab — Tailor-made technology and design.',
-    // cookie
-    'Usiamo cookie tecnici e, previo consenso, cookie di analisi per migliorare il sito. Vedi la':
-      'We use technical cookies and, with consent, analytics cookies to improve the site. See the',
-    'Privacy Policy': 'Privacy Policy', 'Rifiuta': 'Decline', 'Accetta': 'Accept',
+    // cookie — è un avviso, non un consenso: vedi CookieBanner.astro
+    'Questo sito non imposta cookie sulle pagine pubbliche: nessun consenso da chiedere. Dettagli nella':
+      'This site sets no cookies on its public pages: there is no consent to ask for. Details in the',
+    'Privacy Policy': 'Privacy Policy', 'Ho capito': 'Got it',
     // chat — il primo messaggio non è qui: sta dentro #chatMsgs, che collect()
     // esclude perché contiene testo generato a runtime.
     'Risposte rapide': 'Quick answers',

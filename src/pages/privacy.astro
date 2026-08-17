@@ -1,11 +1,42 @@
 ---
 /**
- * Prerender: contenuto statico che non dipende dal database, quindi viene
- * generato in fase di build e servito senza toccare Postgres.
+ * Niente prerender, e la ragione è il titolare del trattamento.
+ *
+ * Prima questa pagina era statica perché il testo non dipendeva dal database — ma
+ * il testo conteneva «[Ragione sociale / Nome e Cognome], [indirizzo], P.IVA
+ * [numero]», cioè l'unica cosa che l'art. 13 GDPR chiede davvero, scritta come
+ * segnaposto. Il dato ora sta nelle impostazioni (vedi la 017) perché il giorno in
+ * cui arriva la partita IVA la pagina deve aggiornarsi dal pannello: un'informativa
+ * che per essere corretta richiede un rilascio resta sbagliata per settimane.
+ *
+ * Il costo è una query su una pagina che quasi nessuno apre. Il ritorno è che non
+ * esiste più uno stato in cui questa pagina mente.
  */
-export const prerender = true;
-
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getSettings, settingOn } from '../lib/db.ts';
+import { titolare, identificazione } from '../lib/titolare.ts';
+
+const impostazioni = await getSettings();
+const t = titolare(impostazioni);
+
+/*
+  Telegram è un destinatario, non un dettaglio tecnico: quando le notifiche sono
+  accese riceve nome, email, oggetto e l'inizio del messaggio di chi scrive. L'art.
+  13 chiede i destinatari, e finché la riga era generica («hosting, servizio email»)
+  questo non c'era. Legato all'interruttore e non scritto fisso perché la frase deve
+  essere vera in entrambi gli stati: nominare un destinatario che non riceve niente
+  è un errore simmetrico a tacerne uno che riceve.
+*/
+const avvisiTelegram = settingOn(impostazioni, 'tg_enabled');
+
+/*
+  La data si aggiorna a mano, e deve restare a mano: è la data dell'ULTIMA MODIFICA
+  DEL TESTO, non della pagina. Legandola alla build cambierebbe a ogni rilascio,
+  dicendo al visitatore che l'informativa è stata rivista quando non l'ha toccata
+  nessuno — che è esattamente il tipo di affermazione falsa che una pagina legale
+  non può contenere. Chi cambia il testo qui sotto cambia anche questa riga.
+*/
+const aggiornata = 'agosto 2026';
 ---
 
 <BaseLayout
@@ -19,66 +50,100 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   <main class="legal container">
     <a href="/" class="back">← Torna al sito</a>
     <h1>Privacy Policy</h1>
-    <p class="legal-date">Ultimo aggiornamento: giugno 2026</p>
-
-    <p class="note">
-      ⚠️ Modello base. Completa con i tuoi dati (titolare, P.IVA, indirizzo) e fai verificare il
-      testo prima della pubblicazione.
-    </p>
+    <p class="legal-date">Ultimo aggiornamento: {aggiornata}</p>
 
     <h2>1. Titolare del trattamento</h2>
     <p>
-      Dext Lab — [Ragione sociale / Nome e Cognome], [indirizzo], P.IVA [numero]. Email:
-      <a href="mailto:info@dextlab.it">info@dextlab.it</a>.
+      {identificazione(t)}. Email: <a href={`mailto:${t.email}`}>{t.email}</a>.
     </p>
 
     <h2>2. Dati raccolti</h2>
     <ul>
       <li>
-        <strong>Dati di contatto</strong> forniti tramite il form (nome, email, messaggio), usati
-        solo per rispondere alle richieste.
+        <strong>Dal modulo di contatto</strong>: nome, email, oggetto e messaggio. Se usi il
+        configuratore, anche le risposte che scegli, perché diventano parte della richiesta.
       </li>
       <li>
-        <strong>Dati tecnici</strong> di navigazione (indirizzo IP, browser) trattati per sicurezza
-        e funzionamento del sito.
+        <strong>Dalla prenotazione di una call</strong>: nome, email, il telefono se lo scrivi, le
+        note se le aggiungi, e il giorno e l'ora che scegli.
       </li>
-      <li><strong>Cookie</strong> tecnici necessari e, previo consenso, cookie di analisi.</li>
+      <li>
+        <strong>Dati tecnici</strong>: indirizzo IP e browser. Per le statistiche di visita
+        l'indirizzo IP viene <strong>troncato prima di essere salvato</strong>, e quello completo non
+        entra nel database. Resta invece per intero in due casi, ed è scritto qui perché è la
+        differenza che conta: nel conteggio che limita gli invii ripetuti, e insieme a una
+        prenotazione.
+      </li>
+      <li>
+        <strong>Cookie</strong>: nessuno sulle pagine pubbliche. Vedi il punto 7.
+      </li>
     </ul>
 
     <h2>3. Finalità e base giuridica</h2>
     <ul>
       <li>
-        Rispondere alle richieste di contatto (esecuzione di misure precontrattuali, art. 6.1.b
-        GDPR).
+        Rispondere alle richieste di contatto e gestire gli appuntamenti (esecuzione di misure
+        precontrattuali, art. 6.1.b GDPR).
       </li>
-      <li>Garantire sicurezza e funzionamento del sito (legittimo interesse, art. 6.1.f).</li>
-      <li>Analisi statistiche aggregate, solo previo consenso (art. 6.1.a).</li>
+      <li>
+        Garantire sicurezza e funzionamento del sito, compreso il limite agli invii ripetuti e il
+        riconoscimento dei messaggi automatici (legittimo interesse, art. 6.1.f).
+      </li>
+      <li>
+        Contare le visite in forma aggregata, con l'indirizzo IP già troncato (legittimo interesse,
+        art. 6.1.f). Non è profilazione e non segue nessuno da un sito all'altro.
+      </li>
     </ul>
 
     <h2>4. Conservazione</h2>
-    <p>
-      I dati di contatto sono conservati per il tempo necessario a gestire la richiesta e gli
-      adempimenti di legge, poi cancellati o anonimizzati.
-    </p>
+    <ul>
+      <li>
+        <strong>Messaggi e prenotazioni</strong> restano finché servono a gestire la richiesta e per
+        gli adempimenti di legge. Puoi chiederne la cancellazione quando vuoi, scrivendo
+        all'indirizzo qui sopra: la eseguo.
+      </li>
+      <li>
+        <strong>Il conteggio degli invii</strong> si cancella da solo entro un giorno dalla fine
+        della finestra a cui si riferisce.
+      </li>
+      <li>
+        <strong>Le statistiche di visita</strong> nascono già senza l'ultima parte dell'indirizzo IP:
+        non c'è un dato completo da cancellare in un secondo momento.
+      </li>
+    </ul>
 
     <h2>5. Comunicazione a terzi</h2>
     <p>
-      I dati possono essere trattati da fornitori che agiscono come responsabili (hosting, servizio
-      email), nel rispetto del GDPR. Non vengono venduti né ceduti per marketing.
+      I dati possono essere trattati da fornitori che agiscono come responsabili: chi ospita il sito
+      e il servizio di posta con cui ricevo le notifiche.{' '}
+      {
+        avvisiTelegram &&
+          'Le notifiche dei nuovi messaggi arrivano anche su Telegram: a Telegram vengono trasmessi nome, email, oggetto e la parte iniziale del messaggio.'
+      } Non vengono venduti né ceduti per marketing, e non c'è nessuna profilazione pubblicitaria.
     </p>
 
     <h2>6. I tuoi diritti</h2>
     <p>
       Puoi richiedere accesso, rettifica, cancellazione, limitazione, portabilità e opposizione
-      scrivendo a <a href="mailto:info@dextlab.it">info@dextlab.it</a>. Hai diritto di reclamo al
-      Garante per la protezione dei dati personali.
+      scrivendo a <a href={`mailto:${t.email}`}>{t.email}</a>. Hai diritto di reclamo al Garante per
+      la protezione dei dati personali.
     </p>
 
     <h2>7. Cookie</h2>
     <p>
-      Il sito usa cookie tecnici necessari al funzionamento e, solo dopo il tuo consenso espresso
-      tramite il banner, eventuali cookie di analisi. Puoi modificare la scelta cancellando i cookie
-      dal browser.
+      <strong>Le pagine pubbliche di questo sito non impostano nessun cookie.</strong> Niente cookie
+      di analisi, niente cookie di profilazione, nessun servizio di terze parti che li imposti per
+      conto suo: per questo non c'è nessun consenso da chiedere e nessun banner che lo chieda.
+    </p>
+    <p>
+      Cookie tecnici esistono solo nell'area riservata, dopo un accesso: servono a mantenere la
+      sessione e a proteggere i form da richieste non autorizzate. Senza di essi il pannello non
+      potrebbe funzionare, e riguardano soltanto chi vi accede.
+    </p>
+    <p>
+      L'avviso che compare in fondo alla prima visita non è una richiesta di consenso: è solo un
+      avviso, e la sua chiusura viene ricordata nell'archivio locale del browser (<code>dl_cookie</code>),
+      che non è un cookie. Per rivederlo occorre cancellare i dati del sito, non i cookie.
     </p>
   </main>
 </BaseLayout>

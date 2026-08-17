@@ -407,6 +407,11 @@ const DPO_TOGGLES = new Set(['dpo_attiva']);
  */
 export const LOCALE_SETTING_KEYS = [
   'biz_name',
+  // Il titolare del trattamento, che finisce su /privacy e su /termini. Sta in
+  // questo elenco e non fra le impostazioni generali perché è la stessa scheda
+  // dell'identità dell'attività — e perché va potersi svuotare come gli altri:
+  // vedi il commento di localeSettingsFromForm.
+  'legal_titolare',
   'biz_phone',
   'biz_city',
   'biz_province',

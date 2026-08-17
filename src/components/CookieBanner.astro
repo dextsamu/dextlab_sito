@@ -1,14 +1,47 @@
 ---
-// Mostrato da public/js/main.js solo se non c'è ancora una scelta salvata.
+/**
+ * Un avviso, non una richiesta di consenso.
+ *
+ * Prima diceva «Usiamo cookie tecnici e, previo consenso, cookie di analisi» con
+ * due pulsanti Accetta e Rifiuta. Nessuna delle due cose era vera: le pagine
+ * pubbliche non impostano NESSUN cookie — zero Set-Cookie su home, /prenota,
+ * /privacy, /termini, /gdpr e sull'invio del modulo, verificato sull'HTTP servito
+ * — e di analisi non esisteva una riga in tutto il codice. Il posto dove si
+ * sarebbe attivata era un commento: «analytics da attivare qui solo se val ===
+ * accept».
+ *
+ * Chiedere un consenso che non serve non è prudenza, è il difetto opposto a non
+ * chiederlo: insegna a premere Accetta senza leggere, e fa sembrare che il sito
+ * faccia qualcosa che non fa. «Rifiuta» poi non cambiava niente, perché non c'era
+ * niente da rifiutare — un pulsante che non fa nulla è una promessa non mantenuta.
+ *
+ * Resta un avviso con un solo pulsante, e dice la cosa vera, che per chi legge è
+ * anche la migliore: qui non ci sono cookie.
+ *
+ * IL GIORNO IN CUI SI AGGIUNGE UN'ANALISI questo torna a essere un banner di
+ * consenso con due pulsanti, e il consenso deve davvero condizionare il
+ * caricamento dello script — non essere raccolto e ignorato. La guardia in CI
+ * fallisce se compare un tracciante mentre il banner dice ancora che non ci sono
+ * cookie, così la modifica non si può lasciare a metà.
+ */
 ---
 
+{/*
+  Il testo prima del link è un solo nodo, senza <strong> in mezzo: la traduzione in
+  public/js/i18n.js ha per chiave il nodo di testo intero, e spezzarlo con un tag
+  lascerebbe metà banner in italiano nella versione inglese, senza che niente
+  segnali l'errore. Andare a capo qui invece è innocuo, perché Astro comprime gli
+  spazi nell'HTML servito — ma questa frase e la chiave nel dizionario devono
+  cambiare INSIEME: cambiarne una sola lascia il banner non tradotto. Lo verifica
+  la guardia «Nessun cookie sulle pagine pubbliche», che confronta il nodo servito
+  con le chiavi di i18n.js.
+*/}
 <div class="cookie" id="cookie" hidden>
   <p>
-    Usiamo cookie tecnici e, previo consenso, cookie di analisi per migliorare il sito. Vedi la
-    <a href="/privacy">Privacy Policy</a>.
+    Questo sito non imposta cookie sulle pagine pubbliche: nessun consenso da chiedere. Dettagli
+    nella <a href="/privacy">Privacy Policy</a>.
   </p>
   <div class="cookie-actions">
-    <button class="btn btn-ghost btn-sm" id="cookieReject">Rifiuta</button>
-    <button class="btn btn-primary btn-sm" id="cookieAccept">Accetta</button>
+    <button class="btn btn-primary btn-sm" id="cookieAccept">Ho capito</button>
   </div>
 </div>

@@ -403,27 +403,27 @@
     });
   }
 
-  /* cookie banner */
+  /* avviso cookie — non un consenso: vedi CookieBanner.astro per il perché.
+     Il valore salvato dice solo «visto»: non c'è nulla da acconsentire, quindi
+     non c'è più una distinzione fra accettato e rifiutato da ricordare. */
   const cookie = document.getElementById('cookie');
-  if (cookie) {
-    let consent = null;
+  const cookieOk = document.getElementById('cookieAccept');
+  if (cookie && cookieOk) {
+    let visto = null;
     try {
-      consent = localStorage.getItem('dl_cookie');
+      visto = localStorage.getItem('dl_cookie');
     } catch (e) {}
-    if (!consent) {
+    if (!visto) {
       cookie.hidden = false;
       requestAnimationFrame(() => cookie.classList.add('show'));
     }
-    const close = (val) => {
+    cookieOk.addEventListener('click', () => {
       try {
-        localStorage.setItem('dl_cookie', val);
+        localStorage.setItem('dl_cookie', 'visto');
       } catch (e) {}
       cookie.classList.remove('show');
       setTimeout(() => (cookie.hidden = true), 400);
-      // analytics da attivare qui solo se val === 'accept'
-    };
-    document.getElementById('cookieAccept').addEventListener('click', () => close('accept'));
-    document.getElementById('cookieReject').addEventListener('click', () => close('reject'));
+    });
   }
 
   /* sfondo: tracce di segnale sulle linee della griglia

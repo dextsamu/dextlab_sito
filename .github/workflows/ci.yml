@@ -2149,6 +2149,201 @@ jobs:
           imposta smtp_secure 'ssl'
           exit $fail
 
+      # Il difetto che questa guardia protegge è stato in produzione per mesi:
+      # /privacy diceva «[Ragione sociale / Nome e Cognome], [indirizzo], P.IVA
+      # [numero]». Non è una pagina incompleta, è una pagina che non assolve
+      # l'art. 13 GDPR — e la legge chi sta decidendo se scriverci.
+      #
+      # Le due direzioni contano entrambe e sono opposte. Se il dato c'è deve
+      # comparire, altrimenti la pagina torna muta senza che nessuno lo veda. Se
+      # il dato NON c'è non deve comparire niente al suo posto: né una parentesi
+      # quadra, né «in corso di attribuzione». Su una pagina legale un dato
+      # inventato è peggio di un dato mancante, perché quello mancante si vede.
+      - name: Le pagine legali dicono chi tratta i dati, e non inventano il resto
+        run: |
+          fail=0
+          esegui() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -qc "$1"; }
+          imposta() {
+            esegui "INSERT INTO settings (k, v) VALUES ('$1', '$2') ON CONFLICT (k) DO UPDATE SET v = '$2';"
+          }
+          contiene() {
+            if grep -qF "$2" <<<"$1"; then echo "  ok    $3"
+            else echo "::error::manca: $3"; fail=1; fi
+          }
+          non_contiene() {
+            if grep -qF "$2" <<<"$1"; then echo "::error::non doveva esserci: $3"; fail=1
+            else echo "  ok    tace su: $3"; fi
+          }
+          privacy() { curl -s http://127.0.0.1:4321/privacy; }
+          termini() { curl -s http://127.0.0.1:4321/termini; }
+          # Solo la riga che identifica il titolare. Serve perché i controlli «non
+          # deve comparire» sulla pagina intera darebbero falsi allarmi: il trattino
+          # lungo compare tre volte altrove, e cercarlo in tutto l'HTML avrebbe
+          # fatto fallire questa guardia su una pagina perfettamente corretta.
+          riga() { privacy | grep -oE '<h2>1\. Titolare[^<]*</h2><p>[^<]*'; }
+
+          # 1. Nessun segnaposto, su nessuna delle due pagine e in nessuno stato.
+          #    È il controllo che il difetto originale non avrebbe superato.
+          for p in privacy termini; do
+            quadre=$(curl -s "http://127.0.0.1:4321/$p" | grep -oE '\[[A-Za-z][^]]{2,40}\]' | sort -u)
+            if [ -n "$quadre" ]; then
+              echo "::error::/$p contiene ancora segnaposto: $quadre"; fail=1
+            else echo "  ok    /$p senza segnaposto"; fi
+          done
+
+          # 2. Con il titolare compilato, entrambe le pagine lo nominano.
+          imposta legal_titolare 'Mario Rossi'
+          contiene "$(privacy)" 'Mario Rossi' 'privacy nomina il titolare'
+          contiene "$(termini)" 'Mario Rossi' 'termini nominano il titolare'
+
+          # 3. Partita IVA e sede compaiono solo quando esistono per davvero.
+          imposta biz_vat ''
+          non_contiene "$(riga)" 'P.IVA' 'una partita IVA che non esiste'
+          imposta biz_vat '01234567890'
+          contiene "$(riga)" 'P.IVA 01234567890' 'la partita IVA quando c’è'
+
+          # 4. Una sede a metà non è una sede. Solo la città, senza via, non deve
+          #    diventare un indirizzo postale: per chi lavora da remoto è la forma
+          #    corretta, e un indirizzo sbagliato su una pagina legale è un danno.
+          imposta biz_street ''
+          imposta biz_city 'Sarzana'
+          non_contiene "$(riga)" 'Sarzana' 'una sede ricavata dalla sola città'
+          imposta biz_street 'Via Roma 1'
+          imposta biz_zip '19038'
+          imposta biz_province 'sp'
+          contiene "$(riga)" 'Via Roma 1, 19038 Sarzana (SP)' 'la sede completa, provincia maiuscola'
+
+          # 5. Titolare vuoto: la pagina resta senza nome e NON ne inventa uno.
+          #    Deve comunque restare un recapito, che è l'altra metà dell'art. 13.
+          #    Sede e partita IVA si svuotano insieme al nome perché qui si verifica
+          #    lo stato «nessun dato»: con una sede ancora impostata la riga sarebbe
+          #    «Dext Lab — Via Roma 1, …», legittima ma un altro caso, e il trattino
+          #    ci sarebbe per ragioni giuste. Lo stato di partenza vero è questo.
+          imposta legal_titolare ''
+          imposta biz_street ''
+          imposta biz_zip ''
+          imposta biz_vat ''
+          muta=$(riga)
+          non_contiene "$muta" 'Mario Rossi' 'un nome rimasto in cache'
+          non_contiene "$muta" '—' 'il trattino di un elenco vuoto'
+          contiene "$(privacy)" 'mailto:' 'il recapito per esercitare i diritti'
+
+          # 6. E il pannello lo dice appena si apre, come per l'SMTP: chi può
+          #    compilare il campo deve sapere che è vuoto senza aprire /privacy.
+          esegui "DELETE FROM rate_limits WHERE rl_key LIKE 'login%';"
+          jar=/tmp/titolare.jar
+          rm -f $jar
+          csrf=$(curl -s -c $jar http://127.0.0.1:4321/admin | grep -oE '[a-f0-9]{64}' | head -1)
+          curl -s -b $jar -c $jar -o /dev/null -H 'Origin: http://127.0.0.1:4321' \
+            -X POST http://127.0.0.1:4321/admin \
+            -d "csrf=$csrf&username=ci_admin&password=password-ci-molto-lunga"
+          pannello() { curl -s -b $jar http://127.0.0.1:4321/admin/impostazioni; }
+          contiene "$(pannello)" 'informativa non dice chi tratta i dati' 'il pannello avvisa che il campo è vuoto'
+          imposta legal_titolare 'Mario Rossi'
+          non_contiene "$(pannello)" 'informativa non dice chi tratta i dati' 'un avviso che resta anche a campo pieno'
+
+          # Si rimette tutto come stava: le guardie dopo questa leggono le stesse
+          # impostazioni, e una sede finta cambierebbe i dati strutturati della home.
+          imposta biz_vat ''
+          imposta biz_street ''
+          imposta biz_zip ''
+          imposta biz_city ''
+          imposta biz_province ''
+          exit $fail
+
+      # L'informativa dichiara che le pagine pubbliche non impostano cookie, e
+      # quella frase deve restare vera da sola: basta aggiungere un servizio di
+      # terze parti, o un cookie di sessione servito troppo presto, perché diventi
+      # falsa senza che nessuno la rilegga. Qui si confrontano le due cose — quello
+      # che la pagina dichiara e quello che il server manda davvero.
+      #
+      # Il banner è il difetto gemello, nella direzione opposta: chiedeva il
+      # consenso per «cookie di analisi» che non esistono in nessuna riga del
+      # codice, con un pulsante Rifiuta che non poteva rifiutare niente. Chiedere
+      # un consenso che non serve insegna a premere Accetta senza leggere.
+      - name: Nessun cookie sulle pagine pubbliche, e l'informativa lo dice
+        run: |
+          fail=0
+          esegui() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -qc "$1"; }
+          imposta() {
+            esegui "INSERT INTO settings (k, v) VALUES ('$1', '$2') ON CONFLICT (k) DO UPDATE SET v = '$2';"
+          }
+
+          # 1. Il fatto: zero Set-Cookie su ogni pagina pubblica e sull'invio del
+          #    modulo. È la misura che rende vera la frase del punto 2.
+          for p in / /prenota /privacy /termini /gdpr; do
+            n=$(curl -s -D - -o /dev/null "http://127.0.0.1:4321$p" | grep -ci '^set-cookie' || true)
+            if [ "$n" != "0" ]; then
+              echo "::error::$p imposta $n cookie: /privacy dichiara che non ne imposta nessuno"; fail=1
+            else echo "  ok    $p non imposta cookie"; fi
+          done
+          n=$(curl -s -D - -o /dev/null -X POST http://127.0.0.1:4321/api/contact \
+                -H 'Origin: http://127.0.0.1:4321' -F 'name=guardia' | grep -ci '^set-cookie' || true)
+          [ "$n" = "0" ] && echo "  ok    l'invio del modulo non imposta cookie" \
+            || { echo "::error::l'invio del modulo imposta $n cookie"; fail=1; }
+
+          # 2. La dichiarazione, che deve corrispondere al fatto qui sopra.
+          priv=$(curl -s http://127.0.0.1:4321/privacy)
+          grep -qF 'non impostano nessun cookie' <<<"$priv" \
+            && echo "  ok    l'informativa dichiara l'assenza di cookie" \
+            || { echo "::error::l'informativa non dichiara più l'assenza di cookie"; fail=1; }
+          # La vecchia frase mandava a cancellare i cookie per cambiare una scelta
+          # che sta nell'archivio locale: un'istruzione che non funziona.
+          grep -qF 'cancellando i cookie dal browser' <<<"$priv" \
+            && { echo "::error::è tornata l'istruzione di cancellare i cookie, che non cambia la scelta"; fail=1; } \
+            || echo "  ok    nessuna istruzione inefficace sui cookie"
+
+          # 3. Il banner non chiede un consenso che non serve, e non resta un
+          #    pulsante che non può fare niente.
+          home=$(curl -s http://127.0.0.1:4321/)
+          grep -qF 'cookieReject' <<<"$home" \
+            && { echo "::error::è tornato un pulsante «Rifiuta» senza niente da rifiutare"; fail=1; } \
+            || echo "  ok    il banner non chiede consenso"
+          for tracciante in gtag googletagmanager google-analytics plausible umami matomo; do
+            if grep -qF "$tracciante" <<<"$home"; then
+              echo "::error::la home carica $tracciante mentre il banner dice che non ci sono cookie: servono consenso e banner veri"
+              fail=1
+            fi
+          done
+          echo "  ok    nessun tracciante caricato"
+
+          # 4. Il testo del banner deve avere la sua traduzione. La chiave in
+          #    i18n.js è il nodo di testo servito, con trim(): riscrivere la frase
+          #    nel componente senza toccare il dizionario lascia il banner in
+          #    italiano per chi legge in inglese, e nulla lo segnala. Il confronto è
+          #    sull'HTML servito e non sul sorgente, perché è quello che il
+          #    dizionario incontra a runtime.
+          nodo=$(python3 -c "import re,sys;h=sys.stdin.read();m=re.search(r'id=\"cookie\" hidden>\s*<p>(.*?)<a ',h,re.S);print(re.sub(r'<!--.*?-->','',m.group(1),flags=re.S).strip() if m else '')" <<<"$home")
+          if [ -z "$nodo" ]; then
+            echo "::error::testo del banner non trovato nell'HTML servito"; fail=1
+          elif grep -qF "'$nodo'" public/js/i18n.js; then
+            echo "  ok    il testo del banner ha la sua traduzione"
+          else
+            echo "::error::il testo del banner non ha una traduzione in i18n.js: «$nodo»"; fail=1
+          fi
+
+          # 5. Telegram è un destinatario dei dati: se le notifiche sono accese
+          #    l'informativa deve nominarlo, se sono spente non deve — nominare un
+          #    destinatario che non riceve niente è l'errore simmetrico.
+          imposta tg_enabled '1'
+          curl -s http://127.0.0.1:4321/privacy | grep -qF 'anche su Telegram' \
+            && echo "  ok    con le notifiche accese l'informativa nomina Telegram" \
+            || { echo "::error::notifiche Telegram accese e informativa che non lo dice"; fail=1; }
+          imposta tg_enabled ''
+          curl -s http://127.0.0.1:4321/privacy | grep -qF 'anche su Telegram' \
+            && { echo "::error::Telegram nominato mentre le notifiche sono spente"; fail=1; } \
+            || echo "  ok    con le notifiche spente non nomina Telegram"
+
+          # 6. I dati che il sito raccoglie davvero devono essere elencati. La
+          #    prenotazione chiede anche il telefono, e prima non era scritto da
+          #    nessuna parte: un dato raccolto e non dichiarato è il caso che l'art.
+          #    13 vuole escludere.
+          for atteso in 'telefono' 'giorno e l' 'troncato'; do
+            grep -qF "$atteso" <<<"$priv" && echo "  ok    l'informativa nomina: $atteso" \
+              || { echo "::error::l'informativa non nomina: $atteso"; fail=1; }
+          done
+          exit $fail
+
       - name: Backup e ripristino su database vuoto
         run: |
           # Il numero atteso viene letto dal database di partenza, non scritto a
