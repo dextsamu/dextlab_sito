@@ -29,8 +29,13 @@ registry. Sul VPS vivono soltanto:
   .env                 creato una volta a mano, contiene i segreti
   docker-compose.yml   copiato dalla Action a ogni deploy
   remote-deploy.sh     copiato dalla Action a ogni deploy
-  data/backups/        i dump
 ```
+
+I dump non stanno più in una cartella dell'host: sono in un volume Docker
+(`backups`). Il motivo è nel commento del docker-compose — con un bind mount la
+cartella la creava Docker come root e il sito, che gira come utente `node`, non
+poteva scrivere: nessun backup è mai riuscito e il pannello non lo diceva. Si
+scaricano da **admin → Backup**, che è come la funzione è pensata.
 
 ---
 
@@ -271,8 +276,21 @@ Cron sul VPS, una volta a notte:
 0 3 * * * cd /home/samu/docker/dextlab/deploy-docker && docker compose exec -T web npm run backup
 ```
 
-I dump finiscono in `deploy-docker/data/backups/` sull'host, quindi sopravvivono
-alla sostituzione dell'immagine. Rotazione automatica agli ultimi 14.
+I dump finiscono nel volume Docker `backups`, quindi sopravvivono alla
+sostituzione dell'immagine e a `docker compose down`. Rotazione automatica agli
+ultimi 14, e si scaricano da admin → Backup.
+
+**Se aggiorni da una versione con il bind mount** (`./data/backups:/app/data/backups`)
+il volume nuovo parte vuoto: i vecchi dump, se ci sono, restano in
+`deploy-docker/data/backups/` sull'host e vanno copiati a mano una volta. Se
+preferisci tenere il bind mount, sistema i permessi:
+
+```bash
+sudo chown -R 1000:1000 ./data
+```
+
+1000 è l'utente `node` dell'immagine. Senza questo, ogni backup fallisce con
+`EACCES` — ed è esattamente il guasto che ha lasciato questo sito senza copie.
 
 In alternativa, con `BACKUP_KEY` impostata nel `.env`:
 

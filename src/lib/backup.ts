@@ -30,6 +30,54 @@ async function ensureDir(): Promise<string> {
   return dir;
 }
 
+/**
+ * Perché il backup non può funzionare, prima di provarci.
+ *
+ * Esiste per un difetto che ha tenuto questo sito SENZA UN SOLO BACKUP senza che
+ * si vedesse: la cartella montata nel container era di root e il processo gira
+ * come utente `node`, quindi ogni tentativo finiva in EACCES. Il pannello diceva
+ * «Nessun backup ancora. Premi Esegui backup ora» — una frase che sembra un invito
+ * e invece descriveva un guasto. L'errore si vedeva solo premendo il pulsante, e
+ * chi non lo premeva restava convinto di avere i backup.
+ *
+ * È lo stesso ragionamento della diagnosi SMTP: la pagina deve dire che è rotta
+ * appena si apre, senza che nessuno prema niente. Un backup che non c'è si scopre
+ * il giorno in cui serve, ed è il giorno peggiore.
+ *
+ * La prova è una scrittura vera — creare la cartella, scriverci un file, toglierlo
+ * — perché è l'unica cosa che risponde alla domanda. I permessi letti con stat()
+ * mentono: dicono cosa promette il filesystem, non cosa concede al processo che
+ * gira dentro un container con un volume montato sopra.
+ */
+export async function diagnosiBackup(): Promise<string[]> {
+  const dir = backupDir();
+  const guai: string[] = [];
+  try {
+    await mkdir(dir, { recursive: true, mode: 0o700 });
+  } catch (err) {
+    guai.push(
+      `La cartella ${dir} non si può creare (${(err as NodeJS.ErrnoException).code ?? 'errore'}).`
+    );
+    return guai;
+  }
+  const prova = join(dir, '.prova-scrittura');
+  try {
+    await writeFile(prova, 'x', { flag: 'w', mode: 0o600 });
+    await unlink(prova);
+  } catch (err) {
+    const codice = (err as NodeJS.ErrnoException).code ?? 'errore';
+    guai.push(
+      codice === 'EACCES' || codice === 'EPERM'
+        ? `Nella cartella ${dir} il sito non ha il permesso di scrivere (${codice}). ` +
+            'Succede quando la cartella montata nel container appartiene a root: il sito gira ' +
+            "come utente «node». Sul server, nella cartella del docker-compose: " +
+            'sudo chown -R 1000:1000 ./data'
+        : `Nella cartella ${dir} la scrittura non riesce (${codice}).`
+    );
+  }
+  return guai;
+}
+
 /** Nome file con timestamp, nello stesso formato della versione precedente. */
 function backupName(now: Date): string {
   const p = (n: number, w = 2) => String(n).padStart(w, '0');
