@@ -19,7 +19,8 @@ import {
   rowsActive,
   type PricingRow,
 } from '../../lib/db.ts';
-import { valutaContatto, secondiDaMarca } from '../../lib/spam.ts';
+import { valutaContatto, secondiDaMarca, type Esito } from '../../lib/spam.ts';
+import { siteUrl } from '../../lib/env.ts';
 import { mailConfig, sendLeadMails, isMailUsable, type LeadMessage } from '../../lib/mail.ts';
 import { telegramConfig, notifyLead } from '../../lib/telegram.ts';
 import { chiaveListino, formatWeeks } from '../../lib/content.ts';
@@ -106,6 +107,16 @@ async function richiestaDalModulo(
   };
 }
 
+/** L'host del sito, minuscolo e senza «www.». Vuoto se SITE_URL non è leggibile:
+    le due regole che lo usano si spengono e nient'altro cambia. */
+function dominioDelSito(): string {
+  try {
+    return new URL(siteUrl()).hostname.toLowerCase().replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
+
 export const POST: APIRoute = async ({ request, locals }) => {
   let form: FormData;
   try {
@@ -184,15 +195,30 @@ export const POST: APIRoute = async ({ request, locals }) => {
     prendesse un cliente vero, senza la riga non lo si scoprirebbe mai.
   */
   const ripetuto = await messaggioGiaArrivato(message, email);
-  const esitoSpam = valutaContatto(
+  /* Il punteggio dentro un try: se il riconoscimento va in errore il contatto vale
+     buono e arriva. È la stessa regola scritta in testa a spam.ts — un contatto
+     perso è l'unico errore irreparabile — e finché questa chiamata stava fuori da
+     un try quella regola era una buona intenzione: un'eccezione qui avrebbe fatto
+     rispondere 500 prima dell'INSERT, cioè avrebbe buttato via il messaggio. */
+  let esitoSpam: Esito = { spam: false, punti: 0, motivi: [] };
+  try {
+    esitoSpam = valutaContatto(
     { name, email, subject, message },
     {
       secondi: secondiDaMarca(field('t').trim()),
       visitaValida: await visitaRecente(field('vt').trim()),
       ripetuto,
       trappola: field('website').trim() !== '',
+      // Il nostro dominio: serve a non contare come «link a un altro sito» la
+      // menzione del nostro, e a riconoscere chi scrive da un dominio che lo
+      // imita (domains@search-dextlab.it). Da siteUrl() e non scritto a mano,
+      // così in CI vale l'host della CI e non quello di produzione.
+      dominioSito: dominioDelSito(),
     }
-  );
+    );
+  } catch (err) {
+    console.error('[contact] riconoscimento spam non eseguito:', (err as Error).message);
+  }
 
   /*
     Da dove arriva questo contatto. Il token nel campo nascosto è quello della

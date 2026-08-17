@@ -45,7 +45,26 @@ services:
       - proxy
     volumes:
       # I backup devono sopravvivere alla ricostruzione dell'immagine.
-      - ./data/backups:/app/data/backups
+      #
+      # Volume NOMINATO e non più «./data/backups:/app/data/backups», e la ragione
+      # è un guasto vero: con il bind mount la cartella sul server la crea Docker
+      # come root, il bind mount SOVRASCRIVE i permessi che il Dockerfile aveva
+      # impostato (chown node:node su /app/data), e il sito — che gira come utente
+      # «node» — non poteva scrivere. Ogni backup finiva in EACCES e il pannello
+      # diceva soltanto «Nessun backup ancora», cioè descriveva il guasto con una
+      # frase che sembrava un invito. Il sito è rimasto senza una sola copia dei
+      # dati senza che si vedesse.
+      #
+      # Un volume nominato non ha questo problema: alla prima creazione Docker lo
+      # inizializza dal contenuto dell'immagine e ne EREDITA proprietario e
+      # permessi, quindi resta di «node» e scrivibile. I file non si vedono più
+      # sfogliando la cartella sul server — si scaricano dal pannello, che è come
+      # questa funzione è pensata («in una cartella fuori dalla radice pubblica e
+      # scaricabili solo da qui»).
+      #
+      # Chi resta sul bind mount deve sistemare i permessi a mano, una volta:
+      #   sudo chown -R 1000:1000 ./data
+      - backups:/app/data/backups
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
@@ -71,3 +90,8 @@ services:
 networks:
   proxy:
     external: true
+
+volumes:
+  # I backup del database. Gestito da Docker: sopravvive a «compose down» e alla
+  # ricostruzione dell'immagine, e si cancella solo con «docker volume rm».
+  backups:

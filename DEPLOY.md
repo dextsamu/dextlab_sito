@@ -100,7 +100,11 @@ Opzionali:
   pannello.
 - `TRUSTED_PROXY_HOPS` — numero di proxy fidati davanti all'app (con Traefik: 1).
   Serve a risalire all'IP reale del visitatore per rate limit e statistiche.
-- `BACKUP_DIR` — cartella dei backup, per default `./data/backups`.
+- `BACKUP_DIR` — cartella dei backup, per default `./data/backups`. In Docker è
+  `/app/data/backups`, su un volume nominato: **non** un bind mount, perché un bind
+  mount sovrascrive i permessi dell'immagine con quelli della cartella dell'host e
+  il sito (utente `node`) non riesce a scrivere. Il pannello lo dice da sé se
+  succede — admin → Backup mostra un avviso senza che si prema niente.
 - `RUN_MIGRATIONS` — se `false`, l'entrypoint del container non applica le
   migrazioni all'avvio.
 

@@ -3,7 +3,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 import { guardAdmin, handleAdminPost } from '../../lib/admin-actions.ts';
 import { csrfToken } from '../../lib/auth.ts';
 import { leadStats } from '../../lib/admin.ts';
-import { listBackups, humanSize, RESTORE_HINT } from '../../lib/backup.ts';
+import { listBackups, humanSize, RESTORE_HINT, diagnosiBackup } from '../../lib/backup.ts';
 import { dateTime } from '../../lib/format.ts';
 
 const denied = guardAdmin(Astro);
@@ -13,7 +13,19 @@ const { response } = await handleAdminPost(Astro, '/admin/backup');
 if (response) return response;
 
 const csrf = csrfToken(Astro.cookies);
-const [backups, leads] = await Promise.all([listBackups(), leadStats()]);
+/*
+  Cosa non torna nella cartella dei backup, calcolato aprendo la pagina e non
+  premendo il pulsante. È il difetto che ha tenuto questo sito senza un solo
+  backup senza che si vedesse: la cartella montata nel container era di root, ogni
+  tentativo finiva in EACCES, e la pagina diceva «Nessun backup ancora. Premi
+  Esegui backup ora» — cioè descriveva un guasto con una frase che sembra un
+  invito.
+*/
+const [backups, leads, guaiBackup] = await Promise.all([
+  listBackups(),
+  leadStats(),
+  diagnosiBackup(),
+]);
 ---
 
 <AdminLayout current="backup" title="Backup" newLeads={leads.newCount}>
@@ -25,12 +37,33 @@ const [backups, leads] = await Promise.all([listBackups(), leadStats()]);
     </form>
   </h1>
 
+  {
+    guaiBackup.length > 0 && (
+      <div class="maint-box on" style="margin-bottom:20px">
+        <p class="ck big" style="color:#febc2e">Il backup non può funzionare</p>
+        <ul class="smtp-guai">
+          {guaiBackup.map((g) => (
+            <li>{g}</li>
+          ))}
+        </ul>
+        <p class="hint" style="margin:8px 0 0">
+          È un controllo sulla cartella, non sul database: si vede senza premere niente. Finché
+          resta, «Esegui backup ora» finirà in errore e <strong>non esiste nessuna copia dei tuoi
+          dati</strong>.
+        </p>
+      </div>
+    )
+  }
+
   <section class="block">
     {
       backups.length === 0 ? (
         <p class="hint">
-          Nessun backup ancora. Premi "Esegui backup ora" oppure configura il cron descritto in
-          DEPLOY.md.
+          {
+            guaiBackup.length > 0
+              ? 'Nessun backup, e non è perché non l\'hai ancora chiesto: leggi il riquadro qui sopra.'
+              : 'Nessun backup ancora. Premi "Esegui backup ora" oppure configura il cron descritto in DEPLOY.md.'
+          }
         </p>
       ) : (
         <table class="leads">
