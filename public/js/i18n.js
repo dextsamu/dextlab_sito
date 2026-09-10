@@ -16,6 +16,15 @@
     'Siti web, web app ed': 'Websites, web apps and', 'e-commerce': 'e-commerce',
     'su misura. Senza template, senza agenzie.': 'made to measure. No templates, no agencies.',
     'Iniziamo un progetto': "Let's start a project", 'Scopri i servizi': 'Explore services',
+    'Guarda i lavori': 'View the work', 'Progetto in evidenza': 'Featured project',
+    'online': 'online', 'per una risposta': 'for a reply',
+    'Fisso': 'Fixed', 'il preventivo scritto': 'the written quote',
+    'per il primo rilascio': 'to the first release',
+    'Digital product system': 'Digital product system', 'operativo': 'operational',
+    'Siti web': 'Websites', 'Web app': 'Web apps', 'Consulenza IT': 'IT consulting',
+    'Privacy & GDPR': 'Privacy & GDPR', 'design · code · deploy': 'design · code · deploy',
+    '01 strategia': '01 strategy', '02 interfaccia': '02 interface',
+    '03 sviluppo': '03 development', '04 crescita': '04 growth',
     // La prima domanda del configuratore sta nell'hero: le tre cifre non
     // verificabili che c'erano prima non ci sono più.
     'Che tipo di progetto ti serve?': 'What kind of project do you need?',
@@ -59,6 +68,12 @@
     'E questo sito, che è l\u2019unico di cui posso mostrarti anche l\u2019interno':
       'And this site, the only one whose insides I can show you too',
     'Non te lo racconto': "I won't just tell you",
+    'Dentro il progetto': 'Inside the project',
+    'Dal codice': 'From code', 'all’interfaccia.': 'to interface.',
+    'Una parte che lavora dietro le quinte. Una che rende tutto semplice da usare. Qui trovi il codice reale della stima e un esempio di interfaccia.': 'One part works behind the scenes. Another makes everything easy to use. Here is the actual estimate code and an example interface.',
+    'Dashboard / esempio di interfaccia': 'Dashboard / example interface',
+    'Informazioni, a colpo d’occhio': 'Information at a glance',
+    'Concept illustrativo per gestionali e dashboard, con dati dimostrativi.': 'Illustrative concept for management tools and dashboards, using sample data.',
     'Il codice che ha fatto': 'The code behind', 'quel numero': 'that number',
     "La stima che hai visto in cima non è un'immagine: la calcola questa funzione, letta dal file vero mentre la pagina si costruisce.":
       'The estimate you saw at the top is not an image: this function computes it, read from the real file while the page is built.',

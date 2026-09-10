@@ -31,6 +31,7 @@ import { datiLocali, attivitaJsonLd, faqJsonLd, graficoJsonLd } from '../lib/seo
 // Le impostazioni sono già state caricate dal middleware: si riusano invece di
 // interrogare di nuovo il database.
 const content = await getLandingContent(Astro.locals.settings);
+const mostraDpo = content.dpoAttivo || import.meta.env.DEV;
 
 // L'indice del bordo destro. Sta qui e non dentro Indice.astro perché è questo
 // file che sa quali sezioni vengono rese davvero: le recensioni ci sono solo se
@@ -40,11 +41,11 @@ const content = await getLandingContent(Astro.locals.settings);
 const sezioni = [
   { id: 'hero', nome: 'Inizio' },
   { id: 'servizi', nome: 'Servizi' },
-  { id: 'showcase', nome: 'Il codice' },
   // «Lavori» quando ce ne sono, «Caso reale» quando la sezione mostra solo
   // questo sito: il nome nell'indice deve dire cosa si trova là, non cosa
   // c'era prima.
   { id: 'portfolio', nome: content.works.length > 0 ? 'Lavori' : 'Caso reale' },
+  { id: 'showcase', nome: 'Il codice' },
   { id: 'processo', nome: 'Processo' },
   { id: 'stack', nome: 'Tecnologie' },
   { id: 'perche', nome: 'Approccio' },
@@ -100,18 +101,18 @@ const structuredData = graficoJsonLd([
   <Chrome />
   {/* La voce «Recensioni» nel menu esiste solo se la sezione esiste: un'ancora
       che porta a niente è peggio di una voce in meno. */}
-  <Nav mostraRecensioni={content.reviews.length > 0} mostraDpo={content.dpoAttivo} />
+  <Nav mostraRecensioni={content.reviews.length > 0} mostraDpo={mostraDpo} />
   <Indice voci={sezioni} />
   <Hero types={content.types} />
-  <Servizi mostraDpo={content.dpoAttivo} />
-  <Showcase />
+  <Servizi mostraDpo={mostraDpo} />
   <Portfolio lavori={content.works} />
+  <Showcase />
   <Processo />
   <Stack />
   {/* Perche.astro non esiste più: le sue righe erano le stesse di About dette
       un'altra volta, e la tabella di confronto parlava di terzi senza prove.
       Vedi il commento in About.astro. */}
-  <About qualifiche={content.credenziali} dpoAttivo={content.dpoAttivo} />
+  <About qualifiche={content.credenziali} dpoAttivo={mostraDpo} />
   {content.reviews.length > 0 && <Recensioni reviews={content.reviews} />}
   <Configuratore
     types={content.types}
@@ -127,7 +128,7 @@ const structuredData = graficoJsonLd([
     visitToken={Astro.locals.visitToken}
     tipoIniziale={content.types[0] ? chiaveListino(content.types[0].label) : ''}
   />
-  <Footer mostraDpo={content.dpoAttivo} />
+  <Footer mostraDpo={mostraDpo} />
   <WhatsAppFloat href={content.whatsappLink} />
   <ChatWidget />
   <CookieBanner />

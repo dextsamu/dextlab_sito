@@ -1,0 +1,68 @@
+---
+/**
+ * Una mappa dei servizi, non una demo finta: il nucleo rappresenta il prodotto
+ * e i cinque nodi le competenze che vengono composte intorno al progetto.
+ * Tutto è CSS/SVG, quindi non aggiunge librerie né lavoro al thread principale.
+ */
+const servizi = [
+  { nome: 'Siti web', classe: 'web', sigla: 'WEB' },
+  { nome: 'Web app', classe: 'app', sigla: 'APP' },
+  { nome: 'E-commerce', classe: 'shop', sigla: 'SHOP' },
+  { nome: 'Consulenza IT', classe: 'it', sigla: 'IT' },
+  { nome: 'Privacy & GDPR', classe: 'privacy', sigla: 'GDPR' },
+];
+---
+
+<div class="hero-tech reveal" aria-label="Mappa animata dei servizi Dext Lab">
+  <div class="hero-tech-head">
+    <span>Digital product system</span>
+    <span class="hero-tech-status"><i></i> operativo</span>
+  </div>
+
+  <div class="tech-stage">
+    <svg class="tech-links" viewBox="0 0 560 500" aria-hidden="true">
+      <defs>
+        <linearGradient id="linea-tech" x1="0" x2="1">
+          <stop offset="0" stop-color="#3fa9d6" />
+          <stop offset=".55" stop-color="#54c9c8" />
+          <stop offset="1" stop-color="#8bd89e" />
+        </linearGradient>
+      </defs>
+      <path d="M280 250 126 105" />
+      <path d="M280 250 432 95" />
+      <path d="M280 250 468 300" />
+      <path d="M280 250 330 430" />
+      <path d="M280 250 92 348" />
+      <circle cx="280" cy="250" r="108" />
+      <circle cx="280" cy="250" r="164" />
+    </svg>
+
+    <div class="tech-scan" aria-hidden="true"></div>
+
+    <div class="tech-core">
+      <span class="tech-core-kicker">DEXT LAB</span>
+      <strong>IDEA</strong>
+      <span>design · code · deploy</span>
+    </div>
+
+    <div class="tech-services">
+      {servizi.map((servizio) => (
+        <div class:list={['tech-service', servizio.classe]}>
+          <span>{servizio.sigla}</span>
+          <strong>{servizio.nome}</strong>
+        </div>
+      ))}
+    </div>
+
+    <span class="tech-packet p1" aria-hidden="true"></span>
+    <span class="tech-packet p2" aria-hidden="true"></span>
+    <span class="tech-packet p3" aria-hidden="true"></span>
+  </div>
+
+  <div class="hero-tech-foot">
+    <span>01 strategia</span>
+    <span>02 interfaccia</span>
+    <span>03 sviluppo</span>
+    <span>04 crescita</span>
+  </div>
+</div>
