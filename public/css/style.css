@@ -1057,7 +1057,11 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .cfg-sticky-label{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .cfg-sticky-val{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.05rem;font-variant-numeric:tabular-nums;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .cfg-sticky-cta{margin-left:auto;font-size:.82rem;font-weight:600;padding:9px 15px;border-radius:10px;background:var(--grad);color:#04121a;min-height:38px;display:grid;place-items:center}
-@media (max-width:780px){.cfg-sticky{display:flex}}
+@media (max-width:780px){
+  .cfg-sticky{display:flex}
+  body:has(.cfg-sticky.on) .wa-float,
+  body:has(.cfg-sticky.on) .chat-widget:not(.open) .chat-launch{display:none}
+}
 @media (prefers-reduced-motion:reduce){.cfg-sticky{transition:none}}
 
 /* Bersagli di tocco. I link inseriti in un paragrafo erano alti quanto la riga
