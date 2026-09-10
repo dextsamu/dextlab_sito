@@ -1223,13 +1223,12 @@ jobs:
       # il sito in inglese le etichette sono tradotte, il confronto non trovava
       # niente, e scegliere il tipo di progetto nell'hero non faceva nulla. Era
       # rotto in produzione e nessun controllo lo vedeva. Questo lo vede.
-      - name: Il preventivo si può mandare, e l'hero muove il configuratore
+      - name: Il preventivo si può mandare, e le azioni dell'hero portano alle sezioni
         run: |
           html=$(curl -s http://127.0.0.1:4321/)
           fail=0
           estrai() { grep -o "$1" <<<"$html" | grep -o 'data-k="[^"]*"' | sed 's/data-k="//;s/"//' | sort; }
           tipi=$(estrai 'class="cfg-type[^>]*data-k="[^"]*"')
-          eroe=$(estrai 'class="hero-tipo[^>]*data-k="[^"]*"')
           extra=$(grep -o '<input[^>]*data-k="[^"]*"' <<<"$html" | grep -o 'data-k="[^"]*"' | sed 's/data-k="//;s/"//' | sort)
 
           for coppia in "tipi:$tipi" "extra:$extra"; do
@@ -1241,16 +1240,17 @@ jobs:
             else echo "  ok    $n chiavi $nome, tutte diverse"; fi
           done
 
-          # Le due liste devono coincidere: sono lo stesso listino mostrato due
-          # volte, e l'aggancio fra l'hero e il configuratore è proprio questo.
-          if [ "$tipi" = "$eroe" ]; then
-            echo "  ok    hero e configuratore condividono le stesse chiavi"
-          else
-            echo "::error::le chiavi dell'hero e del configuratore non coincidono: scegliere in cima non muoverebbe il configuratore"
-            echo "  hero:          $(tr '\n' ' ' <<<"$eroe")"
-            echo "  configuratore: $(tr '\n' ' ' <<<"$tipi")"
-            fail=1
-          fi
+          # La nuova hero non duplica il listino: invita a scrivere o a vedere
+          # i lavori. Verifichiamo i link nel suo HTML e le destinazioni reali.
+          hero=$(python3 -c 'import re,sys; h=sys.stdin.read(); m=re.search(r"<section\b[^>]*\bid=\"hero\"[^>]*>(.*?)</section>", h, re.S); print(m.group(1) if m else "")' <<<"$html")
+          for destinazione in contatti portfolio; do
+            if grep -qF "href=\"#$destinazione\"" <<<"$hero" && grep -qF "id=\"$destinazione\"" <<<"$html"; then
+              echo "  ok    azione hero verso $destinazione e destinazione presenti"
+            else
+              echo "::error::azione hero o destinazione $destinazione mancante"
+              fail=1
+            fi
+          done
 
           # E l'aggancio non deve tornare a basarsi sul testo mostrato, che è
           # tradotto: è esattamente il difetto che era in produzione.
