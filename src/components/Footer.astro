@@ -15,11 +15,12 @@
 import { inLineaDa, versione } from '../lib/stato.ts';
 
 interface Props {
+  mostraLavori?: boolean;
   /** Vero quando la pagina del servizio protezione dati è pubblicata. */
   mostraDpo?: boolean;
 }
 
-const { mostraDpo = false } = Astro.props;
+const { mostraDpo = false, mostraLavori = false } = Astro.props;
 
 const su = inLineaDa();
 const ver = versione();
@@ -59,7 +60,7 @@ const ver = versione();
       <p class="footer-copy">© <span id="year"></span> Dext Lab — Tecnologia e design su misura.</p>
       <nav class="footer-links">
         <a href="#servizi">Servizi</a>
-        <a href="#portfolio">Caso reale</a>
+        <a href="#portfolio">{mostraLavori ? 'Lavori' : 'Caso reale'}</a>
         <a href="#contatti">Contatti</a>
         {mostraDpo && <a href="/gdpr">Protezione dati</a>}
         <a href="/privacy">Privacy</a>

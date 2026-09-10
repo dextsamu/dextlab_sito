@@ -251,6 +251,37 @@
     'Risposte rapide': 'Quick answers',
   };
 
+  Object.assign(EN, {
+    'prodotti digitali': 'digital products', '24 ore': '24 hours',
+    'Protezione dati': 'Data protection', 'Privacy e protezione dati': 'Privacy and data protection',
+    "Cookie banner che funziona davvero, informativa scritta sul serio, registro dei trattamenti del sito. E, per chi ne ha bisogno, l'incarico di DPO esterno.": 'A cookie banner that actually works, a carefully written privacy notice, and a record of website processing activities. External DPO services are also available where needed.',
+    'Informative': 'Privacy notices', 'DPO esterno': 'External DPO', 'Come funziona': 'How it works',
+    'Come funziona →': 'How it works →', 'Architettura': 'Architecture',
+    'Prezzi, lavori e FAQ stanno su PostgreSQL e si cambiano dal pannello, senza toccare il codice.': 'Prices, projects and FAQs are stored in PostgreSQL and can be edited in the dashboard without touching the code.',
+    'Gestionale per sagre e feste: cassa, comande in cucina, menu QR e magazzino. La demo è aperta a tutti.': 'Management software for festivals and events: checkout, kitchen orders, QR menus and inventory. The demo is open to everyone.',
+    'Azienda vitivinicola a Fosdinovo: le schede dei vini, il territorio e i contatti, in italiano e in inglese.': 'A winery in Fosdinovo: wine profiles, the local area and contact information, in Italian and English.',
+    'Ristorante di griglia a Castelnuovo Magra: il menu con i prezzi, la galleria e gli orari, in due lingue.': 'A grill restaurant in Castelnuovo Magra: a priced menu, gallery and opening hours, in two languages.',
+    'Cassa e comande': 'Checkout and orders', 'Sito e documentazione': 'Website and documentation',
+    'Demo pubblica': 'Public demo', 'Sito bilingue': 'Bilingual website', 'Schede dei vini': 'Wine profiles',
+    'Modulo contatti': 'Contact form', 'Mappa su richiesta': 'Map on request',
+    'Menu con i prezzi': 'Priced menu', 'Galleria': 'Gallery', 'Orari e mappa': 'Hours and map',
+    'Menu QR': 'QR menu', 'Apri menu': 'Open menu', 'Chiudi menu': 'Close menu',
+    'Lingua': 'Language', 'Stato del servizio': 'Service status',
+    'Impegni di Dext Lab': 'Dext Lab commitments',
+    'Mappa animata dei servizi Dext Lab': 'Animated map of Dext Lab services',
+    'Scrivici su WhatsApp': 'Message us on WhatsApp', 'Apri le risposte rapide': 'Open quick answers'
+  });
+
+  function translatedText(key) {
+    if (EN[key]) return EN[key];
+    const weeks = key.match(/^circa (\d+) settiman[ae]$/);
+    if (weeks) return `about ${weeks[1]} ${weeks[1] === '1' ? 'week' : 'weeks'}`;
+    const uptime = key.match(/^(\d+) (minuti|ore|giorni)$/);
+    if (uptime) return `${uptime[1]} ${{ minuti: 'minutes', ore: 'hours', giorni: 'days' }[uptime[2]]}`;
+    if (key.startsWith('Schermata del sito ')) return key.replace('Schermata del sito ', 'Screenshot of ');
+    return key;
+  }
+
   const placeholders = {
     'Scrivi un messaggio…': 'Type a message…',
     'Il tuo messaggio': 'Your message',
@@ -279,11 +310,21 @@
     if (!collected) collect();
     orig.forEach((itText, node) => {
       const key = itText.trim();
-      if (lang === 'en' && EN[key]) {
-        node.nodeValue = itText.replace(key, EN[key]);
+      if (lang === 'en') {
+        node.nodeValue = itText.replace(key, translatedText(key));
       } else {
         node.nodeValue = itText;
       }
+    });
+    // Preserve original accessible labels, just like visible text.
+    document.querySelectorAll('[aria-label], img[alt]').forEach((el) => {
+      ['aria-label', 'alt'].forEach((attr) => {
+        if (!el.hasAttribute(attr)) return;
+        const original = `data-i18n-${attr}`;
+        if (!el.hasAttribute(original)) el.setAttribute(original, el.getAttribute(attr));
+        const it = el.getAttribute(original);
+        el.setAttribute(attr, lang === 'en' ? translatedText(it) : it);
+      });
     });
     // placeholders
     document.querySelectorAll('[placeholder]').forEach((el) => {

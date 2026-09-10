@@ -2,6 +2,7 @@
 // Barra di navigazione con selettore lingua (gestito da public/js/i18n.js).
 
 interface Props {
+  mostraLavori?: boolean;
   /** Falso quando non ci sono recensioni vere: la voce di menu sparisce con la sezione. */
   mostraRecensioni?: boolean;
   /**
@@ -13,7 +14,7 @@ interface Props {
   mostraDpo?: boolean;
 }
 
-const { mostraRecensioni = true, mostraDpo = false } = Astro.props;
+const { mostraRecensioni = true, mostraDpo = false, mostraLavori = false } = Astro.props;
 ---
 
 <header class="nav" id="nav">
@@ -23,7 +24,7 @@ const { mostraRecensioni = true, mostraDpo = false } = Astro.props;
     </a>
     <nav class="nav-links" id="navLinks">
       <a href="#servizi">Servizi</a>
-      <a href="#portfolio">Caso reale</a>
+      <a href="#portfolio">{mostraLavori ? 'Lavori' : 'Caso reale'}</a>
       <a href="#perche">Perché me</a>
       {mostraRecensioni && <a href="#recensioni">Recensioni</a>}
       {mostraDpo && <a href="/gdpr">Protezione dati</a>}

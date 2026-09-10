@@ -101,7 +101,7 @@ const structuredData = graficoJsonLd([
   <Chrome />
   {/* La voce «Recensioni» nel menu esiste solo se la sezione esiste: un'ancora
       che porta a niente è peggio di una voce in meno. */}
-  <Nav mostraRecensioni={content.reviews.length > 0} mostraDpo={mostraDpo} />
+  <Nav mostraRecensioni={content.reviews.length > 0} mostraDpo={mostraDpo} mostraLavori={content.works.length > 0} />
   <Indice voci={sezioni} />
   <Hero types={content.types} />
   <Servizi mostraDpo={mostraDpo} />
@@ -128,7 +128,7 @@ const structuredData = graficoJsonLd([
     visitToken={Astro.locals.visitToken}
     tipoIniziale={content.types[0] ? chiaveListino(content.types[0].label) : ''}
   />
-  <Footer mostraDpo={mostraDpo} />
+  <Footer mostraDpo={mostraDpo} mostraLavori={content.works.length > 0} />
   <WhatsAppFloat href={content.whatsappLink} />
   <ChatWidget />
   <CookieBanner />

@@ -1542,6 +1542,66 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;line-height:1.1;
 .footer-links a{color:var(--muted);font-size:.9rem;transition:color .25s;display:inline-flex;align-items:center;min-height:24px}
 .footer-links a:hover{color:var(--text)}
 
+/* Continuità visiva della seconda metà della landing. */
+#processo .step{opacity:1;padding:26px;border-radius:18px;background:rgba(255,255,255,.018)}
+#processo .step.viva{background:rgba(84,201,200,.045)}
+#processo .step-n{font-size:.85rem;letter-spacing:.12em}
+#processo .step h3{margin:18px 0 12px;font-size:1.2rem}
+#processo .step p{line-height:1.7}
+#perche .about-inner{grid-template-columns:minmax(240px,.8fr) minmax(0,1.2fr);gap:70px}
+#perche .about-visual{min-height:340px;border:1px solid var(--border);border-radius:24px;background:linear-gradient(145deg,rgba(84,201,200,.045),transparent);overflow:hidden}
+#perche .about-logo{width:180px;filter:none}
+#perche .about-ring{width:280px;height:280px;opacity:.45}
+#perche .about-text p{line-height:1.8;font-size:.95rem}
+#perche .impegni{margin-top:48px;padding-top:28px}
+#perche .impegni ul{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+#perche .impegni li{padding:26px;border:1px solid var(--border);border-radius:18px;background:rgba(255,255,255,.018);gap:12px}
+#perche .impegni li b{font-size:1.1rem}
+#perche .impegni-t{line-height:1.7}
+#preventivo .config{gap:30px;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+#preventivo .config-form{gap:18px;min-width:0}
+#preventivo .config-block{padding:28px;border:1px solid var(--border);border-radius:18px;background:rgba(255,255,255,.018)}
+#preventivo .config-block h3{font-size:1.2rem;margin-bottom:22px}
+#preventivo .config-types{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+#preventivo .cfg-type{border-radius:10px;padding:14px 16px;text-align:left;min-height:48px}
+#preventivo .cfg-type.active{background:rgba(84,201,200,.12);border-color:var(--cyan);color:var(--text)}
+#preventivo .cfg-type:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+#preventivo .cfg-addon{border-radius:10px;min-height:48px;background:transparent}
+#preventivo .cfg-scelta{border-radius:8px;min-height:42px;display:inline-flex;align-items:center}
+#preventivo .cfg-domande{gap:22px}
+#preventivo .config-result{border-radius:18px;padding:30px;background:linear-gradient(145deg,rgba(84,201,200,.075),#0b1220)}
+#preventivo .cfg-note{line-height:1.7}
+#contatti .contact-inner{gap:48px;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}
+#contatti .contact-text p{font-size:1rem;line-height:1.75;max-width:440px}
+#contatti .contact-direct{align-items:stretch;max-width:390px;gap:12px}
+#contatti .contact-link{padding:18px 20px;border-radius:12px;background:rgba(255,255,255,.018);overflow-wrap:anywhere}
+#contatti .contact-link svg{flex-shrink:0}
+#contatti .contact-form{padding:30px;border-radius:18px;background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.012));gap:20px;min-width:0}
+#contatti .field input,#contatti .field textarea{border-radius:10px}
+#contatti .field textarea{min-height:150px;resize:vertical}
+#faq details{border-radius:14px}
+.footer-links{flex-wrap:wrap;gap:12px 22px}
+@media(max-width:900px){
+  #processo .steps{grid-template-columns:repeat(2,minmax(0,1fr));padding-top:0;gap:16px}
+  #processo .steps::before,#processo .steps::after,#processo .step::before{display:none}
+  #perche .about-inner{gap:32px;grid-template-columns:minmax(200px,.75fr) minmax(0,1.25fr)}
+  #preventivo .config{grid-template-columns:minmax(0,1fr)}
+  #preventivo .config-result{position:static}
+}
+@media(max-width:720px){
+  #perche .about-inner,#contatti .contact-inner{grid-template-columns:minmax(0,1fr);gap:28px}
+  #perche .about-visual{min-height:260px}
+  #perche .about-logo{width:145px}
+  #perche .about-ring{width:220px;height:220px}
+  #perche .impegni ul{grid-template-columns:minmax(0,1fr)}
+  #contatti .contact-direct{max-width:none}
+}
+@media(max-width:520px){
+  #processo .steps{grid-template-columns:minmax(0,1fr)}
+  #processo .step,#perche .impegni li,#preventivo .config-block,#preventivo .config-result,#contatti .contact-form{padding:22px}
+  #preventivo .config-types{grid-template-columns:minmax(0,1fr)}
+}
+
 /* ---------- reveal animation ---------- */
 /* Il punto di partenza nascosto vale solo se c'è qualcuno che poi lo scopre.
    La classe .js la mette uno script inline nel <head>, che la ritira dopo tre
