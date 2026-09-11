@@ -5,7 +5,7 @@
   // dizionario: testo italiano -> inglese
   const EN = {
     // nav
-    'Servizi': 'Services', 'Caso reale': 'Real case', 'Perché me': 'Why me',
+    'Servizi': 'Services', 'Perché me': 'Why me',
     // nomi dell'indice sul bordo destro
     'Inizio': 'Start', 'Risultati': 'Results', 'Tecnologie': 'Technologies',
     'Approccio': 'Approach', 'Preventivo': 'Estimate', 'Domande': 'Questions', 'Contatti': 'Contact',
@@ -106,10 +106,7 @@
     'Hai già in mente cosa vorresti rendere più semplice?':
       'Do you already know what you would like to make simpler?',
     'Raccontamelo': 'Tell me about it',
-    // il caso reale: questo sito
-    'Un caso reale': 'A real case', 'Il sito che stai': 'The site you are', 'guardando': 'looking at',
-    'Nessuna piattaforma, nessun tema comprato. Tutto quello che segue lo puoi verificare adesso, da questa pagina.':
-      'No platform, no bought theme. Everything below you can verify right now, from this page.',
+    'Progetti reali,': 'Real projects,', 'non promesse': 'not promises',
     'rendering': 'rendering',
     'Astro 7 lato server a ogni richiesta, non una pagina statica rigenerata a mano.':
       'Astro 7 server-side on every request, not a static page rebuilt by hand.',

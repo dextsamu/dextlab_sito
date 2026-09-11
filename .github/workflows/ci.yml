@@ -396,8 +396,8 @@ jobs:
           q() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -q -c "$1"; }
           qv() { PGPASSWORD=dext_ci psql -h 127.0.0.1 -U dext -d dext -tA -c "$1"; }
 
-          # 1) Nessun ripiego nel codice: se la tabella è vuota o spenta la
-          # sezione resta il caso studio di questo sito, con le sue sei prove.
+          # 1) Nessun ripiego nel codice: il portfolio contiene soltanto lavori
+          # reali. Il valore per il cliente vive nella sezione risultati.
           if grep -qE 'FALLBACK_WORKS' src/lib/content.ts; then
             echo "::error::è comparso un ripiego per i lavori: un lavoro inventato ha un indirizzo che si può aprire"
             fail=1
@@ -426,14 +426,22 @@ jobs:
               && echo "  ok    $dominio è in pagina" \
               || { echo "::error::$dominio non compare: la riga è stata svuotata o spenta"; fail=1; }
           done
-          grep -qF 'class="prova"' <<<"$html" \
-            && echo "  ok    il caso studio di questo sito resta al suo posto" \
-            || { echo "::error::sono sparite le prove del caso studio"; fail=1; }
+          grep -qF 'class="impact-lab' <<<"$html" \
+            && echo "  ok    la sezione risultati è presente" \
+            || { echo "::error::manca la sezione risultati"; fail=1; }
+          pannelli=$(grep -o 'data-impact-panel=' <<<"$html" | wc -l)
+          [ "$pannelli" = 3 ] \
+            && echo "  ok    i tre risultati per il cliente sono in pagina" \
+            || { echo "::error::risultati attesi 3, trovati $pannelli"; fail=1; }
+          if grep -qF 'class="prova"' <<<"$html"; then
+            echo "::error::è tornato il vecchio caso studio autoreferenziale"
+            fail=1
+          else
+            echo "  ok    nessun blocco autoreferenziale nel portfolio"
+          fi
 
-          # 1-bis) E la prova al contrario: spente tutte le righe, la sezione deve
-          # tornare esattamente com'era prima che esistessero i lavori. È il
-          # controllo che l'assenza di ripiego vale anche a runtime e non solo
-          # come grep sul sorgente.
+          # 1-bis) E la prova al contrario: spente tutte le righe, non deve
+          # comparire un progetto finto o tornare il vecchio caso studio.
           q "update works set active = false"
           h0=$(curl -s http://127.0.0.1:4321/)
           n0=$(grep -o 'class="lavoro"' <<<"$h0" | wc -l)
@@ -443,12 +451,13 @@ jobs:
           else
             echo "  ok    con la tabella spenta non si mostra nessun lavoro"
           fi
-          grep -qF 'Il sito che stai' <<<"$h0" \
-            && echo "  ok    e la sezione torna a intitolarsi «Il sito che stai guardando»" \
-            || { echo "::error::senza lavori l'intestazione non è tornata quella del caso studio"; fail=1; }
-          grep -qF 'class="prova"' <<<"$h0" \
-            && echo "  ok    con le sei prove al loro posto" \
-            || { echo "::error::senza lavori sono sparite anche le prove"; fail=1; }
+          grep -qF 'Progetti reali,' <<<"$h0" \
+            && echo "  ok    e il portfolio vuoto promette soltanto progetti reali" \
+            || { echo "::error::senza lavori manca lo stato vuoto del portfolio"; fail=1; }
+          if grep -qF 'class="prova"' <<<"$h0"; then
+            echo "::error::senza lavori è tornato il vecchio caso studio"
+            fail=1
+          fi
           # Si riaccende quello che la 008 aveva acceso: in CI il database è
           # appena migrato, quindi le righe complete sono esattamente quelle.
           q "update works set active = true where title <> '' and url <> ''"
@@ -484,14 +493,13 @@ jobs:
             grep -q 'rel="noopener' <<<"$a" || { echo "::error::una scheda apre in una nuova finestra senza rel=noopener: $a"; fail=1; }
           done <<<"$schede"
           [ $fail = 0 ] && echo "  ok    la scheda è un link http(s) con rel=noopener"
-          # E la sezione cambia intestazione quando i lavori ci sono, altrimenti
-          # resterebbe «Un caso reale» sopra un elenco di lavori.
+          # E la sezione cambia intestazione quando i lavori ci sono.
           grep -qF 'Siti che sono' <<<"$h3" \
             && echo "  ok    con i lavori la sezione si intitola diversamente" \
-            || { echo "::error::con i lavori presenti l'intestazione è rimasta quella del caso studio"; fail=1; }
-          grep -qF 'class="prova"' <<<"$h3" \
-            && echo "  ok    e il caso studio resta anche con i lavori" \
-            || { echo "::error::i lavori hanno mangiato il caso studio"; fail=1; }
+            || { echo "::error::con i lavori presenti manca l'intestazione corretta"; fail=1; }
+          grep -qF 'class="impact-lab' <<<"$h3" \
+            && echo "  ok    i risultati restano separati dai lavori" \
+            || { echo "::error::con i lavori è sparita la sezione risultati"; fail=1; }
 
           # 4) «Progetto mio» compare solo dove è segnato. Confondere un prodotto
           # nato da sé con una commessa non è modestia, è un'informazione

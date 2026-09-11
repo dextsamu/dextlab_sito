@@ -41,10 +41,7 @@ const mostraDpo = content.dpoAttivo || import.meta.env.DEV;
 const sezioni = [
   { id: 'hero', nome: 'Inizio' },
   { id: 'servizi', nome: 'Servizi' },
-  // «Lavori» quando ce ne sono, «Caso reale» quando la sezione mostra solo
-  // questo sito: il nome nell'indice deve dire cosa si trova là, non cosa
-  // c'era prima.
-  { id: 'portfolio', nome: content.works.length > 0 ? 'Lavori' : 'Caso reale' },
+  { id: 'portfolio', nome: 'Lavori' },
   { id: 'showcase', nome: 'Risultati' },
   { id: 'processo', nome: 'Processo' },
   { id: 'stack', nome: 'Tecnologie' },
