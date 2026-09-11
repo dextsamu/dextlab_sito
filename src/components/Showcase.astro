@@ -1,94 +1,107 @@
 ---
-/**
- * Qui c'erano due finestre di browser disegnate con dei div: una finta home con
- * dei rettangoli grigi al posto del testo, e una finta dashboard con due numeri
- * che salivano e un grafico a barre inventato. Era l'unico posto del sito che
- * mostrava qualcosa che non esiste.
- *
- * Al posto della prima c'è il codice vero che ha calcolato la stima nell'hero,
- * letto dal file con ?raw: viene inlineato in fase di build, quindi non può
- * invecchiare. Se qualcuno cambia la formula, cambia anche quello che si legge
- * qui — che è l'unico modo perché una promessa del genere resti vera.
- *
- * La dashboard resta: è l'unica delle due che illustra un tipo di prodotto
- * (gestionali, gente che guarda dei numeri) invece di illustrare questo sito.
- */
-import sorgente from '../lib/content.ts?raw';
-
-const chartBars = ['42%', '66%', '38%', '80%', '55%', '96%', '70%'];
-
-/**
- * Estrae initialEstimate dal sorgente vero. Se i marcatori non si trovano —
- * funzione rinominata, firma cambiata — non si mostra un ripiego inventato: si
- * salta il riquadro, perché un codice sbagliato sotto la scritta «questo è il
- * codice vero» è peggio di nessun codice.
- */
-function estrai(nome: string): string[] | null {
-  const apertura = sorgente.indexOf(`export function ${nome}`);
-  if (apertura === -1) return null;
-  const chiusura = sorgente.indexOf('\n}', apertura);
-  if (chiusura === -1) return null;
-  return sorgente.slice(apertura, chiusura + 2).split('\n');
-}
-
-const righe = estrai('initialEstimate');
-// La riga del calcolo è quella da guardare: è dove nasce il numero.
-const daEvidenziare = (r: string) => r.includes('price *');
+const risultati = [
+  {
+    id: 'richieste',
+    numero: '01',
+    titolo: 'Più richieste utili',
+    problema: 'Le persone arrivano, ma non capiscono subito cosa offri o quale passo fare.',
+    intervento: 'Messaggi chiari, percorsi brevi e inviti all’azione messi nel punto giusto.',
+    risultato: 'Chi è davvero interessato trova la strada e ti contatta con una richiesta più completa.',
+    segnale: 'contatto più chiaro',
+  },
+  {
+    id: 'tempo',
+    numero: '02',
+    titolo: 'Meno lavoro manuale',
+    problema: 'Richieste, prenotazioni e aggiornamenti passano tra messaggi e strumenti scollegati.',
+    intervento: 'Moduli, automazioni e pannelli costruiti intorno al tuo modo di lavorare.',
+    risultato: 'Le attività ripetitive scorrono da sole e tu recuperi tempo per quelle che contano.',
+    segnale: 'flusso più semplice',
+  },
+  {
+    id: 'autonomia',
+    numero: '03',
+    titolo: 'Più controllo e autonomia',
+    problema: 'Ogni modifica dipende da qualcuno e le informazioni importanti restano sparse.',
+    intervento: 'Contenuti aggiornabili e dati raccolti in un unico spazio, senza passaggi inutili.',
+    risultato: 'Hai uno strumento che puoi capire, gestire e far crescere insieme alla tua attività.',
+    segnale: 'gestione più libera',
+  },
+];
 ---
 
 <section class="section" id="showcase">
   <div class="container">
     <div class="section-head aperta reveal">
-      <span class="eyebrow">Dentro il progetto</span>
-      <h2>Dal codice <span class="grad">all’interfaccia.</span></h2>
+      <span class="eyebrow">Il risultato</span>
+      <h2>Non solo un sito. <span class="grad">Un modo più semplice di lavorare.</span></h2>
       <p class="section-lead">
-        Una parte che lavora dietro le quinte. Una che rende tutto semplice da usare.
-        Qui trovi il codice reale della stima e un esempio di interfaccia.
+        La tecnologia resta dietro le quinte. Davanti devono esserci risultati concreti,
+        facili da usare ogni giorno.
       </p>
     </div>
 
-    <div class="mocks" data-spotlight>
-      {
-        righe && (
-          <figure class="mock reveal" data-lab="source">
-            <div class="codice">
-              <div class="codice-bar">
-                <span class="codice-file">src/lib/content.ts</span>
-              </div>
-              <pre class="codice-corpo"><code>{righe.map((r) => (
-                <span class:list={['codice-riga', { spicca: daEvidenziare(r) }]}>{r || ' '}</span>
-              ))}</code></pre>
-            </div>
-            <figcaption>
-              <strong>Codice, non mockup</strong>se cambia la formula, cambia questo riquadro
-            </figcaption>
-          </figure>
-        )
-      }
+    <div class="impact-lab reveal" data-impact-lab>
+      <div class="impact-tabs" role="tablist" aria-label="Scegli il risultato da esplorare">
+        {risultati.map((voce, i) => (
+          <button
+            class:list={['impact-tab', { 'is-active': i === 0 }]}
+            type="button"
+            role="tab"
+            id={`impact-tab-${voce.id}`}
+            aria-controls={`impact-panel-${voce.id}`}
+            aria-selected={i === 0 ? 'true' : 'false'}
+            tabindex={i === 0 ? 0 : -1}
+            data-impact-tab={voce.id}
+          >
+            <span>{voce.numero}</span>
+            <strong>{voce.titolo}</strong>
+            <i aria-hidden="true">→</i>
+          </button>
+        ))}
+      </div>
 
-      <figure class="mock reveal" data-lab="interface">
-        <div class="dashboard-demo">
-          <div class="codice-bar"><span class="codice-file">Dashboard / esempio di interfaccia</span></div>
-        <div class="window" aria-hidden="true">
-          <div class="win-side">
-            <span class="ws active"></span><span class="ws"></span><span class="ws"></span><span
-              class="ws"></span>
-          </div>
-          <div class="win-main">
-            <div class="win-stats">
-              {/* Il valore d'arrivo sta nell'HTML, lo zero lo mette il JS appena
-                  prima di animare: senza JS si leggono i numeri, non degli zeri. */}
-              <div class="kpi"><span class="kpi-n" data-to="92">92</span><i></i></div>
-              <div class="kpi"><span class="kpi-n" data-to="48">48</span><i></i></div>
-            </div>
-            <div class="chart">
-              {chartBars.map((h) => <span style={`--h:${h}`}></span>)}
-            </div>
-          </div>
+      <div class="impact-stage">
+        <div class="impact-orbit" aria-hidden="true">
+          <span class="impact-core">DEXT LAB</span>
+          <i></i><i></i><i></i>
         </div>
-        </div>
-        <figcaption><strong>Informazioni, a colpo d’occhio</strong>Concept illustrativo per gestionali e dashboard, con dati dimostrativi.</figcaption>
-      </figure>
+
+        {risultati.map((voce, i) => (
+          <article
+            class:list={['impact-panel', { 'is-active': i === 0 }]}
+            role="tabpanel"
+            id={`impact-panel-${voce.id}`}
+            aria-labelledby={`impact-tab-${voce.id}`}
+            hidden={i !== 0}
+            data-impact-panel={voce.id}
+          >
+            <p class="impact-signal"><span aria-hidden="true"></span>{voce.segnale}</p>
+            <h3>{voce.titolo}</h3>
+            <div class="impact-flow">
+              <div>
+                <span>Prima</span>
+                <p>{voce.problema}</p>
+              </div>
+              <i aria-hidden="true">→</i>
+              <div>
+                <span>Costruiamo</span>
+                <p>{voce.intervento}</p>
+              </div>
+              <i aria-hidden="true">→</i>
+              <div class="impact-arrivo">
+                <span>Dopo</span>
+                <p>{voce.risultato}</p>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
     </div>
+
+    <p class="impact-cta reveal">
+      Hai già in mente cosa vorresti rendere più semplice?
+      <a href="#contatti">Raccontamelo <span aria-hidden="true">→</span></a>
+    </p>
   </div>
 </section>

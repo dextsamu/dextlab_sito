@@ -7,7 +7,7 @@
     // nav
     'Servizi': 'Services', 'Caso reale': 'Real case', 'Perché me': 'Why me',
     // nomi dell'indice sul bordo destro
-    'Inizio': 'Start', 'Il codice': 'The code', 'Tecnologie': 'Technologies',
+    'Inizio': 'Start', 'Risultati': 'Results', 'Tecnologie': 'Technologies',
     'Approccio': 'Approach', 'Preventivo': 'Estimate', 'Domande': 'Questions', 'Contatti': 'Contact',
     'Recensioni': 'Reviews', 'Contattami': 'Contact me',
     // hero
@@ -49,7 +49,7 @@
     'Consulenza IT': 'IT Consulting',
     'Scelta dello stack, architettura, sicurezza e ottimizzazione. Ti affianco nelle decisioni tecniche che contano.':
       'Stack choice, architecture, security and optimisation. I support you on the technical decisions that matter.',
-    // showcase: il codice vero al posto del mockup disegnato
+    // risultati: il valore per il cliente, non il codice di questo sito
     // lavori
     'Lavori': 'Work', 'Siti che sono': 'Sites that are', 'online adesso': 'online right now',
     'progetto mio': 'my own project',
@@ -68,23 +68,44 @@
     'Apri il sito': 'Open the site',
     'Prove verificabili': 'Verifiable proof', 'Stato': 'Status',
     'Percorsi': 'Pages to explore', 'Schermate': 'Screenshots',
-    'Ogni voce porta al sito vero: si apre e si guarda. Sotto c\u2019è questo sito, il solo su cui posso mostrarti anche com\u2019è fatto dentro.':
-      'Every entry links to the real site: open it and look. Below is this site, the only one where I can also show you how it is built.',
-    'E questo sito, che è l\u2019unico di cui posso mostrarti anche l\u2019interno':
-      'And this site, the only one whose insides I can show you too',
-    'Non te lo racconto': "I won't just tell you",
-    'Dentro il progetto': 'Inside the project',
-    'Dal codice': 'From code', 'all’interfaccia.': 'to interface.',
-    'Una parte che lavora dietro le quinte. Una che rende tutto semplice da usare. Qui trovi il codice reale della stima e un esempio di interfaccia.': 'One part works behind the scenes. Another makes everything easy to use. Here is the actual estimate code and an example interface.',
-    'Dashboard / esempio di interfaccia': 'Dashboard / example interface',
-    'Informazioni, a colpo d’occhio': 'Information at a glance',
-    'Concept illustrativo per gestionali e dashboard, con dati dimostrativi.': 'Illustrative concept for management tools and dashboards, using sample data.',
-    'Il codice che ha fatto': 'The code behind', 'quel numero': 'that number',
-    "La stima che hai visto in cima non è un'immagine: la calcola questa funzione, letta dal file vero mentre la pagina si costruisce.":
-      'The estimate you saw at the top is not an image: this function computes it, read from the real file while the page is built.',
-    'Codice, non mockup': 'Code, not a mockup',
-    'se cambia la formula, cambia questo riquadro': 'if the formula changes, this box changes',
-    'gestionali e dashboard in tempo reale': 'management tools and real-time dashboards',
+    'Ogni voce porta al sito vero: puoi aprirlo, esplorarlo e vedere da vicino cosa è stato realizzato.':
+      'Every entry links to the real site: open it, explore it and see what was actually built.',
+    'Qui entrano soltanto progetti reali, online e verificabili.':
+      'Only real, live and verifiable projects belong here.',
+    'Il risultato': 'The outcome',
+    'Non solo un sito.': 'Not just a website.',
+    'Un modo più semplice di lavorare.': 'A simpler way to work.',
+    'La tecnologia resta dietro le quinte. Davanti devono esserci risultati concreti, facili da usare ogni giorno.':
+      'Technology stays behind the scenes. What you see should be concrete results that are easy to use every day.',
+    'Scegli il risultato da esplorare': 'Choose an outcome to explore',
+    'Più richieste utili': 'More useful enquiries',
+    'Le persone arrivano, ma non capiscono subito cosa offri o quale passo fare.':
+      'People arrive, but they do not immediately understand what you offer or what to do next.',
+    'Messaggi chiari, percorsi brevi e inviti all’azione messi nel punto giusto.':
+      'Clear messages, short journeys and calls to action placed where they matter.',
+    'Chi è davvero interessato trova la strada e ti contatta con una richiesta più completa.':
+      'People who are genuinely interested find their way and contact you with a more complete enquiry.',
+    'contatto più chiaro': 'clearer contact',
+    'Meno lavoro manuale': 'Less manual work',
+    'Richieste, prenotazioni e aggiornamenti passano tra messaggi e strumenti scollegati.':
+      'Enquiries, bookings and updates move between disconnected messages and tools.',
+    'Moduli, automazioni e pannelli costruiti intorno al tuo modo di lavorare.':
+      'Forms, automations and dashboards built around the way you work.',
+    'Le attività ripetitive scorrono da sole e tu recuperi tempo per quelle che contano.':
+      'Repetitive tasks flow on their own, giving you more time for the work that matters.',
+    'flusso più semplice': 'simpler workflow',
+    'Più controllo e autonomia': 'More control and independence',
+    'Ogni modifica dipende da qualcuno e le informazioni importanti restano sparse.':
+      'Every change depends on someone else and important information stays scattered.',
+    'Contenuti aggiornabili e dati raccolti in un unico spazio, senza passaggi inutili.':
+      'Editable content and data gathered in one place, without unnecessary steps.',
+    'Hai uno strumento che puoi capire, gestire e far crescere insieme alla tua attività.':
+      'You have a tool you can understand, manage and grow with your business.',
+    'gestione più libera': 'more independent management',
+    'Prima': 'Before', 'Costruiamo': 'We build', 'Dopo': 'After',
+    'Hai già in mente cosa vorresti rendere più semplice?':
+      'Do you already know what you would like to make simpler?',
+    'Raccontamelo': 'Tell me about it',
     // il caso reale: questo sito
     'Un caso reale': 'A real case', 'Il sito che stai': 'The site you are', 'guardando': 'looking at',
     'Nessuna piattaforma, nessun tema comprato. Tutto quello che segue lo puoi verificare adesso, da questa pagina.':

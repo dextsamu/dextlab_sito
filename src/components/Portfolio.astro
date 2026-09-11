@@ -9,9 +9,9 @@
  * leggeva smetteva di credere anche al resto. Sono state sostituite dal caso
  * studio di questo sito, che è verificabile riga per riga.
  *
- * Adesso ci sono anche i lavori per clienti, e sono la prova più forte delle
- * due: un sito online si apre e si guarda. Il caso studio resta sotto, perché
- * dice una cosa che i siti dei clienti non possono dire — com'è fatto dentro.
+ * Adesso ci sono i lavori per clienti, che sono la prova più forte: un sito
+ * online si apre e si guarda. I dettagli tecnici di Dext Lab restano nella
+ * sezione tecnologie, così il portfolio parla soltanto dei progetti reali.
  *
  * I lavori arrivano dal database e non da qui: cambiano quando arriva un
  * cliente, e non devono richiedere un deploy. Come le recensioni non hanno un
@@ -32,35 +32,6 @@ interface Props {
 }
 
 const { lavori } = Astro.props;
-
-const prove = [
-  {
-    voce: 'rendering',
-    testo: 'Astro 7 lato server a ogni richiesta, non una pagina statica rigenerata a mano.',
-  },
-  {
-    voce: 'contenuti',
-    testo:
-      'Prezzi, lavori e FAQ stanno su PostgreSQL e si cambiano dal pannello, senza toccare il codice.',
-  },
-  {
-    voce: 'deploy',
-    testo:
-      'Da un push alla produzione in due minuti: immagine costruita, pubblicata e messa in servizio da sola.',
-  },
-  {
-    voce: 'controlli',
-    testo: 'Verifiche automatiche prima di ogni pubblicazione: se una fallisce, il deploy non parte.',
-  },
-  {
-    voce: 'caratteri',
-    testo: 'Serviti da questo dominio: la pagina non fa nessuna richiesta verso altri host.',
-  },
-  {
-    voce: 'senza JS',
-    testo: 'Con JavaScript disattivato la pagina resta leggibile per intero, sezioni comprese.',
-  },
-];
 
 /** Etichette dai tag separati da virgola. Le stringhe vuote cadono. */
 function etichette(tags: string): string[] {
@@ -115,8 +86,8 @@ const conFigura = lavori.map((l) => {
       <p class="section-lead">
         {
           lavori.length > 0
-            ? 'Ogni voce porta al sito vero: si apre e si guarda. Sotto c’è questo sito, il solo su cui posso mostrarti anche com’è fatto dentro.'
-            : 'Nessuna piattaforma, nessun tema comprato. Tutto quello che segue lo puoi verificare adesso, da questa pagina.'
+            ? 'Ogni voce porta al sito vero: puoi aprirlo, esplorarlo e vedere da vicino cosa è stato realizzato.'
+            : 'Qui entrano soltanto progetti reali, online e verificabili.'
         }
       </p>
     </div>
@@ -217,25 +188,6 @@ const conFigura = lavori.map((l) => {
         </div>
       )
     }
-
-    {
-      lavori.length > 0 && (
-        <p class="lavori-cap reveal">
-          E questo sito, che è l’unico di cui posso mostrarti anche l’interno
-        </p>
-      )
-    }
-
-    <div class="prove reveal">
-      {
-        prove.map((p) => (
-          <div class="prova">
-            <span class="prova-voce">{p.voce}</span>
-            <p>{p.testo}</p>
-          </div>
-        ))
-      }
-    </div>
 
     <p class="portfolio-note reveal">
       Vuoi vedere come lavoro su un progetto tuo? <a href="#contatti">Scrivimi</a>.

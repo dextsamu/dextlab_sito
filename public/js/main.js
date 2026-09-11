@@ -435,29 +435,42 @@
     })
   );
 
-  /* KPI count-up inside dashboard mockup */
-  const kpis = document.querySelectorAll('.kpi-n');
-  if ('IntersectionObserver' in window && kpis.length && !menoMoto.matches) {
-    const ko = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (!e.isIntersecting) return;
-          const el = e.target;
-          const target = +el.dataset.to;
-          el.textContent = '0';
-          const start = performance.now();
-          const tick = (now) => {
-            const p = Math.min((now - start) / 1300, 1);
-            el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3)));
-            if (p < 1) requestAnimationFrame(tick);
-          };
-          requestAnimationFrame(tick);
-          ko.unobserve(el);
-        });
-      },
-      { threshold: 0.6 }
-    );
-    kpis.forEach((el) => ko.observe(el));
+  /* La mappa dei risultati funziona come un vero tab panel. Click, frecce e
+     Home/End portano allo stesso contenuto; nessun cambio automatico mentre si
+     legge. */
+  const impactLab = document.querySelector('[data-impact-lab]');
+  if (impactLab) {
+    const tabs = [...impactLab.querySelectorAll('[data-impact-tab]')];
+    const panels = [...impactLab.querySelectorAll('[data-impact-panel]')];
+    const apriRisultato = (tab, portaFocus = false) => {
+      const id = tab.dataset.impactTab;
+      tabs.forEach((voce) => {
+        const attiva = voce === tab;
+        voce.classList.toggle('is-active', attiva);
+        voce.setAttribute('aria-selected', String(attiva));
+        voce.tabIndex = attiva ? 0 : -1;
+      });
+      panels.forEach((pannello) => {
+        const attivo = pannello.dataset.impactPanel === id;
+        pannello.hidden = !attivo;
+        pannello.classList.toggle('is-active', attivo);
+      });
+      if (portaFocus) tab.focus();
+    };
+
+    tabs.forEach((tab, indice) => {
+      tab.addEventListener('click', () => apriRisultato(tab));
+      tab.addEventListener('keydown', (e) => {
+        let prossimo = indice;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') prossimo = (indice + 1) % tabs.length;
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prossimo = (indice - 1 + tabs.length) % tabs.length;
+        else if (e.key === 'Home') prossimo = 0;
+        else if (e.key === 'End') prossimo = tabs.length - 1;
+        else return;
+        e.preventDefault();
+        apriRisultato(tabs[prossimo], true);
+      });
+    });
   }
 
   /* card cursor glow */
