@@ -46,7 +46,7 @@ const marcaTempo = marcaOra();
 ---
 
 <section class="section section-contact" id="contatti">
-  <div class="container contact-inner">
+  <div class="container contact-inner" data-spotlight>
     <div class="contact-text reveal">
       <span class="eyebrow">Parliamone</span>
       <h2>Hai un progetto <span class="grad">in mente?</span></h2>
@@ -98,6 +98,7 @@ const marcaTempo = marcaOra();
       <span class="solo-sr" id="cfgEchoSr" role="status" aria-live="polite"></span>
     </p>
     <form class="contact-form reveal" id="contactForm" action="/api/contact" method="POST" novalidate>
+      <p class="contact-form-cap">Scrivimi due righe, al resto penso io.</p>
       <div class="field">
         <input type="text" id="name" name="name" required placeholder=" " />
         <label for="name">Nome</label>

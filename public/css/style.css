@@ -1315,6 +1315,33 @@ html[data-js="on"] .work-nav{display:grid;grid-template-columns:repeat(3,minmax(
 #showcase .chart span{opacity:.8;border-radius:4px 4px 0 0}
 #showcase .mock figcaption{font-size:.86rem;line-height:1.65;padding:0 4px}
 #showcase .mock figcaption strong{font-size:1.15rem;margin-bottom:5px}
+
+/* Il laboratorio diventa una coppia di strumenti, non due riquadri isolati. */
+#showcase{position:relative;overflow:clip}
+#showcase .container{position:relative}
+#showcase .mocks{position:relative;padding:28px;border:1px solid var(--border);border-radius:24px;
+  background:linear-gradient(145deg,rgba(255,255,255,.025),rgba(5,10,18,.7));isolation:isolate}
+#showcase .mocks::before{content:"";position:absolute;width:420px;height:420px;left:35%;top:-180px;
+  border-radius:50%;background:radial-gradient(circle,rgba(125,114,255,.13),transparent 67%);
+  pointer-events:none;z-index:-1}
+#showcase .mock{position:relative}
+#showcase .mock::before{content:attr(data-lab);position:absolute;top:-12px;right:18px;z-index:3;
+  padding:4px 9px;border:1px solid var(--border-2);border-radius:999px;background:#09101c;
+  color:var(--cyan);font:600 .61rem/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  letter-spacing:.12em;text-transform:uppercase;pointer-events:none}
+#showcase .codice,#showcase .dashboard-demo{transition:border-color .35s,box-shadow .35s,transform .35s var(--ease)}
+#showcase .mock:hover .codice,#showcase .mock:hover .dashboard-demo{border-color:rgba(84,201,200,.38);
+  box-shadow:0 24px 60px rgba(0,0,0,.34),0 0 42px rgba(84,201,200,.06);transform:translateY(-3px)}
+#showcase .codice-corpo{counter-reset:code-line}
+#showcase .codice-riga{counter-increment:code-line;display:grid;grid-template-columns:28px 1fr;gap:12px;padding:0 18px 0 12px}
+#showcase .codice-riga::before{content:counter(code-line,decimal-leading-zero);color:rgba(151,177,197,.34);
+  text-align:right;font-size:.65rem;pointer-events:none}
+#showcase .codice-riga.spicca::before{color:var(--cyan)}
+#showcase .chart span{transition:filter .25s,opacity .25s,transform .25s var(--ease);transform-origin:bottom}
+#showcase .chart:hover span{opacity:.35}
+#showcase .chart span:hover{opacity:1;filter:brightness(1.3);transform:scaleY(1.04)}
+#showcase .mock figcaption{margin-top:-2px;padding:15px 17px;border-left:1px solid var(--border);
+  background:linear-gradient(90deg,rgba(84,201,200,.045),transparent 75%)}
 @media(max-width:900px){
   .work-stage > .lavoro{grid-template-columns:minmax(0,1fr);gap:28px}
   .work-copy{grid-template-columns:minmax(0,1fr) auto;column-gap:20px;align-items:end}
@@ -2056,3 +2083,106 @@ table.gd-norma tbody tr:last-child td{border-bottom:0}
   color:var(--cyan);margin-bottom:6px}
 .ore-linea b{display:block;margin-bottom:4px}
 .ore-testo{color:var(--muted);font-size:.9rem;line-height:1.6}
+
+/* ---------- rifinitura sistema ---------- */
+/* Una luce di prossimità unisce le superfici interattive. È solo un accento:
+   non copre mai testo o controlli e non esiste come contenuto accessibile. */
+[data-spotlight]{position:relative;overflow:clip;--spot-x:50%;--spot-y:50%}
+[data-spotlight]::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(360px circle at var(--spot-x) var(--spot-y),rgba(84,201,200,.1),transparent 70%);
+  opacity:0;transition:opacity .35s;z-index:0}
+[data-spotlight]:hover::after{opacity:1}
+[data-spotlight]>*{position:relative;z-index:1}
+
+/* Codici fantasma: danno un ritmo editoriale alle sezioni senza aggiungere
+   contenuto da leggere. */
+#processo,#stack,#perche,#preventivo,#faq,#contatti{position:relative;overflow:clip}
+#processo::before,#stack::before,#perche::before,#preventivo::before,#faq::before,#contatti::before{
+  position:absolute;right:clamp(20px,7vw,110px);top:44px;color:rgba(151,177,197,.07);
+  font:700 clamp(5rem,14vw,11rem)/.8 'Space Grotesk',sans-serif;letter-spacing:-.08em;
+  pointer-events:none;z-index:0}
+#processo::before{content:'02'}#stack::before{content:'03'}#perche::before{content:'04'}
+#preventivo::before{content:'05'}#faq::before{content:'06'}#contatti::before{content:'07'}
+
+/* processo: la tappa attiva è leggibile a colpo d'occhio e risponde al mouse */
+#processo .step{overflow:hidden;box-shadow:0 12px 34px rgba(0,0,0,.12)}
+#processo .step::after{content:"";position:absolute;inset:auto 0 0;height:2px;
+  background:linear-gradient(90deg,var(--cyan),transparent);transform:scaleX(0);transform-origin:left;
+  transition:transform .45s var(--ease);pointer-events:none}
+#processo .step:hover{transform:translateY(-6px);border-color:var(--border-2);opacity:1}
+#processo .step:hover::after,#processo .step.viva::after{transform:scaleX(1)}
+#processo .step h3{font-size:1.25rem;letter-spacing:-.02em}
+
+/* stack: ogni tecnologia ha una presenza propria, come un rack acceso */
+#stack .gira{position:relative;z-index:2;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:1px;border-radius:20px;box-shadow:0 24px 70px rgba(0,0,0,.2)}
+#stack .gira-v{min-height:126px;padding:24px;transition:background .3s,transform .3s var(--ease)}
+#stack .gira-v::after{content:"";position:absolute;right:22px;top:24px;width:6px;height:6px;border-radius:50%;
+  background:var(--green);box-shadow:0 0 14px rgba(139,216,158,.8);pointer-events:none}
+#stack .gira-v:hover{z-index:2;background:var(--surface-2);transform:translateY(-4px)}
+#stack .gira-v:hover::after{animation:stackPulse 1s ease-in-out infinite}
+@keyframes stackPulse{50%{transform:scale(1.8);opacity:.55}}
+#stack .marquee-track span{transition:border-color .3s,color .3s,transform .3s var(--ease)}
+#stack .marquee-track span:hover{border-color:var(--cyan);color:var(--cyan);transform:translateY(-3px)}
+
+/* approccio: il logo diventa un piccolo sistema orbitale */
+#perche .about-inner{padding:36px;border:1px solid var(--border);border-radius:24px;
+  background:linear-gradient(145deg,rgba(255,255,255,.025),rgba(8,14,25,.46));
+  box-shadow:0 24px 70px rgba(0,0,0,.18)}
+#perche .about-visual{min-height:340px}
+.about-orbit-label{position:absolute;z-index:3;padding:6px 10px;border:1px solid var(--border-2);
+  border-radius:999px;background:rgba(8,14,25,.9);color:var(--cyan);
+  font:600 .63rem/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase;
+  box-shadow:0 0 20px rgba(84,201,200,.12);pointer-events:none}
+.about-orbit-label-a{top:20%;left:8%}.about-orbit-label-b{right:4%;top:46%;color:#b6a9ff}.about-orbit-label-c{bottom:17%;left:17%;color:var(--green)}
+#perche .impegni li{padding:18px;border:1px solid transparent;border-radius:14px;transition:background .3s,border-color .3s,transform .3s var(--ease)}
+#perche .impegni li:hover{background:var(--surface);border-color:var(--border);transform:translateY(-3px)}
+
+/* configuratore: una singola plancia con contrasto fra scelte e risultato */
+#preventivo .config{position:relative;z-index:2;padding:30px;border:1px solid var(--border);border-radius:24px;
+  background:linear-gradient(145deg,rgba(255,255,255,.02),rgba(8,14,25,.55));box-shadow:0 28px 80px rgba(0,0,0,.2)}
+#preventivo .config-block{padding:20px 0;border-bottom:1px solid rgba(151,177,197,.13)}
+#preventivo .config-block:first-child{padding-top:0}
+#preventivo .config-block:last-child{border-bottom:0;padding-bottom:0}
+#preventivo .config-result{box-shadow:0 20px 60px rgba(84,201,200,.08);transition:box-shadow .35s,transform .35s var(--ease)}
+#preventivo .config:focus-within .config-result{box-shadow:0 26px 72px rgba(84,201,200,.16);transform:translateY(-3px)}
+#preventivo .cfg-type,#preventivo .cfg-addon,#preventivo .cfg-scelta{transition:border-color .25s,background .25s,transform .25s var(--ease)}
+#preventivo .cfg-type:hover,#preventivo .cfg-addon:hover,#preventivo .cfg-scelta:hover{transform:translateY(-2px)}
+
+/* recensioni e FAQ: più spazio alla voce, meno griglia anonima */
+#recensioni .reviews{position:relative;z-index:2}
+#recensioni .review{position:relative;overflow:hidden;padding:32px;box-shadow:0 20px 50px rgba(0,0,0,.18)}
+#recensioni .review::before{content:'“';position:absolute;right:22px;top:2px;color:rgba(84,201,200,.12);
+  font:700 8rem/1 Georgia,serif;pointer-events:none}
+#recensioni .review:hover{transform:translateY(-8px);box-shadow:0 28px 64px rgba(0,0,0,.28)}
+#faq .faq{position:relative;z-index:2;max-width:900px;counter-reset:faq}
+#faq .faq-item{counter-increment:faq;transition:transform .3s var(--ease),border-color .3s,background .3s}
+#faq .faq-item summary::before{content:counter(faq,decimal-leading-zero);margin-right:18px;color:var(--cyan);
+  font:600 .7rem/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.08em}
+#faq .faq-item:hover{transform:translateX(4px);border-color:var(--border-2)}
+
+/* contatti: la call to action finale ha una cornice che si accende col form */
+#contatti .contact-inner{position:relative;z-index:2;padding:34px;border:1px solid var(--border);border-radius:24px;
+  background:linear-gradient(135deg,rgba(84,201,200,.055),rgba(8,14,25,.64) 48%,rgba(125,114,255,.05));
+  box-shadow:0 30px 90px rgba(0,0,0,.24)}
+#contatti .contact-form{box-shadow:0 18px 54px rgba(0,0,0,.18);transition:border-color .35s,box-shadow .35s}
+#contatti .contact-form:focus-within{border-color:var(--border-2);box-shadow:0 24px 70px rgba(84,201,200,.12)}
+.contact-form-cap{margin:-5px 0 2px;font-family:'Space Grotesk',sans-serif;color:var(--text);
+  font-size:1.05rem;font-variation-settings:'wght' 560}
+#contatti .contact-direct .contact-link{box-shadow:0 8px 24px rgba(0,0,0,.15)}
+
+@media(max-width:720px){
+  #processo::before,#stack::before,#perche::before,#preventivo::before,#faq::before,#contatti::before{top:28px;font-size:5rem}
+  #perche .about-inner,#preventivo .config,#contatti .contact-inner{padding:22px;border-radius:18px}
+  #perche .about-visual{min-height:280px}.about-ring{width:275px;height:275px}
+  .about-orbit-label-a{left:0}.about-orbit-label-b{right:0}.about-orbit-label-c{bottom:8%;left:7%}
+}
+@media(max-width:540px){
+  #showcase .mocks{padding:18px;border-radius:18px}
+  #preventivo .config-block{padding:16px 0}
+  #contatti .contact-inner{margin-left:-4px;margin-right:-4px}
+}
+@media(prefers-reduced-motion:reduce){
+  [data-spotlight]::after{transition:none}.about-ring{animation:none}
+  #processo .step:hover,#stack .gira-v:hover,#contatti .contact-form:focus-within,#preventivo .config:focus-within .config-result{transform:none}
+}

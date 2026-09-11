@@ -63,6 +63,7 @@
     // lasciare la pagina in italiano è meglio del contrario — chi legge in
     // inglese capisce cosa sta per aprire.
     'Guarda da vicino': 'Take a closer look',
+    'Scrivimi due righe, al resto penso io.': 'Write me two lines, I will take it from there.',
     'Seleziona un progetto': 'Choose a project',
     'Apri il sito': 'Open the site',
     'Ogni voce porta al sito vero: si apre e si guarda. Sotto c\u2019è questo sito, il solo su cui posso mostrarti anche com\u2019è fatto dentro.':

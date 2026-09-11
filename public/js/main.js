@@ -106,6 +106,22 @@
     activate(0, false);
   });
 
+  /* Le superfici del resto della landing seguono il puntatore con una luce
+     minima. È progressiva: senza JS resta solo il CSS, e con touch non serve. */
+  if (!menoMoto.matches && window.matchMedia('(pointer:fine)').matches) {
+    document.querySelectorAll('[data-spotlight]').forEach((surface) => {
+      surface.addEventListener('pointermove', (event) => {
+        const r = surface.getBoundingClientRect();
+        surface.style.setProperty('--spot-x', `${(event.clientX - r.left).toFixed(1)}px`);
+        surface.style.setProperty('--spot-y', `${(event.clientY - r.top).toFixed(1)}px`);
+      });
+      surface.addEventListener('pointerleave', () => {
+        surface.style.setProperty('--spot-x', '50%');
+        surface.style.setProperty('--spot-y', '50%');
+      });
+    });
+  }
+
   /* alveare: profondità sullo scorrimento
      ---------------------------------------
      Gli esagoni salgono mentre scendi, ognuno a una velocità sua, e rientrano
