@@ -2186,3 +2186,33 @@ table.gd-norma tbody tr:last-child td{border-bottom:0}
   [data-spotlight]::after{transition:none}.about-ring{animation:none}
   #processo .step:hover,#stack .gira-v:hover,#contatti .contact-form:focus-within,#preventivo .config:focus-within .config-result{transform:none}
 }
+/* ---------- fiducia e casi studio ---------- */
+.about-person{display:flex;align-items:center;gap:13px;margin:0 0 20px;padding:13px 15px;
+  border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.022)}
+.about-person-mark{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border-radius:12px;
+  color:#06131a;background:var(--grad);box-shadow:0 0 24px rgba(84,201,200,.2);
+  font:700 1.1rem/1 'Space Grotesk',sans-serif}
+.about-person>span:last-child{display:grid;gap:3px}
+.about-person small{color:var(--cyan);font:600 .65rem/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  letter-spacing:.12em;text-transform:uppercase}
+.about-person strong{font:600 1.05rem/1.25 'Space Grotesk',sans-serif;color:var(--text)}
+.about-fit{list-style:none;margin:24px 0 0;padding:0;display:grid;gap:1px;border:1px solid var(--border);
+  border-radius:14px;overflow:hidden;background:var(--border)}
+.about-fit li{display:grid;grid-template-columns:34px 1fr;align-items:center;gap:10px;padding:12px 14px;
+  background:rgba(8,14,25,.96)}
+.about-fit li span{color:var(--cyan);font:600 .64rem/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  letter-spacing:.08em}
+.about-fit li b{color:var(--text);font-size:.83rem;font-weight:550}
+
+.lp-story{display:grid;gap:0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.lp-story-step{display:grid;grid-template-columns:42px minmax(0,1fr);gap:20px;padding:26px 0}
+.lp-story-step+.lp-story-step{border-top:1px solid var(--border)}
+.lp-story-num{padding-top:4px;color:var(--cyan);font:600 .7rem/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  letter-spacing:.1em}
+.lp-story-step h2{margin:0 0 9px;font-size:1.12rem;letter-spacing:-.02em}
+.lp-story-step p{margin:0;color:var(--muted);line-height:1.75}
+
+@media(max-width:540px){
+  .about-person{padding:12px}.about-fit{margin-top:20px}
+  .lp-story-step{grid-template-columns:30px minmax(0,1fr);gap:12px;padding:22px 0}
+}

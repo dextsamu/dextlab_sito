@@ -140,6 +140,14 @@
     // about
     "L'approccio": 'The approach',
     'Tecnologia al servizio della': 'Technology serving', 'tua idea': 'your idea',
+    'Dietro Dext Lab': 'Behind Dext Lab', 'Ciao, sono Samuele.': "Hi, I'm Samuele.",
+    'Seguo personalmente analisi, design, sviluppo e messa online. Per questo chi ti risponde è anche chi prende le decisioni tecniche e costruisce davvero il progetto.':
+      'I personally handle analysis, design, development and launch. So the person replying to you is also the one making the technical decisions and actually building the project.',
+    'Lavoro con attività locali, professionisti e piccole imprese che hanno un’idea da lanciare, un sito da rifare o un processo da trasformare in uno strumento più semplice.':
+      'I work with local businesses, professionals and small companies that have an idea to launch, a website to rebuild or a process to turn into a simpler tool.',
+    'Quando ha senso lavorare insieme': 'When working together makes sense',
+    'Un’idea da lanciare': 'An idea to launch', 'Un sito da rifare': 'A website to rebuild',
+    'Un lavoro da semplificare': 'A workflow to simplify',
     'nasce da un metodo diverso: unisco le migliori tecnologie moderne a un modo di lavorare snello, senza passaggi inutili, per costruire prodotti digitali su misura, più in fretta e a un costo accessibile.':
       'is born from a different method: I combine the best modern technologies with a lean way of working, with no pointless steps, to build tailor-made digital products, faster and at an accessible cost.',
     "Niente template riciclati né agenzie con dieci passaggi e tempi infiniti. Tu mi racconti l'obiettivo, io lo traduco in un prodotto curato nel design e pronto a funzionare.":

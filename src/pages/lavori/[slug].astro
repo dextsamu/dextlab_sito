@@ -137,9 +137,17 @@ const ogLavoro = anteprima ? anteprima.split('?')[0] : undefined;
           />
         )}
 
-        <div class="lp-testo">
-          {testo.map((p) => (
-            <p>{p}</p>
+        <div class="lp-testo lp-story">
+          {testo.map((p, i) => (
+            <section class="lp-story-step">
+              <span class="lp-story-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+              <div>
+                {i < 3 && (
+                  <h2>{['Il progetto', 'Cosa è stato realizzato', 'Cosa puoi verificare'][i]}</h2>
+                )}
+                <p>{p}</p>
+              </div>
+            </section>
           ))}
         </div>
 
