@@ -1298,11 +1298,12 @@ html[data-js="on"] .work-nav{display:grid;grid-template-columns:repeat(3,minmax(
   background:rgba(255,255,255,.02);font-size:.69rem}
 .work-actions{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:30px}
 .work-actions .btn{padding:11px 17px;font-size:.79rem}
-.work-detail{display:inline-flex;align-items:center;gap:7px;color:var(--cyan);
+.work-actions .lavoro-piu{display:inline-flex;align-items:center;gap:7px;color:var(--cyan);
+  margin:0;padding:0;border:0;border-radius:0;background:none;
   font-family:'Space Grotesk',sans-serif;font-size:.8rem;border-bottom:1px solid transparent;
   transition:border-color .3s,transform .3s var(--ease)}
-.work-detail:hover{border-color:var(--border-2);transform:translateX(2px)}
-.work-detail:focus-visible{outline:2px solid var(--cyan);outline-offset:4px}
+.work-actions .lavoro-piu:hover{background:none;border-color:var(--border-2);transform:translateX(2px)}
+.work-actions .lavoro-piu:focus-visible{outline:2px solid var(--cyan);outline-offset:4px}
 #showcase .mocks{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:26px;align-items:stretch}
 #showcase .mock{min-width:0;margin:0;gap:20px}
 #showcase .codice,#showcase .dashboard-demo{border:1px solid var(--border);border-radius:18px;overflow:hidden;background:#080e19;flex:1}
