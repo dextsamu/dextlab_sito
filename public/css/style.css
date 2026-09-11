@@ -1318,14 +1318,16 @@ html[data-js="on"] .work-nav{display:grid;grid-template-columns:repeat(3,minmax(
    orbitale ricorda il sistema dell'hero senza trasformarsi in un altro mockup. */
 #showcase{position:relative;overflow:clip}
 #showcase .container{position:relative}
-.impact-lab{position:relative;display:grid;grid-template-columns:minmax(245px,.72fr) minmax(0,1.7fr);
+.impact-lab{position:relative;display:grid;grid-template-columns:minmax(0,1fr);
   min-height:440px;border:1px solid var(--border);border-radius:24px;overflow:hidden;
   background:linear-gradient(145deg,rgba(255,255,255,.025),rgba(5,10,18,.82));isolation:isolate;
   box-shadow:0 34px 90px rgba(0,0,0,.22)}
 .impact-lab::before{content:"";position:absolute;width:520px;height:520px;right:-150px;top:-260px;
   border-radius:50%;background:radial-gradient(circle,rgba(125,114,255,.18),transparent 66%);
   pointer-events:none;z-index:-1}
-.impact-tabs{display:grid;align-content:stretch;border-right:1px solid var(--border);background:rgba(5,10,18,.62)}
+.impact-tabs{display:none;align-content:stretch;border-right:1px solid var(--border);background:rgba(5,10,18,.62)}
+html[data-js="on"] .impact-lab{grid-template-columns:minmax(245px,.72fr) minmax(0,1.7fr)}
+html[data-js="on"] .impact-tabs{display:grid}
 .impact-tab{appearance:none;position:relative;display:grid;grid-template-columns:34px minmax(0,1fr) auto;
   align-items:center;gap:12px;width:100%;padding:25px 22px;border:0;border-bottom:1px solid var(--border);
   color:var(--muted);background:transparent;text-align:left;cursor:pointer;transition:color .3s,background .3s}
@@ -1354,6 +1356,8 @@ html[data-js="on"] .work-nav{display:grid;grid-template-columns:repeat(3,minmax(
 @keyframes impactTurn{to{transform:rotate(360deg)}}
 .impact-panel{position:relative;z-index:1;min-width:0;animation:impactIn .42s var(--ease) both}
 .impact-panel[hidden]{display:none}
+.impact-panel+.impact-panel{margin-top:46px;padding-top:46px;border-top:1px solid var(--border)}
+html[data-js="on"] .impact-panel+.impact-panel{margin-top:0;padding-top:0;border-top:0}
 @keyframes impactIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 .impact-signal{display:flex;align-items:center;gap:9px;margin:0 0 14px;color:var(--green);
   font:600 .68rem/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase}
@@ -1380,8 +1384,8 @@ html[data-js="on"] .work-nav{display:grid;grid-template-columns:repeat(3,minmax(
   .work-copy{grid-template-columns:minmax(0,1fr) auto;column-gap:20px;align-items:end}
   .work-kicker,.work-copy h3,.work-url,.work-summary,.work-tags{grid-column:1/-1}
   .work-actions{grid-column:1/-1}
-  .impact-lab{grid-template-columns:minmax(0,1fr)}
-  .impact-tabs{grid-template-columns:repeat(3,minmax(0,1fr));border-right:0;border-bottom:1px solid var(--border)}
+  html[data-js="on"] .impact-lab{grid-template-columns:minmax(0,1fr)}
+  html[data-js="on"] .impact-tabs{grid-template-columns:repeat(3,minmax(0,1fr));border-right:0;border-bottom:1px solid var(--border)}
   .impact-tab{grid-template-columns:auto minmax(0,1fr);padding:19px 16px;border-bottom:0;border-right:1px solid var(--border)}
   .impact-tab:last-child{border-right:0}.impact-tab>i{display:none}
   .impact-tab::after{left:18%;right:18%;top:auto;bottom:0;width:auto;height:2px;transform:scaleX(0)}
@@ -1400,7 +1404,7 @@ html[data-js="on"] .work-nav{display:grid;grid-template-columns:repeat(3,minmax(
 }
 @media(max-width:540px){
   .impact-lab{margin-left:-4px;margin-right:-4px;border-radius:18px;min-height:0}
-  .impact-tabs{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+  html[data-js="on"] .impact-tabs{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
   .impact-tabs::-webkit-scrollbar{display:none}
   .impact-tab{flex:0 0 74%;scroll-snap-align:start;padding:18px 16px}
   .impact-stage{padding:36px 20px 30px}.impact-orbit{width:190px;height:190px;opacity:.45}

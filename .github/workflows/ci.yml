@@ -1384,32 +1384,22 @@ jobs:
           fi
           exit $fail
 
-      # Le cifre che salgono da zero all'ingresso nella vista devono avere il
-      # valore d'arrivo già nell'HTML servito: quando erano uno zero risolto solo
-      # dal JS, un visitatore senza JS leggeva "0" al posto del numero. Restano i
-      # due KPI del mockup: le tre cifre dell'hero sono state sostituite dalla
-      # prima domanda del configuratore.
-      - name: Le cifre animate sono già nell'HTML servito
+      # I pannelli si alternano quando c'è JS, ma il server deve consegnarli tutti
+      # e nessuno deve nascere con hidden: senza script restano tre blocchi
+      # leggibili invece di una sezione mutilata.
+      - name: I risultati sono già nell'HTML servito
         run: |
           html=$(curl -s http://127.0.0.1:4321/)
           fail=0
-          n=0
-          while read -r coppia; do
-            [ -n "$coppia" ] || continue
-            n=$((n + 1))
-            atteso=${coppia#*\"}; atteso=${atteso%%\"*}
-            reso=${coppia##*>}; reso=${reso%<}
-            if [ "$atteso" = "$reso" ]; then
-              echo "  ok    cifra $atteso servita dal server"
-            else
-              echo "::error::servito \"$reso\" al posto di $atteso: senza JS è quello che si legge"
-              fail=1
-            fi
-          done <<<"$(grep -oE '(data-count|data-to)="[0-9]+">[0-9]*<' <<<"$html")"
-          if [ "$n" != "2" ]; then
-            echo "::error::cifre animate trovate: $n, attese 2"
-            fail=1
-          fi
+          for atteso in 'Più richieste utili' 'Meno lavoro manuale' 'Più controllo e autonomia'; do
+            grep -qF "$atteso" <<<"$html" \
+              && echo "  ok    «$atteso» è già nell'HTML" \
+              || { echo "::error::manca «$atteso» nell'HTML servito"; fail=1; }
+          done
+          nascosti=$(grep -oE 'class="impact-panel[^"]*"[^>]*hidden' <<<"$html" | wc -l)
+          [ "$nascosti" = 0 ] \
+            && echo "  ok    senza JS tutti i risultati restano leggibili" \
+            || { echo "::error::$nascosti risultati nascono nascosti nell'HTML"; fail=1; }
           exit $fail
 
       # Il sito PHP che c'era prima serviva CSS e JS con "access plus 7 days" nel

@@ -471,6 +471,7 @@
         apriRisultato(tabs[prossimo], true);
       });
     });
+    apriRisultato(tabs[0]);
   }
 
   /* card cursor glow */
