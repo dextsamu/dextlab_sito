@@ -41,7 +41,7 @@
   document.querySelectorAll('[data-work-console]').forEach((consoleEl) => {
     const nav = consoleEl.querySelector('.work-nav');
     const tabs = [...consoleEl.querySelectorAll('[data-work-tab]')];
-    const panels = [...consoleEl.querySelectorAll('[data-work-panel]')];
+    const panels = [...consoleEl.querySelectorAll('.work-stage > .lavoro')];
     if (!nav || !tabs.length || tabs.length !== panels.length) return;
 
     nav.setAttribute('role', 'tablist');
@@ -49,6 +49,7 @@
       const next = (index + tabs.length) % tabs.length;
       tabs.forEach((tab, i) => {
         const active = i === next;
+        panels[i].id = `work-panel-${i + 1}`;
         tab.classList.toggle('is-active', active);
         tab.setAttribute('role', 'tab');
         tab.setAttribute('aria-selected', String(active));
