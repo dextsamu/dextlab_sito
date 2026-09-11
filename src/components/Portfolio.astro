@@ -140,22 +140,22 @@ const conFigura = lavori.map((l) => {
             ))}
           </div>
 
-          <div class="work-stage" aria-live="polite">
+          <ul class="work-stage" aria-live="polite">
             {conFigura.map((l, i) => (
-              <article class="work-panel" id={`work-panel-${i + 1}`} data-work-panel>
-                <div class="work-preview">
+              <li class="lavoro" id={`work-panel-${i + 1}`} data-work-panel>
+                <a
+                  class="work-preview"
+                  href={l.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Apri il sito ${l.title} in una nuova scheda`}
+                >
                   <div class="work-browserbar" aria-hidden="true">
                     <span class="work-browser-dots"><i></i><i></i><i></i></span>
                     <span class="work-browser-address">{dominio(l.url)}</span>
                     <span class="work-live"><i></i> online</span>
                   </div>
-                  <a
-                    class="work-screen"
-                    href={l.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Apri il sito ${l.title} in una nuova scheda`}
-                  >
+                  <span class="work-screen">
                     {l.figura ? (
                       <img
                         src={l.figura}
@@ -166,8 +166,8 @@ const conFigura = lavori.map((l) => {
                       <span class="work-domain-art" aria-hidden="true">{dominio(l.url)}</span>
                     )}
                     <span class="work-open">Apri il sito <b aria-hidden="true">↗</b></span>
-                  </a>
-                </div>
+                  </span>
+                </a>
 
                 <div class="work-copy">
                   <div class="work-kicker">
@@ -193,9 +193,9 @@ const conFigura = lavori.map((l) => {
                     )}
                   </div>
                 </div>
-              </article>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )
     }
