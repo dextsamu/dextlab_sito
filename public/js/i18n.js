@@ -286,19 +286,25 @@
     'Appuntamento non trovato — Dext Lab': 'Appointment not found — Dext Lab',
     'Orario, dettagli e disdetta del tuo appuntamento.': 'Time, details and cancellation of your appointment.',
     'Ultimo aggiornamento:': 'Last updated:',
+    'Ultimo aggiornamento: agosto 2026': 'Last updated: August 2026',
     'agosto 2026': 'August 2026',
     // privacy
     '1. Titolare del trattamento': '1. Data controller',
     '2. Dati raccolti': '2. Data collected',
     'Dal modulo di contatto': 'From the contact form',
+    ': nome, email, oggetto e messaggio. Se usi il configuratore, anche le risposte che scegli, perché diventano parte della richiesta.': ': name, email, subject and message. If you use the configurator, the answers you select are also collected because they become part of the request.',
     'nome, email, oggetto e messaggio. Se usi il configuratore, anche le risposte che scegli, perché diventano parte della richiesta.': 'name, email, subject and message. If you use the configurator, the answers you select are also collected because they become part of the request.',
     'Dalla prenotazione di una call': 'When booking a call',
+    ": nome, email, il telefono se lo scrivi, le note se le aggiungi, e il giorno e l'ora che scegli.": ': name, email, your phone number if provided, any notes you add, and the date and time you choose.',
     "nome, email, il telefono se lo scrivi, le note se le aggiungi, e il giorno e l'ora che scegli.": 'name, email, your phone number if provided, any notes you add, and the date and time you choose.',
     'Dati tecnici': 'Technical data',
+    ": indirizzo IP e browser. Per le statistiche di visita l'indirizzo IP viene": ': IP address and browser. For visitor statistics, the IP address is',
     "indirizzo IP e browser. Per le statistiche di visita l'indirizzo IP viene": 'IP address and browser. For visitor statistics, the IP address is',
     'troncato prima di essere salvato': 'truncated before it is stored',
+    ", e quello completo non entra nel database. Resta invece per intero in due casi, ed è scritto qui perché è la differenza che conta: nel conteggio che limita gli invii ripetuti, e insieme a una prenotazione.": ', and the full address is never added to the database. It is retained in full only in the counter that limits repeated submissions and with a booking.',
     "e quello completo non entra nel database. Resta invece per intero in due casi, ed è scritto qui perché è la differenza che conta: nel conteggio che limita gli invii ripetuti, e insieme a una prenotazione.": 'and the full address is never added to the database. It is retained in full only in two cases: in the counter that limits repeated submissions and with a booking.',
     'nessuno sulle pagine pubbliche. Vedi il punto 7.': 'none on public pages. See section 7.',
+    ': nessuno sulle pagine pubbliche. Vedi il punto 7.': ': none on public pages. See section 7.',
     '3. Finalità e base giuridica': '3. Purpose and legal basis',
     'Rispondere alle richieste di contatto e gestire gli appuntamenti (esecuzione di misure precontrattuali, art. 6.1.b GDPR).': 'To respond to contact requests and manage appointments (steps taken prior to entering into a contract, Art. 6(1)(b) GDPR).',
     'Garantire sicurezza e funzionamento del sito, compreso il limite agli invii ripetuti e il riconoscimento dei messaggi automatici (legittimo interesse, art. 6.1.f).': 'To ensure the security and operation of the website, including limiting repeated submissions and detecting automated messages (legitimate interest, Art. 6(1)(f) GDPR).',
@@ -316,6 +322,7 @@
     '6. I tuoi diritti': '6. Your rights',
     'Puoi richiedere accesso, rettifica, cancellazione, limitazione, portabilità e opposizione scrivendo a': 'You may request access, rectification, erasure, restriction, portability and object to processing by writing to',
     'Hai diritto di reclamo al Garante per la protezione dei dati personali.': 'You have the right to lodge a complaint with the Italian Data Protection Authority.',
+    '. Hai diritto di reclamo al Garante per la protezione dei dati personali.': '. You have the right to lodge a complaint with the Italian Data Protection Authority.',
     '7. Cookie': '7. Cookies',
     'Le pagine pubbliche di questo sito non impostano nessun cookie.': 'The public pages of this website do not set any cookies.',
     "Niente cookie di analisi, niente cookie di profilazione, nessun servizio di terze parti che li imposti per conto suo: per questo non c'è nessun consenso da chiedere e nessun banner che lo chieda.": 'There are no analytics or profiling cookies and no third-party service sets them independently; therefore no consent or consent banner is required.',
@@ -332,7 +339,7 @@
     'Il preventivo è gratuito e senza impegno.': 'The quotation is free and non-binding.',
     "Condizioni economiche, acconti e scadenze sono concordati per iscritto prima dell'inizio dei lavori.": 'Commercial terms, deposits and payment dates are agreed in writing before work begins.',
     '4. Proprietà intellettuale': '4. Intellectual property',
-    'Salvo diverso accordo, alla consegna e al saldo il cliente acquisisce i diritti d’uso sul prodotto realizzato. Loghi, marchi e contenuti forniti dal cliente restano di sua proprietà.': 'Unless otherwise agreed, upon delivery and full payment the client acquires the rights to use the completed product. Logos, trademarks and content supplied by the client remain their property.',
+    "Salvo diverso accordo, alla consegna e al saldo il cliente acquisisce i diritti d'uso sul prodotto realizzato. Loghi, marchi e contenuti forniti dal cliente restano di sua proprietà.": 'Unless otherwise agreed, upon delivery and full payment the client acquires the rights to use the completed product. Logos, trademarks and content supplied by the client remain their property.',
     '5. Responsabilità': '5. Liability',
     'Dext Lab si impegna a fornire i servizi con diligenza professionale. Non è responsabile per disservizi dovuti a terzi (hosting, fornitori esterni) o a un uso improprio del prodotto.': 'Dext Lab undertakes to provide services with professional care. It is not liable for disruptions caused by third parties (hosting or external providers) or improper use of the product.',
     '6. Recesso e modifiche': '6. Withdrawal and amendments',
@@ -345,6 +352,7 @@
     'Due passaggi, un minuto': 'Two steps, one minute',
     'Parliamo del tuo': "Let's talk about your",
     'Scegli un orario che ti va bene: mi racconti cos’hai in mente, ti dico come lo farei, quanto costa e quanto ci vuole. Senza giri di parole e senza impegno.': 'Choose a time that suits you: tell me what you have in mind and I will explain how I would build it, what it costs and how long it takes. Straightforward and non-binding.',
+    "Scegli un orario che ti va bene: mi racconti cos'hai in mente, ti dico come lo farei, quanto costa e quanto ci vuole. Senza giri di parole e senza impegno.": 'Choose a time that suits you: tell me what you have in mind and I will explain how I would build it, what it costs and how long it takes. Straightforward and non-binding.',
     'gratis, senza impegno e senza preventivo da firmare': 'free, non-binding, with no quotation to sign',
     'Niente registrazione': 'No registration',
     'nome, email e basta: nessun account da creare': 'just your name and email: no account to create',
@@ -409,6 +417,17 @@
     if (/^Altri \d+ giorni$/.test(normalizedKey)) return normalizedKey.replace('Altri', 'Another').replace('giorni', 'days');
     if (normalizedKey === 'oggi') return 'today';
     if (normalizedKey === 'domani') return 'tomorrow';
+    const termsPrefix = "Questi termini regolano l'uso del sito dextlab.it e i servizi di realizzazione siti web, web app, e-commerce e consulenza informatica offerti da";
+    if (normalizedKey.startsWith(termsPrefix)) {
+      return normalizedKey.replace(termsPrefix, 'These terms govern the use of dextlab.it and the website, web app, e-commerce and IT consulting services offered by');
+    }
+    const disclosurePrefix = 'I dati possono essere trattati da fornitori che agiscono come responsabili: chi ospita il sito e il servizio di posta con cui ricevo le notifiche.';
+    if (normalizedKey.startsWith(disclosurePrefix)) {
+      const telegram = normalizedKey.includes('Telegram')
+        ? ' New-message notifications are also sent through Telegram: the name, email, subject and opening part of the message are transmitted to Telegram.'
+        : '';
+      return 'Data may be processed by service providers acting as processors: the website hosting provider and the email service used to receive notifications.' + telegram + ' Data is never sold or disclosed for marketing, and no advertising profiling takes place.';
+    }
     const dateWords = {
       lunedì: 'Monday', martedì: 'Tuesday', mercoledì: 'Wednesday', giovedì: 'Thursday',
       venerdì: 'Friday', sabato: 'Saturday', domenica: 'Sunday', gennaio: 'January',
@@ -416,7 +435,7 @@
       luglio: 'July', agosto: 'August', settembre: 'September', ottobre: 'October',
       novembre: 'November', dicembre: 'December', alle: 'at'
     };
-    if (/^(lunedì|martedì|mercoledì|giovedì|venerdì|sabato|domenica)\b/.test(normalizedKey)) {
+    if (/^(lunedì|martedì|mercoledì|giovedì|venerdì|sabato|domenica)(?:\s|$)/.test(normalizedKey)) {
       return normalizedKey.split(' ').map((word) => dateWords[word] || word).join(' ');
     }
     return key;
