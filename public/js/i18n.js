@@ -66,6 +66,8 @@
     'Scrivimi due righe, al resto penso io.': 'Write me two lines, I will take it from there.',
     'Seleziona un progetto': 'Choose a project',
     'Apri il sito': 'Open the site',
+    'Prove verificabili': 'Verifiable proof', 'Stato': 'Status',
+    'Percorsi': 'Pages to explore', 'Schermate': 'Screenshots',
     'Ogni voce porta al sito vero: si apre e si guarda. Sotto c\u2019è questo sito, il solo su cui posso mostrarti anche com\u2019è fatto dentro.':
       'Every entry links to the real site: open it and look. Below is this site, the only one where I can also show you how it is built.',
     'E questo sito, che è l\u2019unico di cui posso mostrarti anche l\u2019interno':

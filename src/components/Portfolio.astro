@@ -24,8 +24,8 @@
  * che non si può controllare fa più danno che se non ci fosse, perché siamo nella
  * sezione che dice «fidati, questo è vero».
  */
-import { immagineLavoro, slugLavoro } from '../lib/assets.ts';
-import { paragrafiLavoro, type WorkItem } from '../lib/content.ts';
+import { immagineLavoro, schermateLavoro, slugLavoro } from '../lib/assets.ts';
+import { linkLavoro, paragrafiLavoro, type WorkItem } from '../lib/content.ts';
 
 interface Props {
   lavori: WorkItem[];
@@ -91,6 +91,8 @@ const conFigura = lavori.map((l) => {
     ...l,
     figura: immagineLavoro(l.url),
     pagina: slug && paragrafiLavoro(l.story).length > 0 ? `/lavori/${slug}` : null,
+    percorsi: linkLavoro(l.links).length,
+    schermate: schermateLavoro(l.url).length,
   };
 });
 ---
@@ -181,6 +183,22 @@ const conFigura = lavori.map((l) => {
                     <ul class="work-tags">
                       {etichette(l.tags).map((t) => <li>{t}</li>)}
                     </ul>
+                  )}
+                  {l.pagina && (
+                    <dl class="work-proof" aria-label="Prove verificabili">
+                      <div>
+                        <dt>Stato</dt>
+                        <dd><i aria-hidden="true"></i> online</dd>
+                      </div>
+                      <div>
+                        <dt>Percorsi</dt>
+                        <dd>{l.percorsi}</dd>
+                      </div>
+                      <div>
+                        <dt>Schermate</dt>
+                        <dd>{l.schermate}</dd>
+                      </div>
+                    </dl>
                   )}
                   <div class="work-actions">
                     <a class="btn btn-primary" href={l.url} target="_blank" rel="noopener noreferrer">

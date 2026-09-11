@@ -1296,6 +1296,15 @@ html[data-js="on"] .work-nav{display:grid;grid-template-columns:repeat(3,minmax(
 .work-tags{list-style:none;display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 0;padding:0}
 .work-tags li{padding:5px 10px;border:1px solid var(--border);border-radius:999px;color:var(--muted);
   background:rgba(255,255,255,.02);font-size:.69rem}
+.work-proof{width:100%;display:grid;grid-template-columns:1.2fr 1fr 1fr;margin:24px 0 0;
+  border:1px solid var(--border);border-radius:12px;overflow:hidden;background:rgba(3,8,15,.36)}
+.work-proof>div{display:grid;gap:5px;padding:11px 12px;border-right:1px solid var(--border)}
+.work-proof>div:last-child{border-right:0}
+.work-proof dt{color:var(--muted);font-size:.75rem}
+.work-proof dd{display:flex;align-items:center;gap:7px;margin:0;color:var(--text);
+  font:600 .8rem/1.2 'Space Grotesk',sans-serif}
+.work-proof dd i,.lp-proofbar dd i{width:6px;height:6px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 12px rgba(139,216,158,.8)}
 .work-actions{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:30px}
 .work-actions .btn{padding:11px 17px;font-size:.79rem}
 .work-actions .lavoro-piu{display:inline-flex;align-items:center;gap:7px;color:var(--cyan);
@@ -2211,8 +2220,18 @@ table.gd-norma tbody tr:last-child td{border-bottom:0}
   letter-spacing:.1em}
 .lp-story-step h2{margin:0 0 9px;font-size:1.12rem;letter-spacing:-.02em}
 .lp-story-step p{margin:0;color:var(--muted);line-height:1.75}
+.lp-proofbar{display:grid;grid-template-columns:1.25fr 1fr 1fr;margin:28px 0 0;
+  border:1px solid var(--border);border-radius:14px;overflow:hidden;background:rgba(8,14,25,.72)}
+.lp-proofbar>div{display:grid;gap:7px;padding:15px 17px;border-right:1px solid var(--border)}
+.lp-proofbar>div:last-child{border-right:0}
+.lp-proofbar dt{color:var(--muted);font-size:.76rem}
+.lp-proofbar dd{display:flex;align-items:center;gap:8px;margin:0;color:var(--text);
+  font:600 .86rem/1.25 'Space Grotesk',sans-serif}
 
 @media(max-width:540px){
   .about-person{padding:12px}.about-fit{margin-top:20px}
   .lp-story-step{grid-template-columns:30px minmax(0,1fr);gap:12px;padding:22px 0}
+  .work-proof,.lp-proofbar{grid-template-columns:1fr}
+  .work-proof>div,.lp-proofbar>div{grid-template-columns:1fr auto;align-items:center;border-right:0;border-bottom:1px solid var(--border)}
+  .work-proof>div:last-child,.lp-proofbar>div:last-child{border-bottom:0}
 }

@@ -125,6 +125,20 @@ const ogLavoro = anteprima ? anteprima.split('?')[0] : undefined;
               Apri {dominio} ↗
             </a>
           </p>
+          <dl class="lp-proofbar" aria-label="Prove verificabili">
+            <div>
+              <dt>Stato</dt>
+              <dd><i aria-hidden="true"></i> online adesso</dd>
+            </div>
+            <div>
+              <dt>Percorsi da aprire</dt>
+              <dd>{link.length}</dd>
+            </div>
+            <div>
+              <dt>Schermate reali</dt>
+              <dd>{schermate.length}</dd>
+            </div>
+          </dl>
         </header>
 
         {anteprima && (
