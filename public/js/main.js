@@ -33,6 +33,78 @@
     });
   }
 
+  /* Vetrina lavori
+     ---------------
+     I pannelli sono tutti nel documento e restano tali senza JavaScript. Quando
+     lo script è disponibile, la lista diventa un controllo a schede: frecce,
+     Home ed End funzionano da tastiera e il focus segue la scelta. */
+  document.querySelectorAll('[data-work-console]').forEach((consoleEl) => {
+    const nav = consoleEl.querySelector('.work-nav');
+    const tabs = [...consoleEl.querySelectorAll('[data-work-tab]')];
+    const panels = [...consoleEl.querySelectorAll('[data-work-panel]')];
+    if (!nav || !tabs.length || tabs.length !== panels.length) return;
+
+    nav.setAttribute('role', 'tablist');
+    const activate = (index, moveFocus) => {
+      const next = (index + tabs.length) % tabs.length;
+      tabs.forEach((tab, i) => {
+        const active = i === next;
+        tab.classList.toggle('is-active', active);
+        tab.setAttribute('role', 'tab');
+        tab.setAttribute('aria-selected', String(active));
+        tab.setAttribute('aria-controls', panels[i].id);
+        tab.tabIndex = active ? 0 : -1;
+        panels[i].hidden = !active;
+        panels[i].setAttribute('role', 'tabpanel');
+        panels[i].setAttribute('aria-labelledby', `work-tab-${i + 1}`);
+        tab.id = `work-tab-${i + 1}`;
+      });
+
+      const panel = panels[next];
+      panel.classList.remove('is-entering');
+      if (!menoMoto.matches) requestAnimationFrame(() => panel.classList.add('is-entering'));
+      if (moveFocus) {
+        tabs[next].scrollIntoView({ behavior: menoMoto.matches ? 'auto' : 'smooth', block: 'nearest', inline: 'nearest' });
+        tabs[next].focus();
+      }
+    };
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => activate(index, false));
+      tab.addEventListener('keydown', (event) => {
+        let next = null;
+        if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = index + 1;
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = index - 1;
+        if (event.key === 'Home') next = 0;
+        if (event.key === 'End') next = tabs.length - 1;
+        if (next === null) return;
+        event.preventDefault();
+        activate(next, true);
+      });
+    });
+
+    /* Il movimento segue soltanto un puntatore preciso. Su touch non serve e
+       con movimento ridotto attivo la finestra resta perfettamente ferma. */
+    if (!menoMoto.matches && window.matchMedia('(pointer:fine)').matches) {
+      consoleEl.querySelectorAll('.work-preview').forEach((preview) => {
+        preview.addEventListener('pointermove', (event) => {
+          const box = preview.getBoundingClientRect();
+          const x = (event.clientX - box.left) / box.width - 0.5;
+          const y = (event.clientY - box.top) / box.height - 0.5;
+          preview.style.setProperty('--work-rx', `${(-y * 4).toFixed(2)}deg`);
+          preview.style.setProperty('--work-ry', `${(x * 5).toFixed(2)}deg`);
+        });
+        preview.addEventListener('pointerleave', () => {
+          preview.style.setProperty('--work-rx', '0deg');
+          preview.style.setProperty('--work-ry', '0deg');
+        });
+      });
+    }
+
+    consoleEl.classList.add('is-ready');
+    activate(0, false);
+  });
+
   /* alveare: profondità sullo scorrimento
      ---------------------------------------
      Gli esagoni salgono mentre scendi, ognuno a una velocità sua, e rientrano
@@ -1259,4 +1331,3 @@
     }
   });
 })();
-

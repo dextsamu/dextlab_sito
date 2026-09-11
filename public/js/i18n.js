@@ -63,6 +63,8 @@
     // lasciare la pagina in italiano è meglio del contrario — chi legge in
     // inglese capisce cosa sta per aprire.
     'Guarda da vicino': 'Take a closer look',
+    'Seleziona un progetto': 'Choose a project',
+    'Apri il sito': 'Open the site',
     'Ogni voce porta al sito vero: si apre e si guarda. Sotto c\u2019è questo sito, il solo su cui posso mostrarti anche com\u2019è fatto dentro.':
       'Every entry links to the real site: open it and look. Below is this site, the only one where I can also show you how it is built.',
     'E questo sito, che è l\u2019unico di cui posso mostrarti anche l\u2019interno':
@@ -414,6 +416,10 @@
     const uptime = normalizedKey.match(/^(\d+) (minuti|ore|giorni)$/);
     if (uptime) return `${uptime[1]} ${{ minuti: 'minutes', ore: 'hours', giorni: 'days' }[uptime[2]]}`;
     if (normalizedKey.startsWith('Schermata del sito ')) return normalizedKey.replace('Schermata del sito ', 'Screenshot of ');
+    if (normalizedKey.startsWith('Apri il sito ') && normalizedKey.endsWith(' in una nuova scheda')) {
+      return normalizedKey.replace('Apri il sito ', 'Open ').replace(' in una nuova scheda', ' in a new tab');
+    }
+    if (/^Progetto \d+$/.test(normalizedKey)) return normalizedKey.replace('Progetto', 'Project');
     if (/^Altri \d+ giorni$/.test(normalizedKey)) return normalizedKey.replace('Altri', 'Another').replace('giorni', 'days');
     if (normalizedKey === 'oggi') return 'today';
     if (normalizedKey === 'domani') return 'tomorrow';
@@ -529,4 +535,3 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
-

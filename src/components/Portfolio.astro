@@ -121,79 +121,82 @@ const conFigura = lavori.map((l) => {
 
     {
       conFigura.length > 0 && (
-        <ul class="lavori reveal">
-          {conFigura.map((l) => (
-            <li class="lavoro">
-              {/*
-                Tutta la scheda è il link, e punta al sito vero: su un elenco di
-                lavori l'unica azione che conta è aprirlo, e obbligare a centrare
-                il titolo sarebbe un bersaglio piccolo per niente.
-                rel="noopener" è obbligatorio con target=_blank — senza, la pagina
-                aperta può manipolare quella che l'ha aperta.
+        <div class="work-console reveal" data-work-console>
+          <div class="work-nav" aria-label="Seleziona un progetto">
+            {conFigura.map((l, i) => (
+              <button
+                class="work-tab"
+                type="button"
+                data-work-tab
+                data-work-target={`work-panel-${i + 1}`}
+              >
+                <span class="work-tab-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+                <span class="work-tab-label">
+                  <strong>{l.title}</strong>
+                  <small>{dominio(l.url)}</small>
+                </span>
+                <span class="work-tab-arrow" aria-hidden="true">↗</span>
+              </button>
+            ))}
+          </div>
 
-                L'approfondimento è un secondo link, sotto, e non il bersaglio
-                principale: la prova più forte resta il sito online, non una mia
-                pagina che ne parla. Sono due <a> affiancati e non annidati —
-                un link dentro un altro non è HTML valido, e il browser lo
-                spezzerebbe dove gli conviene.
-              */}
-              <a href={l.url} target="_blank" rel="noopener noreferrer">
-                {l.figura ? (
-                  <img
-                    src={l.figura}
-                    alt={`Schermata del sito ${l.title}`}
-                    class="lavoro-img"
-                    loading="lazy"
-                  />
-                ) : (
-                  /* Senza screenshot la scheda non lascia un buco: il dominio,
-                     grande, fa da figura. È anche l'informazione che conta —
-                     è ciò che il visitatore può andare a controllare. */
-                  <span class="lavoro-dominio" aria-hidden="true">
-                    {dominio(l.url)}
-                  </span>
-                )}
-                <div class="lavoro-testo">
-                  <h3>{l.title}</h3>
-                  <p class="lavoro-url">
-                    {dominio(l.url)}
-                    {/*
-                      «Progetto mio» va detto, non lasciato intendere. Un sito
-                      fatto per un cliente dimostra che sai eseguire una
-                      commessa; un prodotto nato da te dimostra che sai decidere
-                      cosa costruire, ed è la cosa più difficile delle due.
-                      Metterli in fila indistinti sminuisce il secondo — e far
-                      passare per commessa una cosa nata da te non è modestia,
-                      è un'informazione sbagliata.
-                    */}
+          <div class="work-stage" aria-live="polite">
+            {conFigura.map((l, i) => (
+              <article class="work-panel" id={`work-panel-${i + 1}`} data-work-panel>
+                <div class="work-preview">
+                  <div class="work-browserbar" aria-hidden="true">
+                    <span class="work-browser-dots"><i></i><i></i><i></i></span>
+                    <span class="work-browser-address">{dominio(l.url)}</span>
+                    <span class="work-live"><i></i> online</span>
+                  </div>
+                  <a
+                    class="work-screen"
+                    href={l.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Apri il sito ${l.title} in una nuova scheda`}
+                  >
+                    {l.figura ? (
+                      <img
+                        src={l.figura}
+                        alt={`Schermata del sito ${l.title}`}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span class="work-domain-art" aria-hidden="true">{dominio(l.url)}</span>
+                    )}
+                    <span class="work-open">Apri il sito <b aria-hidden="true">↗</b></span>
+                  </a>
+                </div>
+
+                <div class="work-copy">
+                  <div class="work-kicker">
+                    <span>Progetto {String(i + 1).padStart(2, '0')}</span>
                     {l.proprio && <span class="lavoro-mio">progetto mio</span>}
-                  </p>
-                  {l.summary && <p class="lavoro-sunto">{l.summary}</p>}
+                  </div>
+                  <h3>{l.title}</h3>
+                  <p class="work-url">{dominio(l.url)}</p>
+                  {l.summary && <p class="work-summary">{l.summary}</p>}
                   {etichette(l.tags).length > 0 && (
-                    <ul class="lavoro-tag">
-                      {etichette(l.tags).map((t) => (
-                        <li>{t}</li>
-                      ))}
+                    <ul class="work-tags">
+                      {etichette(l.tags).map((t) => <li>{t}</li>)}
                     </ul>
                   )}
+                  <div class="work-actions">
+                    <a class="btn btn-primary" href={l.url} target="_blank" rel="noopener noreferrer">
+                      Apri il sito <span aria-hidden="true">↗</span>
+                    </a>
+                    {l.pagina && (
+                      <a class="work-detail" href={l.pagina}>
+                        Guarda da vicino <span aria-hidden="true">→</span>
+                      </a>
+                    )}
+                  </div>
                 </div>
-              </a>
-              {/*
-                «Guarda da vicino» e non «com'è fatto»: la riga d'apertura della
-                sezione dice che questo sito è il solo di cui posso mostrare
-                com'è fatto dentro, ed è vero — di un sito di un cliente mostro
-                le sue pagine, non il suo codice. Due etichette che si
-                contraddicono a due centimetri di distanza costano più di quanto
-                valga la parola più bella.
-              */}
-              {l.pagina && (
-                <a class="lavoro-piu" href={l.pagina}>
-                  Guarda da vicino <span aria-hidden="true">→</span>
-                </a>
-              )}
-            </li>
-          ))}
-        </ul>
+              </article>
+            ))}
+          </div>
+        </div>
       )
     }
 
