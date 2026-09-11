@@ -6,6 +6,7 @@
  * chi assume gli obblighi non vincolano nessuno.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
+import PageLanguage from '../components/PageLanguage.astro';
 import { getSettings } from '../lib/db.ts';
 import { titolare, identificazione } from '../lib/titolare.ts';
 
@@ -78,4 +79,6 @@ const aggiornata = 'agosto 2026';
     <h2>8. Contatti</h2>
     <p>Per qualsiasi domanda: <a href={`mailto:${t.email}`}>{t.email}</a>.</p>
   </main>
+  <PageLanguage />
 </BaseLayout>
+

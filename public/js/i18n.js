@@ -272,13 +272,153 @@
     'Scrivici su WhatsApp': 'Message us on WhatsApp', 'Apri le risposte rapide': 'Open quick answers'
   });
 
+  // Pagine pubbliche esterne alla landing: la lingua scelta resta la stessa
+  // durante prenotazione, privacy e termini.
+  Object.assign(EN, {
+    '← Torna al sito': '← Back to the website',
+    'Privacy Policy — Dext Lab': 'Privacy Policy — Dext Lab',
+    'Informativa sul trattamento dei dati personali di Dext Lab.': 'Information on how Dext Lab processes personal data.',
+    'Termini e Condizioni — Dext Lab': 'Terms and Conditions — Dext Lab',
+    "Termini e condizioni d'uso del sito e dei servizi Dext Lab.": 'Terms and conditions for using the Dext Lab website and services.',
+    'Prenota una call — Dext Lab': 'Book a call — Dext Lab',
+    'Scegli giorno e ora per una call gratuita di trenta minuti: nessuna registrazione, conferma immediata.': 'Choose a date and time for a free thirty-minute call: no registration and immediate confirmation.',
+    'Il tuo appuntamento — Dext Lab': 'Your appointment — Dext Lab',
+    'Appuntamento non trovato — Dext Lab': 'Appointment not found — Dext Lab',
+    'Orario, dettagli e disdetta del tuo appuntamento.': 'Time, details and cancellation of your appointment.',
+    'Ultimo aggiornamento:': 'Last updated:',
+    'agosto 2026': 'August 2026',
+    // privacy
+    '1. Titolare del trattamento': '1. Data controller',
+    '2. Dati raccolti': '2. Data collected',
+    'Dal modulo di contatto': 'From the contact form',
+    'nome, email, oggetto e messaggio. Se usi il configuratore, anche le risposte che scegli, perché diventano parte della richiesta.': 'name, email, subject and message. If you use the configurator, the answers you select are also collected because they become part of the request.',
+    'Dalla prenotazione di una call': 'When booking a call',
+    "nome, email, il telefono se lo scrivi, le note se le aggiungi, e il giorno e l'ora che scegli.": 'name, email, your phone number if provided, any notes you add, and the date and time you choose.',
+    'Dati tecnici': 'Technical data',
+    "indirizzo IP e browser. Per le statistiche di visita l'indirizzo IP viene": 'IP address and browser. For visitor statistics, the IP address is',
+    'troncato prima di essere salvato': 'truncated before it is stored',
+    "e quello completo non entra nel database. Resta invece per intero in due casi, ed è scritto qui perché è la differenza che conta: nel conteggio che limita gli invii ripetuti, e insieme a una prenotazione.": 'and the full address is never added to the database. It is retained in full only in two cases: in the counter that limits repeated submissions and with a booking.',
+    'nessuno sulle pagine pubbliche. Vedi il punto 7.': 'none on public pages. See section 7.',
+    '3. Finalità e base giuridica': '3. Purpose and legal basis',
+    'Rispondere alle richieste di contatto e gestire gli appuntamenti (esecuzione di misure precontrattuali, art. 6.1.b GDPR).': 'To respond to contact requests and manage appointments (steps taken prior to entering into a contract, Art. 6(1)(b) GDPR).',
+    'Garantire sicurezza e funzionamento del sito, compreso il limite agli invii ripetuti e il riconoscimento dei messaggi automatici (legittimo interesse, art. 6.1.f).': 'To ensure the security and operation of the website, including limiting repeated submissions and detecting automated messages (legitimate interest, Art. 6(1)(f) GDPR).',
+    "Contare le visite in forma aggregata, con l'indirizzo IP già troncato (legittimo interesse, art. 6.1.f). Non è profilazione e non segue nessuno da un sito all'altro.": 'To count visits in aggregate form using an already truncated IP address (legitimate interest, Art. 6(1)(f) GDPR). This is not profiling and does not track anyone across websites.',
+    '4. Conservazione': '4. Retention',
+    'Messaggi e prenotazioni': 'Messages and bookings',
+    "restano finché servono a gestire la richiesta e per gli adempimenti di legge. Puoi chiederne la cancellazione quando vuoi, scrivendo all'indirizzo qui sopra: la eseguo.": 'are retained for as long as needed to handle the request and meet legal obligations. You may ask for their deletion at any time by writing to the address above.',
+    'Il conteggio degli invii': 'The submission counter',
+    'si cancella da solo entro un giorno dalla fine della finestra a cui si riferisce.': 'is automatically deleted within one day after the end of the period it covers.',
+    'Le statistiche di visita': 'Visitor statistics',
+    "nascono già senza l'ultima parte dell'indirizzo IP: non c'è un dato completo da cancellare in un secondo momento.": 'are created without the final part of the IP address, so there is no complete address to delete later.',
+    '5. Comunicazione a terzi': '5. Disclosure to third parties',
+    'I dati possono essere trattati da fornitori che agiscono come responsabili: chi ospita il sito e il servizio di posta con cui ricevo le notifiche.': 'Data may be processed by service providers acting as processors: the website hosting provider and the email service used to receive notifications.',
+    'Non vengono venduti né ceduti per marketing, e non c’è nessuna profilazione pubblicitaria.': 'Data is never sold or disclosed for marketing, and no advertising profiling takes place.',
+    '6. I tuoi diritti': '6. Your rights',
+    'Puoi richiedere accesso, rettifica, cancellazione, limitazione, portabilità e opposizione scrivendo a': 'You may request access, rectification, erasure, restriction, portability and object to processing by writing to',
+    'Hai diritto di reclamo al Garante per la protezione dei dati personali.': 'You have the right to lodge a complaint with the Italian Data Protection Authority.',
+    '7. Cookie': '7. Cookies',
+    'Le pagine pubbliche di questo sito non impostano nessun cookie.': 'The public pages of this website do not set any cookies.',
+    "Niente cookie di analisi, niente cookie di profilazione, nessun servizio di terze parti che li imposti per conto suo: per questo non c'è nessun consenso da chiedere e nessun banner che lo chieda.": 'There are no analytics or profiling cookies and no third-party service sets them independently; therefore no consent or consent banner is required.',
+    "Cookie tecnici esistono solo nell'area riservata, dopo un accesso: servono a mantenere la sessione e a proteggere i form da richieste non autorizzate. Senza di essi il pannello non potrebbe funzionare, e riguardano soltanto chi vi accede.": 'Technical cookies exist only in the restricted area after sign-in. They maintain the session and protect forms against unauthorised requests. The dashboard could not work without them, and they only concern authorised users.',
+    "L'avviso che compare in fondo alla prima visita non è una richiesta di consenso: è solo un avviso, e la sua chiusura viene ricordata nell'archivio locale del browser (": 'The notice shown at the bottom of the first visit is not a consent request. It is only a notice, and dismissing it is remembered in the browser’s local storage (',
+    '), che non è un cookie. Per rivederlo occorre cancellare i dati del sito, non i cookie.': '), which is not a cookie. To see it again, clear the website data rather than the cookies.',
+    // termini
+    'Termini e Condizioni': 'Terms and Conditions',
+    '1. Oggetto': '1. Scope',
+    "Questi termini regolano l'uso del sito dextlab.it e i servizi di realizzazione siti web, web app, e-commerce e consulenza informatica offerti da": 'These terms govern the use of dextlab.it and the website, web app, e-commerce and IT consulting services offered by',
+    '2. Servizi': '2. Services',
+    'Ogni progetto è definito da un preventivo o contratto specifico che indica ambito, tempi, costi e modalità di consegna. I contenuti del sito hanno valore informativo e non costituiscono offerta vincolante.': 'Each project is defined by a specific quotation or contract setting out scope, timeline, costs and delivery terms. Website content is for information only and does not constitute a binding offer.',
+    '3. Preventivi e pagamenti': '3. Quotations and payments',
+    'Il preventivo è gratuito e senza impegno.': 'The quotation is free and non-binding.',
+    "Condizioni economiche, acconti e scadenze sono concordati per iscritto prima dell'inizio dei lavori.": 'Commercial terms, deposits and payment dates are agreed in writing before work begins.',
+    '4. Proprietà intellettuale': '4. Intellectual property',
+    'Salvo diverso accordo, alla consegna e al saldo il cliente acquisisce i diritti d’uso sul prodotto realizzato. Loghi, marchi e contenuti forniti dal cliente restano di sua proprietà.': 'Unless otherwise agreed, upon delivery and full payment the client acquires the rights to use the completed product. Logos, trademarks and content supplied by the client remain their property.',
+    '5. Responsabilità': '5. Liability',
+    'Dext Lab si impegna a fornire i servizi con diligenza professionale. Non è responsabile per disservizi dovuti a terzi (hosting, fornitori esterni) o a un uso improprio del prodotto.': 'Dext Lab undertakes to provide services with professional care. It is not liable for disruptions caused by third parties (hosting or external providers) or improper use of the product.',
+    '6. Recesso e modifiche': '6. Withdrawal and amendments',
+    'Le condizioni di recesso sono definite nel singolo contratto. Dext Lab può aggiornare questi termini; la versione vigente è quella pubblicata su questa pagina.': 'Withdrawal terms are defined in each contract. Dext Lab may update these terms; the current version is the one published on this page.',
+    '7. Legge applicabile': '7. Governing law',
+    'I presenti termini sono regolati dalla legge italiana. Per ogni controversia è competente il foro del luogo di residenza/sede del titolare, salvo norme inderogabili a tutela del consumatore.': 'These terms are governed by Italian law. Any dispute is subject to the court having jurisdiction where the provider resides or is established, without prejudice to mandatory consumer protection rules.',
+    '8. Contatti': '8. Contact',
+    'Per qualsiasi domanda:': 'For any questions:',
+    // prenotazione
+    'Due passaggi, un minuto': 'Two steps, one minute',
+    'Parliamo del tuo': "Let's talk about your",
+    'Scegli un orario che ti va bene: mi racconti cos’hai in mente, ti dico come lo farei, quanto costa e quanto ci vuole. Senza giri di parole e senza impegno.': 'Choose a time that suits you: tell me what you have in mind and I will explain how I would build it, what it costs and how long it takes. Straightforward and non-binding.',
+    'gratis, senza impegno e senza preventivo da firmare': 'free, non-binding, with no quotation to sign',
+    'Niente registrazione': 'No registration',
+    'nome, email e basta: nessun account da creare': 'just your name and email: no account to create',
+    'Sposti quando vuoi': 'Reschedule whenever you like',
+    'con un clic dal link che ti arriva, fino al giorno stesso': 'with one click from the link you receive, up to the same day',
+    'Le prenotazioni online sono chiuse in questo momento. Scrivimi a': 'Online booking is currently closed. Write to me at',
+    'e troviamo un orario: rispondo entro 24 ore.': 'and we will find a time: I reply within 24 hours.',
+    'Hai scelto': 'You selected',
+    'minuti · ora italiana': 'minutes · Italy time',
+    'Cambia orario': 'Change time',
+    'Ultimo passaggio': 'Final step',
+    'Due campi obbligatori. Il resto serve solo a farmi arrivare preparato.': 'Two required fields. The rest simply helps me come prepared.',
+    'Non compilare': 'Do not fill in',
+    'Nome e cognome': 'Full name',
+    'Telefono (se preferisci essere chiamato)': 'Phone (if you prefer a call)',
+    'Di cosa parliamo? (facoltativo)': 'What shall we discuss? (optional)',
+    'Confermo l’appuntamento': 'Confirm appointment',
+    'Subito dopo ti arriva un’email con l’orario, l’evento per il calendario e un link per spostare o disdire. Non uso il tuo indirizzo per altro e non finisce a nessuno:': 'You will immediately receive an email with the time, a calendar event and a link to reschedule or cancel. I do not use your address for anything else or share it with anyone:',
+    'Il primo libero': 'First available',
+    'Scegli questo': 'Choose this',
+    "…oppure prendi l'orario che preferisci": '…or choose the time you prefer',
+    'Questo appuntamento non c’è': 'This appointment does not exist',
+    'Il link non corrisponde a nessun appuntamento. Può essere incompleto, o copiato a metà. Se ti serve un orario,': 'The link does not match any appointment. It may be incomplete or only partially copied. If you need a time,',
+    'l’agenda è qui': 'the booking page is here',
+    'Appuntamento spostato': 'Appointment rescheduled',
+    'Appuntamento confermato': 'Appointment confirmed',
+    'Appuntamento disdetto': 'Appointment cancelled',
+    'Ti arriva un’email': 'You will receive an email',
+    'con l’orario, l’evento per il calendario e il link a questa pagina.': 'with the time, a calendar event and a link to this page.',
+    'Ti chiamo io': 'I will call you',
+    'Se ti cambia un impegno': 'If your plans change',
+    'sposti o disdici da qui, fino al giorno stesso.': 'you can reschedule or cancel here, up to the same day.',
+    'Quando': 'When', 'A nome di': 'Booked for', 'Telefono': 'Phone', 'Note': 'Notes',
+    'Aggiungi al calendario': 'Add to calendar',
+    'Sposta a un altro orario': 'Reschedule',
+    'Disdici l’appuntamento': 'Cancel appointment',
+    'Scegli il nuovo orario': 'Choose a new time',
+    'L’appuntamento di adesso resta valido finché non ne scegli un altro.': 'Your current appointment remains valid until you select another one.',
+    'Hai cambiato idea?': 'Changed your mind?',
+    'Torna alla scheda': 'Back to appointment details',
+    'Se ti serve un altro orario,': 'If you need another time,',
+    'Richiesta non valida.': 'Invalid request.',
+    'Serve il nome.': 'Please enter your name.',
+    'Controlla l’indirizzo email: è dove arriva la conferma.': 'Check the email address: that is where the confirmation will be sent.'
+  });
+
   function translatedText(key) {
+    const normalizedKey = key.replace(/\s+/g, ' ');
     if (EN[key]) return EN[key];
-    const weeks = key.match(/^circa (\d+) settiman[ae]$/);
+    if (EN[normalizedKey]) return EN[normalizedKey];
+    const weeks = normalizedKey.match(/^circa (\d+) settiman[ae]$/);
     if (weeks) return `about ${weeks[1]} ${weeks[1] === '1' ? 'week' : 'weeks'}`;
-    const uptime = key.match(/^(\d+) (minuti|ore|giorni)$/);
+    const uptimeSingular = {
+      '1 minuto': '1 minute',
+      '1 ora': '1 hour',
+      '1 giorno': '1 day',
+    };
+    if (uptimeSingular[normalizedKey]) return uptimeSingular[normalizedKey];
+    const uptime = normalizedKey.match(/^(\d+) (minuti|ore|giorni)$/);
     if (uptime) return `${uptime[1]} ${{ minuti: 'minutes', ore: 'hours', giorni: 'days' }[uptime[2]]}`;
-    if (key.startsWith('Schermata del sito ')) return key.replace('Schermata del sito ', 'Screenshot of ');
+    if (normalizedKey.startsWith('Schermata del sito ')) return normalizedKey.replace('Schermata del sito ', 'Screenshot of ');
+    if (/^Altri \d+ giorni$/.test(normalizedKey)) return normalizedKey.replace('Altri', 'Another').replace('giorni', 'days');
+    if (normalizedKey === 'oggi') return 'today';
+    if (normalizedKey === 'domani') return 'tomorrow';
+    const dateWords = {
+      lunedì: 'Monday', martedì: 'Tuesday', mercoledì: 'Wednesday', giovedì: 'Thursday',
+      venerdì: 'Friday', sabato: 'Saturday', domenica: 'Sunday', gennaio: 'January',
+      febbraio: 'February', marzo: 'March', aprile: 'April', maggio: 'May', giugno: 'June',
+      luglio: 'July', agosto: 'August', settembre: 'September', ottobre: 'October',
+      novembre: 'November', dicembre: 'December', alle: 'at'
+    };
+    if (/^(lunedì|martedì|mercoledì|giovedì|venerdì|sabato|domenica)\b/.test(normalizedKey)) {
+      return normalizedKey.split(' ').map((word) => dateWords[word] || word).join(' ');
+    }
     return key;
   }
 
@@ -288,6 +428,9 @@
   };
 
   const orig = new Map(); // node -> original italian text
+  const titleIt = document.title;
+  const description = document.querySelector('meta[name="description"]');
+  const descriptionIt = description?.getAttribute('content') || '';
   let collected = false;
 
   function collect() {
@@ -334,6 +477,10 @@
       el.setAttribute('placeholder', lang === 'en' && placeholders[base] ? placeholders[base] : base);
     });
     document.documentElement.lang = lang;
+    document.title = lang === 'en' ? translatedText(titleIt) : titleIt;
+    if (description) {
+      description.setAttribute('content', lang === 'en' ? translatedText(descriptionIt) : descriptionIt);
+    }
     window.__dextLang = lang;
     document.querySelectorAll('.lang-btn').forEach((b) =>
       b.classList.toggle('active', b.dataset.lang === lang)
@@ -363,3 +510,4 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
+

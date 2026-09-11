@@ -874,13 +874,22 @@
     );
     document.addEventListener('langchange', compute);
 
+    const oggettoPreventivo = () =>
+      document.documentElement.lang === 'en'
+        ? 'Quote request (configurator)'
+        : 'Richiesta preventivo (configuratore)';
+
     // prefill contact message on CTA click
     elCta.addEventListener('click', () => {
       const msgField = document.getElementById('message');
       const subj = document.getElementById('subject');
       if (msgField && elCta.dataset.msg) {
         msgField.value = elCta.dataset.msg;
-        if (subj) subj.value = 'Richiesta preventivo (configuratore)';
+        msgField.dataset.cfgPrefill = '1';
+        if (subj) {
+          subj.value = oggettoPreventivo();
+          subj.dataset.cfgPrefill = '1';
+        }
         msgField.dispatchEvent(new Event('input', { bubbles: true }));
       }
       // Il pulsante riempiva il form e portava ai contatti senza dire niente:
@@ -1009,9 +1018,26 @@
       const ogg = document.getElementById('subject');
       if (campo && !campo.value && elCta.dataset.msg) {
         campo.value = elCta.dataset.msg;
-        if (ogg && !ogg.value) ogg.value = 'Richiesta preventivo (configuratore)';
+        campo.dataset.cfgPrefill = '1';
+        if (ogg && !ogg.value) {
+          ogg.value = oggettoPreventivo();
+          ogg.dataset.cfgPrefill = '1';
+        }
       }
     }
+
+    /* Se la lingua cambia dopo avere copiato la richiesta nel modulo, anche i
+       due campi generati dal configuratore seguono la scelta. I testi scritti
+       a mano dal visitatore non vengono mai toccati. */
+    document.addEventListener('langchange', () => {
+      const campo = document.getElementById('message');
+      const ogg = document.getElementById('subject');
+      if (campo?.dataset.cfgPrefill === '1' && elCta.dataset.msg) {
+        campo.value = elCta.dataset.msg;
+        campo.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      if (ogg?.dataset.cfgPrefill === '1') ogg.value = oggettoPreventivo();
+    });
 
     /* ---- Copia il link ------------------------------------------------------- */
     if (elLink) {
@@ -1233,3 +1259,4 @@
     }
   });
 })();
+

@@ -1,0 +1,11 @@
+---
+/** Selettore compatto per le pagine pubbliche che non hanno la navigazione della home. */
+import { versioned } from '../lib/assets.ts';
+---
+
+<div class="page-lang" role="group" aria-label="Lingua">
+  <button type="button" class="lang-btn active" data-lang="it">IT</button>
+  <button type="button" class="lang-btn" data-lang="en">EN</button>
+</div>
+<script is:inline src={versioned('/js/i18n.js')}></script>
+

@@ -14,6 +14,7 @@
  * il link nell'email.
  */
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageLanguage from '../../components/PageLanguage.astro';
 import { query, tryQuery, getSettings } from '../../lib/db.ts';
 import {
   agendaPubblica,
@@ -315,4 +316,6 @@ const altriGiorni = giorniLiberiOra.slice(5);
       )
     }
   </main>
+  <PageLanguage />
 </BaseLayout>
+

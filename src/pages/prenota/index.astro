@@ -17,6 +17,7 @@
  * istante, ed è lì che due persone che premono insieme si incontrano.
  */
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageLanguage from '../../components/PageLanguage.astro';
 import { getSettings, query, rateLimit, origineDaVisita } from '../../lib/db.ts';
 import { agendaPubblica, slotAmmesso, quandoPerEsteso, dataItaliana } from '../../lib/agenda.ts';
 import { mailConfig, sendAppointmentMails } from '../../lib/mail.ts';
@@ -366,4 +367,6 @@ const rassicurazioni = [
       )
     }
   </main>
+  <PageLanguage />
 </BaseLayout>
+
