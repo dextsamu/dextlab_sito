@@ -78,7 +78,15 @@ services:
       - traefik.http.routers.dext.tls.certresolver=letsencrypt
       # La porta è quella del server Node, non più quella di Apache.
       - traefik.http.services.dext.loadbalancer.server.port=4321
-      - "traefik.http.routers.dext.middlewares=dext-sec"
+      # www -> dominio nudo, permanente. Prima www.dextlab.it rispondeva 200 con
+      # la stessa pagina: due indirizzi per un solo sito, e il canonical (da
+      # SITE_URL) diceva l'uno mentre il browser mostrava l'altro. La regola
+      # tocca solo gli host che iniziano con "www.": l'host di prova resta
+      # servito com'e'.
+      - "traefik.http.routers.dext.middlewares=dext-www,dext-sec"
+      - "traefik.http.middlewares.dext-www.redirectregex.regex=^https?://www\\.(.+)"
+      - "traefik.http.middlewares.dext-www.redirectregex.replacement=https://$${1}"
+      - traefik.http.middlewares.dext-www.redirectregex.permanent=true
       # Header di sicurezza: con Node non ci sono più .htaccess a impostarli.
       - traefik.http.middlewares.dext-sec.headers.contentTypeNosniff=true
       - traefik.http.middlewares.dext-sec.headers.referrerPolicy=strict-origin-when-cross-origin
